@@ -84,7 +84,7 @@ export default function VerifyPage() {
           </div>
           <h1 className="text-2xl font-bold text-gray-900">Verify Your Identity</h1>
           <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
-            To keep Our Space safe, we need to confirm you&apos;re a real person. Enter the 6-digit verification code.
+            To keep Our Place safe, we need to confirm you&apos;re a real person. Enter the 6-digit verification code.
           </p>
         </div>
 

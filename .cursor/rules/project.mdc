@@ -1,0 +1,65 @@
+---
+description: Our Place project architecture, file map, and conventions
+alwaysApply: true
+---
+
+# Our Place — Project Context
+
+Community-first social media platform with one-human-one-account verification.
+
+## Tech Stack
+
+- **Framework**: Next.js 16 (App Router) with TypeScript
+- **Database**: SQLite via `better-sqlite3` (file: `data/our-place.db`)
+- **Auth**: JWT in httpOnly cookies, verification code flow
+- **Styling**: Tailwind CSS (indigo/purple primary palette)
+- **Package manager**: npm
+
+## File Map
+
+### Core Libraries (`src/lib/`)
+- `db.ts` — SQLite connection, schema (6 tables), indexes, seed data (12 official communities)
+- `auth.ts` — `signToken`, `verifyToken`, `getAuthUser`, `generateVerificationCode`
+- `types.ts` — All TypeScript interfaces (`User`, `Community`, `Post`, `Comment`, `Reaction`, etc.) and constants (`COMMUNITY_CATEGORIES`, `AVATAR_COLORS`)
+
+### Components (`src/components/`)
+- `AuthProvider.tsx` — Client-side auth context (`useAuth` hook: `user`, `loading`, `refresh`, `logout`)
+- `Navbar.tsx` — Top navigation with auth-aware menu
+- `PostCard.tsx` — Post display with reactions and inline comments
+- `CommunityCard.tsx` — Community preview card for grid layouts
+- `CreatePostForm.tsx` — Expandable post creation form
+
+### API Routes (`src/app/api/`)
+- `auth/register` — POST: create account (enforces unique email + phone + username)
+- `auth/login` — POST: sign in with email or username
+- `auth/verify` — POST: submit 6-digit verification code
+- `auth/me` — GET: current user; DELETE: logout
+- `communities` — GET: list/search/filter; POST: create community
+- `communities/[id]` — GET: community detail with members
+- `communities/[id]/join` — POST: join community
+- `communities/[id]/leave` — POST: leave community
+- `communities/[id]/posts` — GET: list posts; POST: create post
+- `posts/[id]/comments` — GET: list; POST: add comment
+- `posts/[id]/reactions` — POST: toggle reaction
+- `feed` — GET: posts from user's joined communities
+
+### Pages (`src/app/`)
+- `/` — Landing page (redirects to `/feed` if verified)
+- `/auth/register`, `/auth/login`, `/auth/verify` — Auth flow
+- `/feed` — Personalized feed + sidebar with joined communities
+- `/communities` — Browse/search/filter all communities
+- `/communities/[slug]` — Community detail with posts and members
+- `/communities/create` — Create new community form
+- `/profile` — User profile with community list
+
+## Database Tables
+
+`users`, `communities`, `community_members`, `posts`, `comments`, `reactions`
+
+## Conventions
+
+- Pages needing auth redirect to `/auth/login` if not logged in, `/auth/verify` if unverified
+- All API routes return JSON with `{ error: string }` on failure
+- UUIDs (v4) for all primary keys
+- Community lookup works by both `id` and `slug`
+- Only community members can post or comment within that community

@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
-const DB_PATH = process.env.DATABASE_PATH || './data/our-space.db';
+const DB_PATH = process.env.DATABASE_PATH || './data/our-place.db';
 
 let db: Database.Database;
 
@@ -30,6 +30,8 @@ function initializeDatabase() {
       is_verified INTEGER DEFAULT 0,
       verification_code TEXT,
       verification_expires_at TEXT,
+      reset_code TEXT,
+      reset_code_expires_at TEXT,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now'))
     );
@@ -96,6 +98,50 @@ function initializeDatabase() {
       UNIQUE(post_id, user_id)
     );
 
+    CREATE TABLE IF NOT EXISTS friendships (
+      id TEXT PRIMARY KEY,
+      user_id TEXT NOT NULL,
+      friend_id TEXT NOT NULL,
+      status TEXT DEFAULT 'pending',
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (friend_id) REFERENCES users(id),
+      UNIQUE(user_id, friend_id)
+    );
+
+    CREATE TABLE IF NOT EXISTS events (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      location TEXT DEFAULT '',
+      event_date TEXT NOT NULL,
+      event_end_date TEXT,
+      community_id TEXT,
+      creator_id TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (community_id) REFERENCES communities(id),
+      FOREIGN KEY (creator_id) REFERENCES users(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS event_rsvps (
+      id TEXT PRIMARY KEY,
+      event_id TEXT NOT NULL,
+      user_id TEXT NOT NULL,
+      status TEXT DEFAULT 'going',
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (event_id) REFERENCES events(id),
+      FOREIGN KEY (user_id) REFERENCES users(id),
+      UNIQUE(event_id, user_id)
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_friendships_user ON friendships(user_id);
+    CREATE INDEX IF NOT EXISTS idx_friendships_friend ON friendships(friend_id);
+    CREATE INDEX IF NOT EXISTS idx_events_date ON events(event_date);
+    CREATE INDEX IF NOT EXISTS idx_events_community ON events(community_id);
+    CREATE INDEX IF NOT EXISTS idx_events_creator ON events(creator_id);
+    CREATE INDEX IF NOT EXISTS idx_event_rsvps_event ON event_rsvps(event_id);
+    CREATE INDEX IF NOT EXISTS idx_event_rsvps_user ON event_rsvps(user_id);
+
     CREATE INDEX IF NOT EXISTS idx_community_members_user ON community_members(user_id);
     CREATE INDEX IF NOT EXISTS idx_community_members_community ON community_members(community_id);
     CREATE INDEX IF NOT EXISTS idx_posts_community ON posts(community_id);
@@ -122,19 +168,19 @@ function seedCommunities() {
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     systemUserId,
-    'ourspace',
-    'Our Space',
-    'system@ourspace.community',
+    'ourplace',
+    'Our Place',
+    'system@ourplace.community',
     '0000000000',
     '$2a$12$placeholder.hash.for.system.user.only',
-    'The official Our Space community account.',
+    'The official Our Place community account.',
     '#6366f1',
     1
   );
 
   const communities = [
-    { name: 'Welcome Center', slug: 'welcome-center', description: 'New to Our Space? Start here! Introduce yourself, ask questions, and learn how to make the most of your experience.', category: 'General', icon: '👋', banner_color: '#6366f1', guidelines: 'Be welcoming and supportive. Help new members find their way.' },
-    { name: 'Community Support', slug: 'community-support', description: 'Need help or have feedback? This is the place to connect with the Our Space team and fellow community members.', category: 'Support & Advice', icon: '🤝', banner_color: '#8b5cf6', guidelines: 'Be patient, constructive, and respectful when offering support.' },
+    { name: 'Welcome Center', slug: 'welcome-center', description: 'New to Our Place? Start here! Introduce yourself, ask questions, and learn how to make the most of your experience.', category: 'General', icon: '👋', banner_color: '#6366f1', guidelines: 'Be welcoming and supportive. Help new members find their way.' },
+    { name: 'Community Support', slug: 'community-support', description: 'Need help or have feedback? This is the place to connect with the Our Place team and fellow community members.', category: 'Support & Advice', icon: '🤝', banner_color: '#8b5cf6', guidelines: 'Be patient, constructive, and respectful when offering support.' },
     { name: 'Creative Corner', slug: 'creative-corner', description: 'A space for artists, writers, musicians, and creators of all kinds to share their work, get feedback, and inspire each other.', category: 'Arts & Culture', icon: '🎨', banner_color: '#d946ef', guidelines: 'Always give credit. Constructive feedback only. Celebrate creativity in all forms.' },
     { name: 'Tech & Innovation', slug: 'tech-innovation', description: 'Discuss the latest in technology, share projects, ask for help with coding, and explore the future of innovation together.', category: 'Technology', icon: '💡', banner_color: '#0ea5e9', guidelines: 'Share knowledge freely. No gatekeeping. Help others learn.' },
     { name: 'Health & Wellness', slug: 'health-wellness', description: 'Support each other on journeys toward better physical and mental health. Share tips, experiences, and encouragement.', category: 'Health & Wellness', icon: '🌿', banner_color: '#10b981', guidelines: 'Be sensitive and supportive. No medical advice — encourage professional help when needed.' },

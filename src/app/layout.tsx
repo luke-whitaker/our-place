@@ -15,7 +15,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Our Space — Community-First Social Platform",
+  title: "Our Place — Community-First Social Platform",
   description: "A safe, secure, and collaborative social platform built around real communities. One human, one account.",
 };
 

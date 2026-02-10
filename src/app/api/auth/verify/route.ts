@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     const token = signToken({ userId: user.id, username: user.username, is_verified: 1 });
 
     const response = NextResponse.json({
-      message: 'Your identity has been verified! Welcome to Our Space.',
+      message: 'Your identity has been verified! Welcome to Our Place.',
       user: {
         id: user.id,
         username: user.username,

@@ -86,7 +86,7 @@ export default function CreateCommunityPage() {
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-gray-900">Create a Community</h1>
         <p className="mt-2 text-sm text-gray-500">
-          Build a new space around a topic, interest, or cause that doesn&apos;t already exist on Our Space.
+          Build a new space around a topic, interest, or cause that doesn&apos;t already exist on Our Place.
         </p>
       </div>
 

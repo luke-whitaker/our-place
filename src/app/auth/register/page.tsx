@@ -72,9 +72,9 @@ export default function RegisterPage() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-lg font-bold shadow-lg shadow-indigo-500/25 mb-4">
-            OS
+            OP
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Join Our Space</h1>
+          <h1 className="text-2xl font-bold text-gray-900">Join Our Place</h1>
           <p className="mt-2 text-sm text-gray-500">
             One human, one account. Create yours below.
           </p>
@@ -176,7 +176,7 @@ export default function RegisterPage() {
                 <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75 11.25 15 15 9.75m-3-7.036A11.959 11.959 0 0 1 3.598 6 11.99 11.99 0 0 0 3 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285Z" />
               </svg>
               <p className="text-xs text-indigo-700 leading-relaxed">
-                <strong>One Human, One Account:</strong> Our Space requires each person to have exactly one account. Your email and phone number are used to verify your unique identity and prevent duplicate accounts.
+                <strong>One Human, One Account:</strong> Our Place requires each person to have exactly one account. Your email and phone number are used to verify your unique identity and prevent duplicate accounts.
               </p>
             </div>
           </div>

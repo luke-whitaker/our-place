@@ -44,7 +44,7 @@ export default function Home() {
           <h1 className="text-5xl font-bold tracking-tight text-gray-900 sm:text-6xl lg:text-7xl">
             Welcome to{' '}
             <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">
-              Our Space
+              Our Place
             </span>
           </h1>
 
@@ -76,7 +76,7 @@ export default function Home() {
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">Social media, reimagined</h2>
             <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">
-              We designed Our Space from the ground up to prioritize what matters most — you and your community.
+              We designed Our Place from the ground up to prioritize what matters most — you and your community.
             </p>
           </div>
 
@@ -162,9 +162,9 @@ export default function Home() {
         <div className="mx-auto max-w-6xl text-center">
           <div className="flex items-center justify-center gap-2.5 mb-4">
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold">
-              OS
+              OP
             </div>
-            <span className="text-base font-bold text-gray-900">Our Space</span>
+            <span className="text-base font-bold text-gray-900">Our Place</span>
           </div>
           <p className="text-sm text-gray-400">
             Built for real people. Powered by real community.

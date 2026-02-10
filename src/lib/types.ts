@@ -10,6 +10,8 @@ export interface User {
   is_verified: number;
   verification_code: string | null;
   verification_expires_at: string | null;
+  reset_code: string | null;
+  reset_code_expires_at: string | null;
   created_at: string;
   updated_at: string;
 }
@@ -97,6 +99,44 @@ export interface AuthPayload {
   userId: string;
   username: string;
   is_verified: number;
+}
+
+export interface Friendship {
+  id: string;
+  user_id: string;
+  friend_id: string;
+  status: 'pending' | 'accepted' | 'declined';
+  created_at: string;
+  friend_name?: string;
+  friend_username?: string;
+  friend_avatar_color?: string;
+}
+
+export interface Event {
+  id: string;
+  title: string;
+  description: string;
+  location: string;
+  event_date: string;
+  event_end_date: string | null;
+  community_id: string | null;
+  creator_id: string;
+  created_at: string;
+  creator_name?: string;
+  creator_username?: string;
+  creator_avatar_color?: string;
+  community_name?: string;
+  community_icon?: string;
+  rsvp_count?: number;
+  user_rsvp?: string | null;
+}
+
+export interface EventRsvp {
+  id: string;
+  event_id: string;
+  user_id: string;
+  status: string;
+  created_at: string;
 }
 
 export const COMMUNITY_CATEGORIES = [
