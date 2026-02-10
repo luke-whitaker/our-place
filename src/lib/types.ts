@@ -46,10 +46,36 @@ export interface CommunityWithMembership extends Community {
   role: string | null;
 }
 
+export type PostType = 'text' | 'photo' | 'video' | 'rich';
+
+export interface PostMedia {
+  id: string;
+  post_id: string;
+  media_type: 'image' | 'video';
+  media_source: 'upload' | 'youtube' | 'vimeo' | 'external';
+  url: string;
+  filename: string | null;
+  file_size: number | null;
+  width: number | null;
+  height: number | null;
+  sort_order: number;
+  created_at: string;
+}
+
+export interface RichContentBlock {
+  type: 'text' | 'image' | 'video';
+  content?: string;
+  url?: string;
+  alt?: string;
+  media_source?: 'upload' | 'youtube' | 'vimeo';
+}
+
 export interface Post {
   id: string;
   author_id: string;
-  community_id: string;
+  community_id: string | null;
+  post_type: PostType;
+  posted_to_profile: number;
   title: string;
   content: string;
   comment_count: number;
@@ -63,6 +89,7 @@ export interface Post {
   community_slug?: string;
   community_icon?: string;
   user_reaction?: string | null;
+  media?: PostMedia[];
 }
 
 export interface Comment {

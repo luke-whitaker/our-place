@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { Post, Comment } from '@/lib/types';
+import { Post, PostMedia, Comment, RichContentBlock } from '@/lib/types';
+import { parseVideoUrl } from '@/lib/media-utils';
 import { useAuth } from './AuthProvider';
 
 function timeAgo(dateString: string): string {
@@ -17,6 +18,251 @@ function timeAgo(dateString: string): string {
   return new Date(dateString).toLocaleDateString();
 }
 
+// ── Photo Gallery ──
+function PhotoGallery({ media }: { media: PostMedia[] }) {
+  const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
+  const images = media.filter(m => m.media_type === 'image');
+  if (images.length === 0) return null;
+
+  const count = images.length;
+
+  return (
+    <>
+      <div className="mt-3 overflow-hidden rounded-xl">
+        {count === 1 && (
+          <button type="button" onClick={() => setLightboxIdx(0)} className="block w-full">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={images[0].url}
+              alt=""
+              className="w-full object-cover cursor-pointer transition-transform hover:scale-[1.02]"
+              style={{ maxHeight: '400px' }}
+            />
+          </button>
+        )}
+
+        {count === 2 && (
+          <div className="grid grid-cols-2 gap-0.5">
+            {images.map((img, i) => (
+              <button key={img.id} type="button" onClick={() => setLightboxIdx(i)} className="block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img.url} alt="" className="aspect-square w-full object-cover cursor-pointer transition-transform hover:scale-[1.02]" />
+              </button>
+            ))}
+          </div>
+        )}
+
+        {count === 3 && (
+          <div className="grid grid-cols-2 gap-0.5" style={{ height: '300px' }}>
+            <button type="button" onClick={() => setLightboxIdx(0)} className="row-span-2 block h-full">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={images[0].url} alt="" className="h-full w-full object-cover cursor-pointer transition-transform hover:scale-[1.02]" />
+            </button>
+            <button type="button" onClick={() => setLightboxIdx(1)} className="block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={images[1].url} alt="" className="h-full w-full object-cover cursor-pointer transition-transform hover:scale-[1.02]" />
+            </button>
+            <button type="button" onClick={() => setLightboxIdx(2)} className="block">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={images[2].url} alt="" className="h-full w-full object-cover cursor-pointer transition-transform hover:scale-[1.02]" />
+            </button>
+          </div>
+        )}
+
+        {count >= 4 && (
+          <div className="grid grid-cols-2 gap-0.5" style={{ height: '300px' }}>
+            {images.slice(0, 4).map((img, i) => (
+              <button key={img.id} type="button" onClick={() => setLightboxIdx(i)} className="relative block">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={img.url} alt="" className="h-full w-full object-cover cursor-pointer transition-transform hover:scale-[1.02]" />
+                {i === 3 && count > 4 && (
+                  <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                    <span className="text-2xl font-bold text-white">+{count - 4}</span>
+                  </div>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Lightbox */}
+      {lightboxIdx !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+          onClick={() => setLightboxIdx(null)}
+        >
+          <div className="relative max-h-[90vh] max-w-[90vw]" onClick={(e) => e.stopPropagation()}>
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={images[lightboxIdx].url}
+              alt=""
+              className="max-h-[90vh] max-w-[90vw] rounded-lg object-contain"
+            />
+
+            {/* Close */}
+            <button
+              type="button"
+              onClick={() => setLightboxIdx(null)}
+              className="absolute -right-2 -top-2 rounded-full bg-white p-1.5 shadow-lg hover:bg-gray-100"
+            >
+              <svg className="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18 18 6M6 6l12 12" />
+              </svg>
+            </button>
+
+            {/* Prev / Next */}
+            {images.length > 1 && (
+              <>
+                {lightboxIdx > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => setLightboxIdx(lightboxIdx - 1)}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-2 shadow hover:bg-white"
+                  >
+                    <svg className="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
+                    </svg>
+                  </button>
+                )}
+                {lightboxIdx < images.length - 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setLightboxIdx(lightboxIdx + 1)}
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-2 shadow hover:bg-white"
+                  >
+                    <svg className="h-5 w-5 text-gray-700" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="m8.25 4.5 7.5 7.5-7.5 7.5" />
+                    </svg>
+                  </button>
+                )}
+              </>
+            )}
+
+            {/* Counter */}
+            {images.length > 1 && (
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-white">
+                {lightboxIdx + 1} / {images.length}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
+// ── Video Player ──
+function VideoPlayer({ media }: { media: PostMedia }) {
+  if (media.media_source === 'youtube' || media.media_source === 'vimeo') {
+    const parsed = parseVideoUrl(media.url);
+    if (!parsed) return null;
+    return (
+      <div className="mt-3 aspect-video overflow-hidden rounded-xl">
+        <iframe
+          src={parsed.embedUrl}
+          className="h-full w-full"
+          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+          allowFullScreen
+        />
+      </div>
+    );
+  }
+
+  // Uploaded video
+  return (
+    <div className="mt-3 overflow-hidden rounded-xl">
+      <video src={media.url} controls className="w-full" style={{ maxHeight: '400px' }} />
+    </div>
+  );
+}
+
+// ── Rich Content Renderer ──
+function RichContentRenderer({ content }: { content: string }) {
+  let blocks: RichContentBlock[];
+  try {
+    blocks = JSON.parse(content);
+    if (!Array.isArray(blocks)) return <p className="text-sm text-gray-600">{content}</p>;
+  } catch {
+    // Fallback: render as plain text (for backwards compat)
+    return <p className="mt-1.5 text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{content}</p>;
+  }
+
+  return (
+    <div className="mt-3 space-y-3">
+      {blocks.map((block, idx) => {
+        if (block.type === 'text' && block.content) {
+          return (
+            <p key={idx} className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+              {block.content}
+            </p>
+          );
+        }
+        if (block.type === 'image' && block.url) {
+          return (
+            <div key={idx} className="overflow-hidden rounded-xl">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={block.url}
+                alt={block.alt || ''}
+                className="w-full object-cover"
+                style={{ maxHeight: '400px' }}
+              />
+              {block.alt && (
+                <p className="mt-1 text-xs text-gray-400 italic">{block.alt}</p>
+              )}
+            </div>
+          );
+        }
+        if (block.type === 'video' && block.url) {
+          if (block.media_source === 'youtube' || block.media_source === 'vimeo') {
+            const parsed = parseVideoUrl(block.url);
+            if (parsed) {
+              return (
+                <div key={idx} className="aspect-video overflow-hidden rounded-xl">
+                  <iframe
+                    src={parsed.embedUrl}
+                    className="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                </div>
+              );
+            }
+          }
+          return (
+            <div key={idx} className="overflow-hidden rounded-xl">
+              <video src={block.url} controls className="w-full" style={{ maxHeight: '400px' }} />
+            </div>
+          );
+        }
+        return null;
+      })}
+    </div>
+  );
+}
+
+// ── Post Type Badge ──
+function PostTypeBadge({ postType }: { postType: string }) {
+  if (postType === 'text' || !postType) return null;
+
+  const config: Record<string, { label: string; color: string }> = {
+    photo: { label: 'Photo', color: 'bg-emerald-50 text-emerald-600' },
+    video: { label: 'Video', color: 'bg-purple-50 text-purple-600' },
+    rich: { label: 'Rich', color: 'bg-amber-50 text-amber-600' },
+  };
+
+  const c = config[postType];
+  if (!c) return null;
+
+  return (
+    <span className={`inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-semibold ${c.color}`}>
+      {c.label}
+    </span>
+  );
+}
+
+// ── Main PostCard ──
 export default function PostCard({ post, showCommunity = true }: { post: Post; showCommunity?: boolean }) {
   const { user } = useAuth();
   const [reacted, setReacted] = useState(!!post.user_reaction);
@@ -27,6 +273,9 @@ export default function PostCard({ post, showCommunity = true }: { post: Post; s
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const [loadingComments, setLoadingComments] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
+
+  const postType = post.post_type || 'text';
+  const media = post.media || [];
 
   async function toggleReaction() {
     if (!user) return;
@@ -72,7 +321,6 @@ export default function PostCard({ post, showCommunity = true }: { post: Post; s
       if (res.ok) {
         setCommentText('');
         setCommentCount(prev => prev + 1);
-        // Reload comments
         const res2 = await fetch(`/api/posts/${post.id}/comments`);
         const data = await res2.json();
         setComments(data.comments || []);
@@ -98,25 +346,76 @@ export default function PostCard({ post, showCommunity = true }: { post: Post; s
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-semibold text-gray-900">{post.author_name}</span>
               <span className="text-xs text-gray-400">@{post.author_username}</span>
-              <span className="text-xs text-gray-300">·</span>
+              <span className="text-xs text-gray-300">&middot;</span>
               <span className="text-xs text-gray-400">{timeAgo(post.created_at)}</span>
+              <PostTypeBadge postType={postType} />
             </div>
-            {showCommunity && post.community_name && (
-              <Link
-                href={`/communities/${post.community_slug}`}
-                className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700 mt-0.5"
-              >
-                <span>{post.community_icon}</span>
-                <span>{post.community_name}</span>
-              </Link>
-            )}
+            <div className="flex items-center gap-2 flex-wrap mt-0.5">
+              {showCommunity && post.community_name && post.community_slug && (
+                <Link
+                  href={`/communities/${post.community_slug}`}
+                  className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700"
+                >
+                  <span>{post.community_icon}</span>
+                  <span>{post.community_name}</span>
+                </Link>
+              )}
+              {!post.community_id && (
+                <span className="inline-flex items-center gap-1 text-xs text-violet-600">
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                  </svg>
+                  My Place
+                </span>
+              )}
+              {post.community_id && post.posted_to_profile === 1 && (
+                <span className="inline-flex items-center gap-1 text-xs text-violet-500">
+                  <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25" />
+                  </svg>
+                  My Place
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Content */}
+        {/* Content — varies by post type */}
         <div className="mt-3">
-          <h3 className="text-base font-semibold text-gray-900 leading-snug">{post.title}</h3>
-          <p className="mt-1.5 text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+          {/* Title (shown for all types if present) */}
+          {post.title && (
+            <h3 className="text-base font-semibold text-gray-900 leading-snug">{post.title}</h3>
+          )}
+
+          {/* Text Post */}
+          {postType === 'text' && post.content && (
+            <p className="mt-1.5 text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+          )}
+
+          {/* Photo Post */}
+          {postType === 'photo' && (
+            <>
+              <PhotoGallery media={media} />
+              {post.content && (
+                <p className="mt-2 text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+              )}
+            </>
+          )}
+
+          {/* Video Post */}
+          {postType === 'video' && (
+            <>
+              {media.length > 0 && <VideoPlayer media={media[0]} />}
+              {post.content && (
+                <p className="mt-2 text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{post.content}</p>
+              )}
+            </>
+          )}
+
+          {/* Rich Post */}
+          {postType === 'rich' && (
+            <RichContentRenderer content={post.content} />
+          )}
         </div>
 
         {/* Actions */}

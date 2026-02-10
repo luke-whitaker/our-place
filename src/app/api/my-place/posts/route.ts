@@ -7,54 +7,47 @@ import { v4 as uuidv4 } from 'uuid';
 
 const VALID_POST_TYPES: PostType[] = ['text', 'photo', 'video', 'rich'];
 
-// GET: List posts in a community
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// GET: List the current user's "My Place" posts
+// Includes profile-only posts (community_id IS NULL) and cross-posted community posts
+export async function GET() {
   try {
-    const { id } = await params;
     const auth = await getAuthUser();
-    const db = getDb();
-
-    const community = db.prepare('SELECT id FROM communities WHERE id = ? OR slug = ?').get(id, id) as { id: string } | undefined;
-    if (!community) {
-      return NextResponse.json({ error: 'Community not found.' }, { status: 404 });
+    if (!auth) {
+      return NextResponse.json({ error: 'Please log in.' }, { status: 401 });
     }
 
+    const db = getDb();
+
     const posts = db.prepare(`
-      SELECT p.*, 
-        u.display_name as author_name, 
+      SELECT p.*,
+        u.display_name as author_name,
         u.username as author_username,
         u.avatar_color as author_avatar_color,
         c.name as community_name,
         c.slug as community_slug,
-        c.icon as community_icon
-        ${auth ? ", (SELECT type FROM reactions WHERE post_id = p.id AND user_id = ?) as user_reaction" : ""}
+        c.icon as community_icon,
+        (SELECT type FROM reactions WHERE post_id = p.id AND user_id = ?) as user_reaction
       FROM posts p
       JOIN users u ON p.author_id = u.id
-      JOIN communities c ON p.community_id = c.id
-      WHERE p.community_id = ?
+      LEFT JOIN communities c ON p.community_id = c.id
+      WHERE p.author_id = ?
+        AND (p.community_id IS NULL OR p.posted_to_profile = 1)
       ORDER BY p.created_at DESC
       LIMIT 50
-    `).all(...(auth ? [auth.userId, community.id] : [community.id])) as Post[];
+    `).all(auth.userId, auth.userId) as Post[];
 
     const enrichedPosts = enrichPostsWithMedia(db, posts);
 
     return NextResponse.json({ posts: enrichedPosts });
   } catch (error) {
-    console.error('Community posts error:', error);
+    console.error('My Place posts error:', error);
     return NextResponse.json({ error: 'Failed to load posts.' }, { status: 500 });
   }
 }
 
-// POST: Create a new post
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+// POST: Create a profile-only post (no community)
+export async function POST(request: NextRequest) {
   try {
-    const { id } = await params;
     const auth = await getAuthUser();
     if (!auth) {
       return NextResponse.json({ error: 'Please log in to post.' }, { status: 401 });
@@ -64,32 +57,18 @@ export async function POST(
     }
 
     const db = getDb();
-    const community = db.prepare('SELECT id FROM communities WHERE id = ? OR slug = ?').get(id, id) as { id: string } | undefined;
-    if (!community) {
-      return NextResponse.json({ error: 'Community not found.' }, { status: 404 });
-    }
-
-    // Check if user is a member
-    const membership = db.prepare(
-      'SELECT id FROM community_members WHERE user_id = ? AND community_id = ?'
-    ).get(auth.userId, community.id);
-    if (!membership) {
-      return NextResponse.json({ error: 'You must join this community before posting.' }, { status: 403 });
-    }
-
     const body = await request.json();
     const postType: PostType = body.post_type || 'text';
     const title = (body.title || '').trim();
     const content = (body.content || '').trim();
     const media = body.media || [];
-    const postToProfile = body.post_to_profile ? 1 : 0;
 
     // Validate post type
     if (!VALID_POST_TYPES.includes(postType)) {
       return NextResponse.json({ error: 'Invalid post type.' }, { status: 400 });
     }
 
-    // Type-specific validation
+    // Type-specific validation (same as community posts)
     if (postType === 'text') {
       if (!title) {
         return NextResponse.json({ error: 'Title is required for text posts.' }, { status: 400 });
@@ -124,7 +103,6 @@ export async function POST(
       if (!content) {
         return NextResponse.json({ error: 'Content is required for rich posts.' }, { status: 400 });
       }
-      // Validate JSON structure
       try {
         const blocks = JSON.parse(content);
         if (!Array.isArray(blocks) || blocks.length === 0) {
@@ -141,13 +119,13 @@ export async function POST(
 
     const postId = uuidv4();
 
-    // Insert the post
+    // Insert profile-only post (community_id = NULL, posted_to_profile = 1)
     db.prepare(`
       INSERT INTO posts (id, author_id, community_id, post_type, posted_to_profile, title, content)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(postId, auth.userId, community.id, postType, postToProfile, title, content);
+      VALUES (?, ?, NULL, ?, 1, ?, ?)
+    `).run(postId, auth.userId, postType, title, content);
 
-    // Insert media attachments (for photo and video posts)
+    // Insert media attachments
     if ((postType === 'photo' || postType === 'video') && media.length > 0) {
       const insertMedia = db.prepare(`
         INSERT INTO post_media (id, post_id, media_type, media_source, url, filename, file_size, sort_order)
@@ -169,9 +147,9 @@ export async function POST(
       }
     }
 
-    return NextResponse.json({ message: 'Post created!', postId }, { status: 201 });
+    return NextResponse.json({ message: 'Posted to My Place!', postId }, { status: 201 });
   } catch (error) {
-    console.error('Create post error:', error);
+    console.error('My Place create post error:', error);
     return NextResponse.json({ error: 'Failed to create post.' }, { status: 500 });
   }
 }

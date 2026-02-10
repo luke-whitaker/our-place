@@ -66,15 +66,32 @@ function initializeDatabase() {
     CREATE TABLE IF NOT EXISTS posts (
       id TEXT PRIMARY KEY,
       author_id TEXT NOT NULL,
-      community_id TEXT NOT NULL,
-      title TEXT NOT NULL,
-      content TEXT NOT NULL,
+      community_id TEXT,
+      post_type TEXT DEFAULT 'text',
+      posted_to_profile INTEGER DEFAULT 0,
+      title TEXT NOT NULL DEFAULT '',
+      content TEXT NOT NULL DEFAULT '',
       comment_count INTEGER DEFAULT 0,
       reaction_count INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
       FOREIGN KEY (author_id) REFERENCES users(id),
       FOREIGN KEY (community_id) REFERENCES communities(id)
+    );
+
+    CREATE TABLE IF NOT EXISTS post_media (
+      id TEXT PRIMARY KEY,
+      post_id TEXT NOT NULL,
+      media_type TEXT NOT NULL,
+      media_source TEXT DEFAULT 'upload',
+      url TEXT NOT NULL,
+      filename TEXT,
+      file_size INTEGER,
+      width INTEGER,
+      height INTEGER,
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT DEFAULT (datetime('now')),
+      FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS comments (
@@ -142,6 +159,8 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_event_rsvps_event ON event_rsvps(event_id);
     CREATE INDEX IF NOT EXISTS idx_event_rsvps_user ON event_rsvps(user_id);
 
+    CREATE INDEX IF NOT EXISTS idx_post_media_post ON post_media(post_id);
+
     CREATE INDEX IF NOT EXISTS idx_community_members_user ON community_members(user_id);
     CREATE INDEX IF NOT EXISTS idx_community_members_community ON community_members(community_id);
     CREATE INDEX IF NOT EXISTS idx_posts_community ON posts(community_id);
@@ -151,6 +170,62 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_reactions_post ON reactions(post_id);
     CREATE INDEX IF NOT EXISTS idx_reactions_user_post ON reactions(user_id, post_id);
   `);
+
+  // Migration: add post_type column to existing posts table
+  const postsCols = db.prepare("PRAGMA table_info(posts)").all() as { name: string; notnull: number }[];
+  if (!postsCols.some(col => col.name === 'post_type')) {
+    db.exec("ALTER TABLE posts ADD COLUMN post_type TEXT DEFAULT 'text'");
+  }
+
+  // Migration: make community_id nullable + add posted_to_profile
+  // Requires full table recreation in SQLite
+  if (!postsCols.some(col => col.name === 'posted_to_profile')) {
+    const communityIdCol = postsCols.find(c => c.name === 'community_id');
+    const needsTableRecreation = communityIdCol && communityIdCol.notnull === 1;
+
+    if (needsTableRecreation) {
+      db.pragma('foreign_keys = OFF');
+      db.exec(`
+        BEGIN TRANSACTION;
+
+        CREATE TABLE posts_new (
+          id TEXT PRIMARY KEY,
+          author_id TEXT NOT NULL,
+          community_id TEXT,
+          post_type TEXT DEFAULT 'text',
+          posted_to_profile INTEGER DEFAULT 0,
+          title TEXT NOT NULL DEFAULT '',
+          content TEXT NOT NULL DEFAULT '',
+          comment_count INTEGER DEFAULT 0,
+          reaction_count INTEGER DEFAULT 0,
+          created_at TEXT DEFAULT (datetime('now')),
+          updated_at TEXT DEFAULT (datetime('now')),
+          FOREIGN KEY (author_id) REFERENCES users(id),
+          FOREIGN KEY (community_id) REFERENCES communities(id)
+        );
+
+        INSERT INTO posts_new (id, author_id, community_id, post_type, posted_to_profile, title, content, comment_count, reaction_count, created_at, updated_at)
+        SELECT id, author_id, community_id, COALESCE(post_type, 'text'), 0, title, content, comment_count, reaction_count, created_at, updated_at FROM posts;
+
+        DROP TABLE posts;
+        ALTER TABLE posts_new RENAME TO posts;
+
+        CREATE INDEX IF NOT EXISTS idx_posts_community ON posts(community_id);
+        CREATE INDEX IF NOT EXISTS idx_posts_author ON posts(author_id);
+        CREATE INDEX IF NOT EXISTS idx_posts_created ON posts(created_at DESC);
+        CREATE INDEX IF NOT EXISTS idx_posts_profile ON posts(author_id, posted_to_profile);
+
+        COMMIT;
+      `);
+      db.pragma('foreign_keys = ON');
+    } else {
+      // community_id already nullable, just add the column
+      db.exec("ALTER TABLE posts ADD COLUMN posted_to_profile INTEGER DEFAULT 0");
+    }
+  }
+
+  // Create profile index (after migration ensures column exists)
+  db.exec("CREATE INDEX IF NOT EXISTS idx_posts_profile ON posts(author_id, posted_to_profile)");
 
   // Seed pre-built communities if none exist
   const count = db.prepare('SELECT COUNT(*) as c FROM communities').get() as { c: number };

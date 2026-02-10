@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { enrichPostsWithMedia } from '@/lib/post-helpers';
+import { Post } from '@/lib/types';
 
 export async function GET() {
   try {
@@ -23,13 +25,18 @@ export async function GET() {
         (SELECT type FROM reactions WHERE post_id = p.id AND user_id = ?) as user_reaction
       FROM posts p
       JOIN users u ON p.author_id = u.id
-      JOIN communities c ON p.community_id = c.id
-      INNER JOIN community_members cm ON cm.community_id = p.community_id AND cm.user_id = ?
+      LEFT JOIN communities c ON p.community_id = c.id
+      WHERE (
+        p.community_id IS NOT NULL
+        AND EXISTS (SELECT 1 FROM community_members cm WHERE cm.community_id = p.community_id AND cm.user_id = ?)
+      )
       ORDER BY p.created_at DESC
       LIMIT 50
-    `).all(auth.userId, auth.userId);
+    `).all(auth.userId, auth.userId) as Post[];
 
-    return NextResponse.json({ posts });
+    const enrichedPosts = enrichPostsWithMedia(db, posts);
+
+    return NextResponse.json({ posts: enrichedPosts });
   } catch (error) {
     console.error('Feed error:', error);
     return NextResponse.json({ error: 'Failed to load feed.' }, { status: 500 });

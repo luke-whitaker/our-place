@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { enrichPostsWithMedia } from '@/lib/post-helpers';
+import { Post } from '@/lib/types';
 
 export async function GET() {
   try {
@@ -12,6 +14,7 @@ export async function GET() {
     const db = getDb();
 
     // Get posts from accepted friends (both directions of the friendship)
+    // Includes community posts and My Place posts (profile-only)
     const posts = db.prepare(`
       SELECT p.*,
         u.display_name as author_name,
@@ -23,7 +26,7 @@ export async function GET() {
         (SELECT type FROM reactions WHERE post_id = p.id AND user_id = ?) as user_reaction
       FROM posts p
       JOIN users u ON p.author_id = u.id
-      JOIN communities c ON p.community_id = c.id
+      LEFT JOIN communities c ON p.community_id = c.id
       WHERE p.author_id IN (
         SELECT friend_id FROM friendships WHERE user_id = ? AND status = 'accepted'
         UNION
@@ -31,9 +34,11 @@ export async function GET() {
       )
       ORDER BY p.created_at DESC
       LIMIT 50
-    `).all(auth.userId, auth.userId, auth.userId);
+    `).all(auth.userId, auth.userId, auth.userId) as Post[];
 
-    return NextResponse.json({ posts });
+    const enrichedPosts = enrichPostsWithMedia(db, posts);
+
+    return NextResponse.json({ posts: enrichedPosts });
   } catch (error) {
     console.error('Friends feed error:', error);
     return NextResponse.json({ error: 'Failed to load friends feed.' }, { status: 500 });
