@@ -139,6 +139,10 @@ export async function POST(
       return NextResponse.json({ error: 'Title must be under 200 characters.' }, { status: 400 });
     }
 
+    if (content.length > 50000) {
+      return NextResponse.json({ error: 'Post content must be under 50,000 characters.' }, { status: 400 });
+    }
+
     const postId = uuidv4();
 
     // Insert the post

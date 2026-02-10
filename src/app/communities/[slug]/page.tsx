@@ -21,6 +21,7 @@ export default function CommunityDetailPage() {
   const [loadingPage, setLoadingPage] = useState(true);
   const [joining, setJoining] = useState(false);
   const [leaving, setLeaving] = useState(false);
+  const [pageError, setPageError] = useState<string | null>(null);
 
   const loadCommunity = useCallback(async () => {
     try {
@@ -40,8 +41,9 @@ export default function CommunityDetailPage() {
       setMembership(commData.membership);
       setMembers(commData.members || []);
       setPosts(postsData.posts || []);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('Failed to load community:', err);
+      setPageError('Failed to load community. Please try again.');
     }
     setLoadingPage(false);
   }, [slug, router]);
@@ -63,13 +65,18 @@ export default function CommunityDetailPage() {
   async function handleJoin() {
     if (!community) return;
     setJoining(true);
+    setPageError(null);
     try {
       const res = await fetch(`/api/communities/${community.id}/join`, { method: 'POST' });
       if (res.ok) {
         await loadCommunity();
+      } else {
+        const data = await res.json();
+        setPageError(data.error || 'Failed to join community.');
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('Failed to join community:', err);
+      setPageError('Failed to join community. Please try again.');
     }
     setJoining(false);
   }
@@ -77,13 +84,18 @@ export default function CommunityDetailPage() {
   async function handleLeave() {
     if (!community) return;
     setLeaving(true);
+    setPageError(null);
     try {
       const res = await fetch(`/api/communities/${community.id}/leave`, { method: 'POST' });
       if (res.ok) {
         await loadCommunity();
+      } else {
+        const data = await res.json();
+        setPageError(data.error || 'Failed to leave community.');
       }
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('Failed to leave community:', err);
+      setPageError('Failed to leave community. Please try again.');
     }
     setLeaving(false);
   }
@@ -93,8 +105,8 @@ export default function CommunityDetailPage() {
       const res = await fetch(`/api/communities/${slug}/posts`);
       const data = await res.json();
       setPosts(data.posts || []);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('Failed to reload posts:', err);
     }
   }
 
@@ -109,7 +121,7 @@ export default function CommunityDetailPage() {
   if (!community) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <p className="text-gray-500">Community not found.</p>
+        <p className="text-gray-500">{pageError || 'Community not found.'}</p>
       </div>
     );
   }
@@ -149,6 +161,13 @@ export default function CommunityDetailPage() {
         <div className="flex gap-8">
           {/* Main Column */}
           <div className="flex-1 min-w-0">
+            {/* Error Banner */}
+            {pageError && (
+              <div className="mb-4 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+                {pageError}
+              </div>
+            )}
+
             {/* Join/Leave Bar */}
             {!membership ? (
               <div className="mb-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-5">

@@ -1,10 +1,21 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { User } from '@/lib/types';
+import { resetPasswordLimiter, getClientIp } from '@/lib/rate-limit';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = getClientIp(request);
+    const limit = resetPasswordLimiter.check(ip);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many reset attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) } }
+      );
+    }
+
     const { email, code, new_password } = await request.json();
 
     if (!email || !code || !new_password) {
@@ -16,7 +27,9 @@ export async function POST(request: NextRequest) {
     }
 
     const db = getDb();
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email.toLowerCase().trim()) as User | undefined;
+    const user = db.prepare(
+      'SELECT id, email, reset_code, reset_code_expires_at FROM users WHERE email = ?'
+    ).get(email.toLowerCase().trim()) as Pick<User, 'id' | 'email' | 'reset_code' | 'reset_code_expires_at'> | undefined;
 
     if (!user) {
       return NextResponse.json({ error: 'Invalid email or reset code.' }, { status: 400 });

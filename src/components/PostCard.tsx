@@ -273,6 +273,7 @@ export default function PostCard({ post, showCommunity = true }: { post: Post; s
   const [commentCount, setCommentCount] = useState(post.comment_count);
   const [loadingComments, setLoadingComments] = useState(false);
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [commentError, setCommentError] = useState<string | null>(null);
 
   const postType = post.post_type || 'text';
   const media = post.media || [];
@@ -298,12 +299,15 @@ export default function PostCard({ post, showCommunity = true }: { post: Post; s
     }
     setShowComments(true);
     setLoadingComments(true);
+    setCommentError(null);
     try {
       const res = await fetch(`/api/posts/${post.id}/comments`);
+      if (!res.ok) throw new Error('Failed to load comments');
       const data = await res.json();
       setComments(data.comments || []);
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error('Failed to load comments:', err);
+      setCommentError('Could not load comments. Please try again.');
     }
     setLoadingComments(false);
   }
@@ -312,23 +316,29 @@ export default function PostCard({ post, showCommunity = true }: { post: Post; s
     e.preventDefault();
     if (!commentText.trim() || submittingComment) return;
     setSubmittingComment(true);
+    setCommentError(null);
     try {
       const res = await fetch(`/api/posts/${post.id}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ content: commentText.trim() }),
       });
-      if (res.ok) {
-        setCommentText('');
-        setCommentCount(prev => prev + 1);
-        const res2 = await fetch(`/api/posts/${post.id}/comments`);
-        const data = await res2.json();
-        setComments(data.comments || []);
+      if (!res.ok) {
+        const data = await res.json();
+        setCommentError(data.error || 'Failed to post comment.');
+        return;
       }
-    } catch {
-      // ignore
+      setCommentText('');
+      setCommentCount(prev => prev + 1);
+      const res2 = await fetch(`/api/posts/${post.id}/comments`);
+      const data = await res2.json();
+      setComments(data.comments || []);
+    } catch (err) {
+      console.error('Failed to post comment:', err);
+      setCommentError('Could not post comment. Please try again.');
+    } finally {
+      setSubmittingComment(false);
     }
-    setSubmittingComment(false);
   }
 
   return (
@@ -453,6 +463,11 @@ export default function PostCard({ post, showCommunity = true }: { post: Post; s
       {/* Comments Section */}
       {showComments && (
         <div className="border-t border-gray-100 bg-gray-50 px-5 py-4">
+          {commentError && (
+            <div className="mb-3 rounded-xl bg-red-50 border border-red-100 px-3 py-2 text-xs text-red-600">
+              {commentError}
+            </div>
+          )}
           {loadingComments ? (
             <div className="flex justify-center py-4">
               <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />

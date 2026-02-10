@@ -2,11 +2,22 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { signToken, generateVerificationCode } from '@/lib/auth';
 import { AVATAR_COLORS } from '@/lib/types';
+import { registerLimiter, getClientIp } from '@/lib/rate-limit';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = getClientIp(request);
+    const limit = registerLimiter.check(ip);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many registration attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) } }
+      );
+    }
+
     const { username, display_name, email, phone, password } = await request.json();
 
     // Validation
@@ -68,17 +79,22 @@ export async function POST(request: NextRequest) {
     // Generate token
     const token = signToken({ userId: id, username: username.toLowerCase(), is_verified: 0 });
 
+    // In production, send the verification code via SMS/email here.
+    // For development, log it to the server console only.
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[DEV] Verification code for ${email}: ${verification_code}`);
+    }
+
     const response = NextResponse.json({
-      message: 'Account created! Please verify your identity.',
+      message: 'Account created! Please check your email/phone for a verification code.',
       user: { id, username: username.toLowerCase(), display_name, email: email.toLowerCase(), avatar_color, is_verified: 0 },
-      verification_code, // In production, this would be sent via SMS/email, not returned
     }, { status: 201 });
 
     response.cookies.set('auth_token', token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60, // 7 days
+      maxAge: 24 * 60 * 60, // 24 hours
       path: '/',
     });
 

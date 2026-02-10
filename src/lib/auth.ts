@@ -1,11 +1,25 @@
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { cookies } from 'next/headers';
 import { AuthPayload } from './types';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'fallback-secret-change-me';
+function getJwtSecret(): string {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error('JWT_SECRET environment variable is required in production');
+    }
+    // Development-only fallback — NEVER use in production
+    console.warn('[AUTH] JWT_SECRET not set — using insecure development fallback');
+    return 'dev-only-insecure-fallback-change-me';
+  }
+  return secret;
+}
+
+const JWT_SECRET = getJwtSecret();
 
 export function signToken(payload: AuthPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '7d' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
 }
 
 export function verifyToken(token: string): AuthPayload | null {
@@ -24,5 +38,5 @@ export async function getAuthUser(): Promise<AuthPayload | null> {
 }
 
 export function generateVerificationCode(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
+  return crypto.randomInt(100000, 999999).toString();
 }

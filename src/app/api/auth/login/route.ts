@@ -2,10 +2,21 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { signToken } from '@/lib/auth';
 import { User } from '@/lib/types';
+import { loginLimiter, getClientIp } from '@/lib/rate-limit';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
   try {
+    // Rate limiting
+    const ip = getClientIp(request);
+    const limit = loginLimiter.check(ip);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many login attempts. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) } }
+      );
+    }
+
     const { login, password } = await request.json();
 
     if (!login || !password) {
@@ -14,18 +25,18 @@ export async function POST(request: NextRequest) {
 
     const db = getDb();
 
-    // Find user by email or username
+    // Find user by email or username — select only needed columns
     const user = db.prepare(
-      'SELECT * FROM users WHERE email = ? OR username = ?'
-    ).get(login.toLowerCase(), login.toLowerCase()) as User | undefined;
+      'SELECT id, username, display_name, email, bio, avatar_color, is_verified, password_hash FROM users WHERE email = ? OR username = ?'
+    ).get(login.toLowerCase(), login.toLowerCase()) as Pick<User, 'id' | 'username' | 'display_name' | 'email' | 'bio' | 'avatar_color' | 'is_verified' | 'password_hash'> | undefined;
 
     if (!user) {
-      return NextResponse.json({ error: 'No account found with these credentials.' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid email/username or password.' }, { status: 401 });
     }
 
     const validPassword = await bcrypt.compare(password, user.password_hash!);
     if (!validPassword) {
-      return NextResponse.json({ error: 'Invalid password.' }, { status: 401 });
+      return NextResponse.json({ error: 'Invalid email/username or password.' }, { status: 401 });
     }
 
     const token = signToken({
@@ -51,7 +62,7 @@ export async function POST(request: NextRequest) {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
-      maxAge: 7 * 24 * 60 * 60,
+      maxAge: 24 * 60 * 60, // 24 hours
       path: '/',
     });
 

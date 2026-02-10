@@ -54,10 +54,6 @@ export default function RegisterPage() {
       }
 
       await refresh();
-      // Store verification code for demo purposes
-      if (data.verification_code) {
-        sessionStorage.setItem('verification_code', data.verification_code);
-      }
       router.push('/auth/verify');
     } catch {
       setError('Something went wrong. Please try again.');

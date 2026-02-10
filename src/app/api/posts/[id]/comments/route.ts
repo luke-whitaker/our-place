@@ -44,21 +44,26 @@ export async function POST(
     if (!content || content.trim().length === 0) {
       return NextResponse.json({ error: 'Comment cannot be empty.' }, { status: 400 });
     }
+    if (content.trim().length > 5000) {
+      return NextResponse.json({ error: 'Comment must be under 5,000 characters.' }, { status: 400 });
+    }
 
     const db = getDb();
 
     // Verify post exists
-    const post = db.prepare('SELECT id, community_id FROM posts WHERE id = ?').get(id) as { id: string; community_id: string } | undefined;
+    const post = db.prepare('SELECT id, community_id, author_id FROM posts WHERE id = ?').get(id) as { id: string; community_id: string | null; author_id: string } | undefined;
     if (!post) {
       return NextResponse.json({ error: 'Post not found.' }, { status: 404 });
     }
 
-    // Check membership in the community
-    const membership = db.prepare(
-      'SELECT id FROM community_members WHERE user_id = ? AND community_id = ?'
-    ).get(auth.userId, post.community_id);
-    if (!membership) {
-      return NextResponse.json({ error: 'You must be a community member to comment.' }, { status: 403 });
+    // Check authorization: community posts require membership, profile posts are open
+    if (post.community_id) {
+      const membership = db.prepare(
+        'SELECT id FROM community_members WHERE user_id = ? AND community_id = ?'
+      ).get(auth.userId, post.community_id);
+      if (!membership) {
+        return NextResponse.json({ error: 'You must be a community member to comment.' }, { status: 403 });
+      }
     }
 
     const commentId = uuidv4();

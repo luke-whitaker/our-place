@@ -11,17 +11,6 @@ export default function VerifyPage() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [demoCode, setDemoCode] = useState<string | null>(null);
-
-  useEffect(() => {
-    // In production, the code would be sent via SMS/email
-    // For demo, we show it on screen
-    const storedCode = sessionStorage.getItem('verification_code');
-    if (storedCode) {
-      setDemoCode(storedCode);
-    }
-  }, []);
-
   useEffect(() => {
     if (!loading && !user) {
       router.replace('/auth/login');
@@ -51,7 +40,6 @@ export default function VerifyPage() {
       }
 
       setSuccess(data.message);
-      sessionStorage.removeItem('verification_code');
       await refresh();
 
       setTimeout(() => {
@@ -88,25 +76,22 @@ export default function VerifyPage() {
           </p>
         </div>
 
-        {/* Demo Code Notice */}
-        {demoCode && (
-          <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
-            <div className="flex items-start gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-600">
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
-                </svg>
-              </div>
-              <div>
-                <p className="text-xs font-medium text-amber-800">Demo Mode</p>
-                <p className="text-xs text-amber-700 mt-0.5">
-                  In production, this code would be sent via SMS/email. Your code is:
-                </p>
-                <p className="mt-2 text-2xl font-mono font-bold text-amber-900 tracking-widest">{demoCode}</p>
-              </div>
+        {/* Info Notice */}
+        <div className="mb-6 rounded-2xl border border-indigo-200 bg-indigo-50 p-4">
+          <div className="flex items-start gap-3">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-indigo-100 text-indigo-600">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="m11.25 11.25.041-.02a.75.75 0 0 1 1.063.852l-.708 2.836a.75.75 0 0 0 1.063.853l.041-.021M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Zm-9-3.75h.008v.008H12V8.25Z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-xs font-medium text-indigo-800">Check Your Email / Phone</p>
+              <p className="text-xs text-indigo-700 mt-0.5">
+                We&apos;ve sent a 6-digit verification code to the email and phone number you registered with. Enter it below to complete your verification.
+              </p>
             </div>
           </div>
-        )}
+        </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">

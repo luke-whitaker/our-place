@@ -181,8 +181,8 @@ export default function FeedPage() {
       if (tab === 'scroll' && explorePosts.length === 0) await loadExploreFeed();
       if (tab === 'communities' && communityPosts.length === 0) await loadCommunityFeed();
       if (tab === 'events' && events.length === 0) await loadEvents();
-    } catch {
-      // ignore
+    } catch (err) {
+      console.error(`Failed to load ${tab} feed:`, err);
     }
     setLoadingTab(false);
   }

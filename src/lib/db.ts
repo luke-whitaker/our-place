@@ -58,8 +58,8 @@ function initializeDatabase() {
       community_id TEXT NOT NULL,
       role TEXT DEFAULT 'member',
       joined_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (user_id) REFERENCES users(id),
-      FOREIGN KEY (community_id) REFERENCES communities(id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE,
       UNIQUE(user_id, community_id)
     );
 
@@ -75,8 +75,8 @@ function initializeDatabase() {
       reaction_count INTEGER DEFAULT 0,
       created_at TEXT DEFAULT (datetime('now')),
       updated_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (author_id) REFERENCES users(id),
-      FOREIGN KEY (community_id) REFERENCES communities(id)
+      FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS post_media (
@@ -100,8 +100,8 @@ function initializeDatabase() {
       author_id TEXT NOT NULL,
       content TEXT NOT NULL,
       created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (post_id) REFERENCES posts(id),
-      FOREIGN KEY (author_id) REFERENCES users(id)
+      FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+      FOREIGN KEY (author_id) REFERENCES users(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS reactions (
@@ -110,8 +110,8 @@ function initializeDatabase() {
       user_id TEXT NOT NULL,
       type TEXT DEFAULT 'like',
       created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (post_id) REFERENCES posts(id),
-      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (post_id) REFERENCES posts(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       UNIQUE(post_id, user_id)
     );
 
@@ -121,8 +121,8 @@ function initializeDatabase() {
       friend_id TEXT NOT NULL,
       status TEXT DEFAULT 'pending',
       created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (user_id) REFERENCES users(id),
-      FOREIGN KEY (friend_id) REFERENCES users(id),
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+      FOREIGN KEY (friend_id) REFERENCES users(id) ON DELETE CASCADE,
       UNIQUE(user_id, friend_id)
     );
 
@@ -136,8 +136,8 @@ function initializeDatabase() {
       community_id TEXT,
       creator_id TEXT NOT NULL,
       created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (community_id) REFERENCES communities(id),
-      FOREIGN KEY (creator_id) REFERENCES users(id)
+      FOREIGN KEY (community_id) REFERENCES communities(id) ON DELETE CASCADE,
+      FOREIGN KEY (creator_id) REFERENCES users(id) ON DELETE CASCADE
     );
 
     CREATE TABLE IF NOT EXISTS event_rsvps (
@@ -146,8 +146,8 @@ function initializeDatabase() {
       user_id TEXT NOT NULL,
       status TEXT DEFAULT 'going',
       created_at TEXT DEFAULT (datetime('now')),
-      FOREIGN KEY (event_id) REFERENCES events(id),
-      FOREIGN KEY (user_id) REFERENCES users(id),
+      FOREIGN KEY (event_id) REFERENCES events(id) ON DELETE CASCADE,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
       UNIQUE(event_id, user_id)
     );
 
@@ -166,9 +166,13 @@ function initializeDatabase() {
     CREATE INDEX IF NOT EXISTS idx_posts_community ON posts(community_id);
     CREATE INDEX IF NOT EXISTS idx_posts_author ON posts(author_id);
     CREATE INDEX IF NOT EXISTS idx_posts_created ON posts(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_posts_community_created ON posts(community_id, created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_comments_post ON comments(post_id);
+    CREATE INDEX IF NOT EXISTS idx_comments_author ON comments(author_id);
     CREATE INDEX IF NOT EXISTS idx_reactions_post ON reactions(post_id);
     CREATE INDEX IF NOT EXISTS idx_reactions_user_post ON reactions(user_id, post_id);
+    CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
+    CREATE INDEX IF NOT EXISTS idx_users_username ON users(username);
   `);
 
   // Migration: add post_type column to existing posts table
