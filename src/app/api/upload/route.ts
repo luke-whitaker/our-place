@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getAuthUser } from '@/lib/auth';
+import { uploadLimiter } from '@/lib/rate-limit';
 import { v4 as uuidv4 } from 'uuid';
 import {
   ACCEPTED_IMAGE_TYPES,
@@ -31,6 +32,14 @@ export async function POST(request: NextRequest) {
     }
     if (!auth.is_verified) {
       return NextResponse.json({ error: 'Please verify your account first.' }, { status: 403 });
+    }
+
+    const limit = uploadLimiter.check(auth.userId);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many uploads. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) } }
+      );
     }
 
     const formData = await request.formData();

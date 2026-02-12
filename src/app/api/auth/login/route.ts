@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db';
 import { signToken } from '@/lib/auth';
 import { User } from '@/lib/types';
 import { loginLimiter, getClientIp } from '@/lib/rate-limit';
+import { loginSchema, getZodErrorMessage } from '@/lib/schemas';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
@@ -17,11 +18,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { login, password } = await request.json();
-
-    if (!login || !password) {
-      return NextResponse.json({ error: 'Please enter your email/username and password.' }, { status: 400 });
+    const body = await request.json();
+    const parsed = loginSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
+    const { login, password } = parsed.data;
 
     const db = getDb();
 

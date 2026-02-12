@@ -1,11 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { createPostLimiter } from '@/lib/rate-limit';
+import { createPostSchema, getZodErrorMessage } from '@/lib/schemas';
 import { enrichPostsWithMedia } from '@/lib/post-helpers';
 import { Post, PostType } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
 
-const VALID_POST_TYPES: PostType[] = ['text', 'photo', 'video', 'rich'];
+const VALID_POST_TYPES: readonly PostType[] = ['text', 'photo', 'video', 'rich'];
 
 // GET: List posts in a community
 export async function GET(
@@ -77,17 +79,24 @@ export async function POST(
       return NextResponse.json({ error: 'You must join this community before posting.' }, { status: 403 });
     }
 
-    const body = await request.json();
-    const postType: PostType = body.post_type || 'text';
-    const title = (body.title || '').trim();
-    const content = (body.content || '').trim();
-    const media = body.media || [];
-    const postToProfile = body.post_to_profile ? 1 : 0;
-
-    // Validate post type
-    if (!VALID_POST_TYPES.includes(postType)) {
-      return NextResponse.json({ error: 'Invalid post type.' }, { status: 400 });
+    const limit = createPostLimiter.check(auth.userId);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many posts created. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) } }
+      );
     }
+
+    const body = await request.json();
+    const parsed = createPostSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
+    }
+    const postType = parsed.data.post_type;
+    const title = parsed.data.title.trim();
+    const content = parsed.data.content.trim();
+    const media = parsed.data.media;
+    const postToProfile = parsed.data.post_to_profile ? 1 : 0;
 
     // Type-specific validation
     if (postType === 'text') {
@@ -133,14 +142,6 @@ export async function POST(
       } catch {
         return NextResponse.json({ error: 'Invalid rich content format.' }, { status: 400 });
       }
-    }
-
-    if (title.length > 200) {
-      return NextResponse.json({ error: 'Title must be under 200 characters.' }, { status: 400 });
-    }
-
-    if (content.length > 50000) {
-      return NextResponse.json({ error: 'Post content must be under 50,000 characters.' }, { status: 400 });
     }
 
     const postId = uuidv4();

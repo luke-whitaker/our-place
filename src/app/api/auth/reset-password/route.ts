@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { User } from '@/lib/types';
 import { resetPasswordLimiter, getClientIp } from '@/lib/rate-limit';
+import { resetPasswordSchema, getZodErrorMessage } from '@/lib/schemas';
 import bcrypt from 'bcryptjs';
 
 export async function POST(request: NextRequest) {
@@ -16,15 +17,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email, code, new_password } = await request.json();
-
-    if (!email || !code || !new_password) {
-      return NextResponse.json({ error: 'Email, reset code, and new password are all required.' }, { status: 400 });
+    const body = await request.json();
+    const parsed = resetPasswordSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
-
-    if (new_password.length < 8) {
-      return NextResponse.json({ error: 'Password must be at least 8 characters.' }, { status: 400 });
-    }
+    const { email, code, new_password } = parsed.data;
 
     const db = getDb();
     const user = db.prepare(

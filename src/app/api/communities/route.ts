@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { createCommunityLimiter } from '@/lib/rate-limit';
+import { createCommunitySchema, getZodErrorMessage } from '@/lib/schemas';
 import { v4 as uuidv4 } from 'uuid';
 
 // GET: List/search all communities
@@ -70,19 +72,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Please verify your account before creating a community.' }, { status: 403 });
     }
 
-    const { name, description, category, icon, guidelines } = await request.json();
-
-    if (!name || !description || !category) {
-      return NextResponse.json({ error: 'Name, description, and category are required.' }, { status: 400 });
+    const limit = createCommunityLimiter.check(auth.userId);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many communities created. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) } }
+      );
     }
 
-    if (name.length < 3 || name.length > 50) {
-      return NextResponse.json({ error: 'Community name must be 3-50 characters.' }, { status: 400 });
+    const body = await request.json();
+    const parsed = createCommunitySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
-
-    if (description.length < 20) {
-      return NextResponse.json({ error: 'Description must be at least 20 characters.' }, { status: 400 });
-    }
+    const { name, description, category, icon, guidelines } = parsed.data;
 
     const db = getDb();
 

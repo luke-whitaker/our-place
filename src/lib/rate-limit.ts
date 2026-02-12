@@ -82,6 +82,24 @@ export const forgotPasswordLimiter = new RateLimiter({ maxAttempts: 3, windowMs:
 /** Password reset submission: 5 attempts per 15 minutes per IP */
 export const resetPasswordLimiter = new RateLimiter({ maxAttempts: 5, windowMs: 15 * 60 * 1000 });
 
+/** Post creation: 20 per hour per user */
+export const createPostLimiter = new RateLimiter({ maxAttempts: 20, windowMs: 60 * 60 * 1000 });
+
+/** Comment creation: 30 per hour per user */
+export const createCommentLimiter = new RateLimiter({ maxAttempts: 30, windowMs: 60 * 60 * 1000 });
+
+/** Reactions: 60 per hour per user */
+export const reactionLimiter = new RateLimiter({ maxAttempts: 60, windowMs: 60 * 60 * 1000 });
+
+/** File uploads: 30 per hour per user */
+export const uploadLimiter = new RateLimiter({ maxAttempts: 30, windowMs: 60 * 60 * 1000 });
+
+/** Event creation: 10 per hour per user */
+export const createEventLimiter = new RateLimiter({ maxAttempts: 10, windowMs: 60 * 60 * 1000 });
+
+/** Community creation: 5 per hour per user */
+export const createCommunityLimiter = new RateLimiter({ maxAttempts: 5, windowMs: 60 * 60 * 1000 });
+
 /**
  * Extract a rate-limit key from a request.
  * Uses X-Forwarded-For header (for reverse proxies) or falls back to a default.

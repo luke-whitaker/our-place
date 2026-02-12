@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { createPostLimiter } from '@/lib/rate-limit';
+import { createMyPlacePostSchema, getZodErrorMessage } from '@/lib/schemas';
 import { enrichPostsWithMedia } from '@/lib/post-helpers';
 import { Post, PostType } from '@/lib/types';
 import { v4 as uuidv4 } from 'uuid';
@@ -56,17 +58,24 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Please verify your account before posting.' }, { status: 403 });
     }
 
+    const limit = createPostLimiter.check(auth.userId);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many posts created. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) } }
+      );
+    }
+
     const db = getDb();
     const body = await request.json();
-    const postType: PostType = body.post_type || 'text';
-    const title = (body.title || '').trim();
-    const content = (body.content || '').trim();
-    const media = body.media || [];
-
-    // Validate post type
-    if (!VALID_POST_TYPES.includes(postType)) {
-      return NextResponse.json({ error: 'Invalid post type.' }, { status: 400 });
+    const parsed = createMyPlacePostSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
+    const postType = parsed.data.post_type;
+    const title = parsed.data.title.trim();
+    const content = parsed.data.content.trim();
+    const media = parsed.data.media;
 
     // Type-specific validation (same as community posts)
     if (postType === 'text') {
@@ -111,10 +120,6 @@ export async function POST(request: NextRequest) {
       } catch {
         return NextResponse.json({ error: 'Invalid rich content format.' }, { status: 400 });
       }
-    }
-
-    if (title.length > 200) {
-      return NextResponse.json({ error: 'Title must be under 200 characters.' }, { status: 400 });
     }
 
     const postId = uuidv4();

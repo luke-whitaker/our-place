@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { createCommentLimiter } from '@/lib/rate-limit';
+import { createCommentSchema, getZodErrorMessage } from '@/lib/schemas';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function GET(
@@ -40,13 +42,20 @@ export async function POST(
       return NextResponse.json({ error: 'Please verify your account first.' }, { status: 403 });
     }
 
-    const { content } = await request.json();
-    if (!content || content.trim().length === 0) {
-      return NextResponse.json({ error: 'Comment cannot be empty.' }, { status: 400 });
+    const rateLimit = createCommentLimiter.check(auth.userId);
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many comments. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(rateLimit.retryAfterMs / 1000)) } }
+      );
     }
-    if (content.trim().length > 5000) {
-      return NextResponse.json({ error: 'Comment must be under 5,000 characters.' }, { status: 400 });
+
+    const body = await request.json();
+    const parsed = createCommentSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
+    const { content } = parsed.data;
 
     const db = getDb();
 

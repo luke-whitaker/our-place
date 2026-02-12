@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { createEventLimiter } from '@/lib/rate-limit';
+import { createEventSchema, getZodErrorMessage } from '@/lib/schemas';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function GET() {
@@ -59,11 +61,20 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Please log in.' }, { status: 401 });
     }
 
-    const { title, description, location, event_date, event_end_date, community_id } = await request.json();
-
-    if (!title || !description || !event_date) {
-      return NextResponse.json({ error: 'Title, description, and date are required.' }, { status: 400 });
+    const limit = createEventLimiter.check(auth.userId);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many events created. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) } }
+      );
     }
+
+    const body = await request.json();
+    const parsed = createEventSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
+    }
+    const { title, description, location, event_date, event_end_date, community_id } = parsed.data;
 
     const db = getDb();
     const id = uuidv4();

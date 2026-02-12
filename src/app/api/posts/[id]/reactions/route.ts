@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
 import { getAuthUser } from '@/lib/auth';
+import { reactionLimiter } from '@/lib/rate-limit';
+import { createReactionSchema } from '@/lib/schemas';
 import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(
@@ -14,8 +16,17 @@ export async function POST(
       return NextResponse.json({ error: 'Please log in to react.' }, { status: 401 });
     }
 
-    const { type } = await request.json();
-    const reactionType = type || 'like';
+    const limit = reactionLimiter.check(auth.userId);
+    if (!limit.allowed) {
+      return NextResponse.json(
+        { error: 'Too many reactions. Please try again later.' },
+        { status: 429, headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) } }
+      );
+    }
+
+    const body = await request.json();
+    const parsed = createReactionSchema.safeParse(body);
+    const reactionType = parsed.success ? parsed.data.type : 'like';
     const db = getDb();
 
     // Check if reaction already exists

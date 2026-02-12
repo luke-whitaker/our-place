@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db';
 import { getAuthUser, signToken } from '@/lib/auth';
 import { User } from '@/lib/types';
 import { verifyLimiter } from '@/lib/rate-limit';
+import { verifySchema, getZodErrorMessage } from '@/lib/schemas';
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,10 +21,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { code } = await request.json();
-    if (!code) {
-      return NextResponse.json({ error: 'Verification code is required.' }, { status: 400 });
+    const body = await request.json();
+    const parsed = verifySchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
+    const { code } = parsed.data;
 
     const db = getDb();
     const user = db.prepare(

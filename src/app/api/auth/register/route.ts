@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db';
 import { signToken, generateVerificationCode } from '@/lib/auth';
 import { AVATAR_COLORS } from '@/lib/types';
 import { registerLimiter, getClientIp } from '@/lib/rate-limit';
+import { registerSchema, getZodErrorMessage } from '@/lib/schemas';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -18,28 +19,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { username, display_name, email, phone, password } = await request.json();
-
-    // Validation
-    if (!username || !display_name || !email || !phone || !password) {
-      return NextResponse.json({ error: 'All fields are required.' }, { status: 400 });
+    const body = await request.json();
+    const parsed = registerSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
-
-    if (username.length < 3 || username.length > 24) {
-      return NextResponse.json({ error: 'Username must be 3-24 characters.' }, { status: 400 });
-    }
-
-    if (!/^[a-zA-Z0-9_]+$/.test(username)) {
-      return NextResponse.json({ error: 'Username can only contain letters, numbers, and underscores.' }, { status: 400 });
-    }
-
-    if (password.length < 8) {
-      return NextResponse.json({ error: 'Password must be at least 8 characters.' }, { status: 400 });
-    }
-
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return NextResponse.json({ error: 'Please enter a valid email address.' }, { status: 400 });
-    }
+    const { username, display_name, email, phone, password } = parsed.data;
 
     const phoneClean = phone.replace(/\D/g, '');
     if (phoneClean.length < 10) {

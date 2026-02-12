@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db';
 import { generateVerificationCode } from '@/lib/auth';
 import { User } from '@/lib/types';
 import { forgotPasswordLimiter, getClientIp } from '@/lib/rate-limit';
+import { forgotPasswordSchema, getZodErrorMessage } from '@/lib/schemas';
 
 export async function POST(request: NextRequest) {
   try {
@@ -16,11 +17,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { email } = await request.json();
-
-    if (!email) {
-      return NextResponse.json({ error: 'Email is required.' }, { status: 400 });
+    const body = await request.json();
+    const parsed = forgotPasswordSchema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
+    const { email } = parsed.data;
 
     const db = getDb();
     const user = db.prepare(
