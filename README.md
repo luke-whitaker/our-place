@@ -1,36 +1,134 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Our Place
+
+A community forum and social platform built on trust, belonging, and genuine connection. One human, one account — because real communities are built by real people.
+
+![Landing Page](screenshots/01-landing-page.png)
+
+## What is Our Place?
+
+Our Place is a Reddit-inspired community platform with a twist: an **8-bit RPG overworld** where each community is a building in a town. Users walk around, explore, and enter buildings to access forum content — think Roblox meets Reddit, but pixel art.
+
+The forum is fully functional today. The game world is actively in development.
+
+## Features
+
+### Forum Platform
+- **Communities** — Create or join communities organized by category (Gaming, Creative, Tech, etc.)
+- **Rich Posts** — Text, photo, video, and rich editor post types
+- **Comments & Reactions** — Threaded comments and emoji reactions on posts
+- **Events** — Community event creation and management
+- **Feed** — Personalized feed with explore and friends tabs
+- **My Place** — Personal profile space for each user
+- **File Uploads** — Image and media uploads with validation
+
+### Authentication & Security
+- JWT auth with httpOnly cookies and bcrypt password hashing
+- Email verification and password reset flows
+- Rate limiting on content creation routes
+- Content Security Policy headers
+- Zod schema validation on API request bodies
+
+### 8-Bit World (In Progress)
+- Tile-based game engine built with React and HTML Canvas
+- Player movement (WASD/arrows + mobile touch D-pad)
+- Camera system, collision detection, and walk animations
+- Building interaction system with fade transitions
+- Responsive canvas scaling for mobile
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Framework | Next.js 16 (App Router) |
+| Language | TypeScript |
+| Database | SQLite (better-sqlite3) |
+| Styling | Tailwind CSS |
+| Auth | JWT + bcrypt |
+| Validation | Zod |
+| Testing | Vitest (unit), Playwright (UI) |
+
+## Project Structure
+
+```
+src/
+├── app/
+│   ├── api/            # REST API routes
+│   │   ├── auth/       # Register, login, verify, password reset
+│   │   ├── communities/# CRUD, join/leave, posts
+│   │   ├── posts/      # Comments, reactions
+│   │   ├── feed/       # Personalized, explore, friends
+│   │   ├── my-place/   # Personal space posts
+│   │   ├── events/     # Community events
+│   │   └── upload/     # File uploads
+│   ├── auth/           # Auth pages (login, register, verify, etc.)
+│   ├── communities/    # Community browsing and detail pages
+│   ├── feed/           # Feed dashboard
+│   ├── world/          # 8-bit overworld page
+│   └── profile/        # User profile
+├── components/         # Reusable React components
+│   ├── WorldCanvas.tsx # Game engine canvas component
+│   ├── PostCard.tsx    # Post display
+│   ├── Navbar.tsx      # Navigation bar
+│   └── ...
+└── lib/
+    ├── game/           # Game engine (sprites, input, engine, types)
+    ├── types/          # TypeScript type definitions
+    ├── schemas.ts      # Zod validation schemas
+    ├── pagination.ts   # Pagination utilities
+    └── media-utils.ts  # File upload helpers
+```
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
+- Node.js 18+
+- npm
+
+### Installation
+
+```bash
+git clone https://github.com/luke-whitaker/our-place.git
+cd our-place
+npm install
+```
+
+### Development
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) — the SQLite database initializes automatically on first run.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### Other Commands
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Purpose |
+|---------|---------|
+| `npm run build` | Production build |
+| `npm run lint` | ESLint |
+| `npm run format` | Prettier auto-fix |
+| `npm run test` | Run unit tests |
+| `npm run test:watch` | Run tests in watch mode |
 
-## Learn More
+## Roadmap
 
-To learn more about Next.js, take a look at the following resources:
+- [x] Core forum platform (communities, posts, comments, reactions)
+- [x] Authentication with email verification
+- [x] Rich post types and file uploads
+- [x] Feed system with explore/friends tabs
+- [x] My Place personal profiles
+- [x] Security hardening (CSP, rate limits, Zod validation)
+- [x] Game engine foundation (canvas, movement, camera, interactions)
+- [ ] Static town map with community buildings
+- [ ] Dynamic world generation from database
+- [ ] Pixel art assets (sprites, terrain, buildings)
+- [ ] Player identity tied to user accounts
+- [ ] Real-time multiplayer presence
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Related
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- [Portfolio Site](https://github.com/luke-whitaker/portfolio-site) — My pixel-art RPG portfolio, the prototype that inspired the game engine in this project
 
-## Deploy on Vercel
+## Author
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+**Luke Whitaker** — Linguist, researcher, and developer working at the intersection of language, technology, and digital interfaces.
