@@ -2,8 +2,7 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-COPY package.json package-lock.json ./
-COPY prisma ./prisma/
+COPY package.json package-lock.json .npmrc ./
 RUN npm ci
 
 # Stage 2: Build the application
@@ -32,16 +31,22 @@ RUN adduser --system --uid 1001 nextjs
 # Copy public assets
 COPY --from=builder /app/public ./public
 
-# Copy standalone build (Next.js nests it under the WORKDIR path)
+# Copy the standalone server (nested under /app in the standalone output)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone/app ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma schema + generated client (needed at runtime for queries)
+# Copy Prisma files for runtime migrations and queries
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/src/generated ./src/generated
+COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+
+# Copy startup script
+COPY start.sh ./start.sh
+RUN chmod +x ./start.sh
 
 USER nextjs
 
 EXPOSE 3000
 
-CMD ["node", "server.js"]
+CMD ["./start.sh"]

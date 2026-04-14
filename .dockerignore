@@ -1,10 +1,13 @@
 node_modules
 .next
 .git
-.gitignore
-.env*
+.env
+.env.local
+.env.production
 data
 *.md
+!README.md
 screenshots
 .DS_Store
 .cursor
+env.local
