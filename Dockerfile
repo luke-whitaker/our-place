@@ -3,6 +3,10 @@ FROM node:20-alpine AS deps
 WORKDIR /app
 
 COPY package.json package-lock.json .npmrc ./
+# prisma/ and prisma.config.ts are needed because the postinstall
+# script runs "prisma generate" which requires the schema file
+COPY prisma ./prisma
+COPY prisma.config.ts ./prisma.config.ts
 RUN npm ci
 
 # Stage 2: Build the application
@@ -12,7 +16,7 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma client and build Next.js
+# Generate Prisma client (again, with full source) and build Next.js
 RUN npx prisma generate
 RUN npm run build
 
