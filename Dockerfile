@@ -28,18 +28,23 @@ ENV HOSTNAME=0.0.0.0
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy public assets
+# Copy public assets first
 COPY --from=builder /app/public ./public
 
-# Copy the standalone server (nested under /app in the standalone output)
+# Copy the standalone server (this includes its own node_modules)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone/app ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
-# Copy Prisma files for runtime migrations and queries
+# Copy Prisma files AFTER standalone (so they aren't overwritten)
+# - schema + migrations for prisma migrate deploy
+# - generated client for runtime queries
+# - prisma CLI + config for running migrations at startup
 COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/src/generated ./src/generated
 COPY --from=builder /app/node_modules/prisma ./node_modules/prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
+COPY --from=builder /app/node_modules/dotenv ./node_modules/dotenv
 
 # Copy startup script
 COPY start.sh ./start.sh

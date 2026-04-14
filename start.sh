@@ -1,4 +1,8 @@
 #!/bin/sh
-# Run pending database migrations, then start the server
-npx prisma migrate deploy --schema=./prisma/schema.prisma
+set -e
+
+echo "Running database migrations..."
+node ./node_modules/prisma/build/index.js migrate deploy --schema=./prisma/schema.prisma
+
+echo "Starting server..."
 node server.js
