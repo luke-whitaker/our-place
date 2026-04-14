@@ -18,6 +18,13 @@ COPY . .
 
 # Generate Prisma client (again, with full source) and build Next.js
 RUN npx prisma generate
+
+# Dummy values so next build can compile server code that references
+# these env vars at module-load time.  The real values are injected
+# at runtime by Railway's environment variables.
+ENV JWT_SECRET=build-placeholder
+ENV DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder
+
 RUN npm run build
 
 # Stage 3: Production runner
