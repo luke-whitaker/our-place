@@ -2,7 +2,7 @@
 FROM node:20-alpine AS deps
 WORKDIR /app
 
-COPY package.json package-lock.json .npmrc ./
+COPY package.json package-lock.json ./
 # prisma/ and prisma.config.ts are needed because the postinstall
 # script runs "prisma generate" which requires the schema file
 COPY prisma ./prisma
@@ -40,9 +40,6 @@ COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone/app ./
 COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
 
 # Copy Prisma files AFTER standalone (so they aren't overwritten)
-# - schema + migrations for prisma migrate deploy
-# - generated client for runtime queries
-# - prisma CLI + config for running migrations at startup
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
 COPY --from=builder /app/src/generated ./src/generated
