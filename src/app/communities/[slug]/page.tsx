@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useEffect, useCallback } from 'react';
-import { useRouter, useParams } from 'next/navigation';
-import Link from 'next/link';
-import { useAuth } from '@/components/AuthProvider';
-import PostCard from '@/components/PostCard';
-import CreatePostForm from '@/components/CreatePostForm';
-import { Community, CommunityMember, Post } from '@/lib/types';
+import { useState, useEffect, useCallback } from "react";
+import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
+import { useAuth } from "@/components/AuthProvider";
+import PostCard from "@/components/PostCard";
+import CreatePostForm from "@/components/CreatePostForm";
+import { Community, CommunityMember, Post } from "@/lib/types";
 
 export default function CommunityDetailPage() {
   const { user, loading } = useAuth();
@@ -33,7 +33,7 @@ export default function CommunityDetailPage() {
       const postsData = await postsRes.json();
 
       if (!commRes.ok) {
-        router.replace('/communities');
+        router.replace("/communities");
         return;
       }
 
@@ -42,24 +42,30 @@ export default function CommunityDetailPage() {
       setMembers(commData.members || []);
       setPosts(postsData.posts || []);
     } catch (err) {
-      console.error('Failed to load community:', err);
-      setPageError('Failed to load community. Please try again.');
+      console.error("Failed to load community:", err);
+      setPageError("Failed to load community. Please try again.");
     }
     setLoadingPage(false);
   }, [slug, router]);
 
   useEffect(() => {
-    if (!loading && !user) {
-      router.replace('/auth/login');
+    if (loading) return;
+    if (!user) {
+      router.replace("/auth/login");
       return;
     }
-    if (!loading && user && !user.is_verified) {
-      router.replace('/auth/verify');
+    if (!user.is_verified) {
+      router.replace("/auth/verify");
       return;
     }
-    if (!loading && user?.is_verified) {
-      loadCommunity();
-    }
+    // Auth checks passed — load data asynchronously to avoid cascading renders
+    let cancelled = false;
+    (async () => {
+      if (!cancelled) await loadCommunity();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [user, loading, router, loadCommunity]);
 
   async function handleJoin() {
@@ -67,16 +73,16 @@ export default function CommunityDetailPage() {
     setJoining(true);
     setPageError(null);
     try {
-      const res = await fetch(`/api/communities/${community.id}/join`, { method: 'POST' });
+      const res = await fetch(`/api/communities/${community.id}/join`, { method: "POST" });
       if (res.ok) {
         await loadCommunity();
       } else {
         const data = await res.json();
-        setPageError(data.error || 'Failed to join community.');
+        setPageError(data.error || "Failed to join community.");
       }
     } catch (err) {
-      console.error('Failed to join community:', err);
-      setPageError('Failed to join community. Please try again.');
+      console.error("Failed to join community:", err);
+      setPageError("Failed to join community. Please try again.");
     }
     setJoining(false);
   }
@@ -86,16 +92,16 @@ export default function CommunityDetailPage() {
     setLeaving(true);
     setPageError(null);
     try {
-      const res = await fetch(`/api/communities/${community.id}/leave`, { method: 'POST' });
+      const res = await fetch(`/api/communities/${community.id}/leave`, { method: "POST" });
       if (res.ok) {
         await loadCommunity();
       } else {
         const data = await res.json();
-        setPageError(data.error || 'Failed to leave community.');
+        setPageError(data.error || "Failed to leave community.");
       }
     } catch (err) {
-      console.error('Failed to leave community:', err);
-      setPageError('Failed to leave community. Please try again.');
+      console.error("Failed to leave community:", err);
+      setPageError("Failed to leave community. Please try again.");
     }
     setLeaving(false);
   }
@@ -106,7 +112,7 @@ export default function CommunityDetailPage() {
       const data = await res.json();
       setPosts(data.posts || []);
     } catch (err) {
-      console.error('Failed to reload posts:', err);
+      console.error("Failed to reload posts:", err);
     }
   }
 
@@ -121,7 +127,7 @@ export default function CommunityDetailPage() {
   if (!community) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <p className="text-gray-500">{pageError || 'Community not found.'}</p>
+        <p className="text-gray-500">{pageError || "Community not found."}</p>
       </div>
     );
   }
@@ -129,10 +135,7 @@ export default function CommunityDetailPage() {
   return (
     <div>
       {/* Banner */}
-      <div
-        className="relative h-40 sm:h-52"
-        style={{ backgroundColor: community.banner_color }}
-      >
+      <div className="relative h-40 sm:h-52" style={{ backgroundColor: community.banner_color }}>
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 mx-auto max-w-6xl px-4 pb-5 sm:px-6">
           <div className="flex items-end gap-4">
@@ -149,7 +152,8 @@ export default function CommunityDetailPage() {
                 ) : null}
               </div>
               <p className="text-sm text-white/80 mt-0.5">
-                {community.member_count} {community.member_count === 1 ? 'member' : 'members'} · {community.category}
+                {community.member_count} {community.member_count === 1 ? "member" : "members"} ·{" "}
+                {community.category}
               </p>
             </div>
           </div>
@@ -174,14 +178,16 @@ export default function CommunityDetailPage() {
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="flex-1">
                     <h3 className="text-sm font-semibold text-gray-900">Join this community</h3>
-                    <p className="text-sm text-gray-500 mt-0.5">Become a member to post and interact with others.</p>
+                    <p className="text-sm text-gray-500 mt-0.5">
+                      Become a member to post and interact with others.
+                    </p>
                   </div>
                   <button
                     onClick={handleJoin}
                     disabled={joining}
                     className="rounded-xl bg-indigo-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-50 transition-colors"
                   >
-                    {joining ? 'Joining...' : 'Join Community'}
+                    {joining ? "Joining..." : "Join Community"}
                   </button>
                 </div>
               </div>
@@ -205,7 +211,9 @@ export default function CommunityDetailPage() {
               <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white p-10 text-center">
                 <h3 className="text-base font-semibold text-gray-900">No posts yet</h3>
                 <p className="mt-1 text-sm text-gray-500">
-                  {membership ? 'Be the first to share something!' : 'Join this community to start the conversation.'}
+                  {membership
+                    ? "Be the first to share something!"
+                    : "Join this community to start the conversation."}
                 </p>
               </div>
             )}
@@ -221,7 +229,9 @@ export default function CommunityDetailPage() {
 
                 {community.guidelines && (
                   <div className="mt-4 pt-4 border-t border-gray-100">
-                    <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">Guidelines</h3>
+                    <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                      Guidelines
+                    </h3>
                     <p className="text-xs text-gray-500 leading-relaxed">{community.guidelines}</p>
                   </div>
                 )}
@@ -233,7 +243,7 @@ export default function CommunityDetailPage() {
                     disabled={leaving}
                     className="mt-4 w-full rounded-xl border border-gray-200 py-2 text-xs font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
                   >
-                    {leaving ? 'Leaving...' : 'Leave Community'}
+                    {leaving ? "Leaving..." : "Leave Community"}
                   </button>
                 )}
               </div>
@@ -248,15 +258,17 @@ export default function CommunityDetailPage() {
                     <div key={member.id} className="flex items-center gap-2.5">
                       <div
                         className="flex h-7 w-7 items-center justify-center rounded-full text-white text-xs font-bold"
-                        style={{ backgroundColor: member.avatar_color || '#6366f1' }}
+                        style={{ backgroundColor: member.avatar_color || "#6366f1" }}
                       >
-                        {member.display_name?.charAt(0).toUpperCase() || '?'}
+                        {member.display_name?.charAt(0).toUpperCase() || "?"}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-gray-700 truncate">{member.display_name}</p>
+                        <p className="text-xs font-medium text-gray-700 truncate">
+                          {member.display_name}
+                        </p>
                         <p className="text-xs text-gray-400">@{member.username}</p>
                       </div>
-                      {member.role === 'admin' && (
+                      {member.role === "admin" && (
                         <span className="ml-auto text-xs text-indigo-500 font-medium">Admin</span>
                       )}
                     </div>
@@ -269,8 +281,18 @@ export default function CommunityDetailPage() {
                 href="/communities"
                 className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
               >
-                <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18" />
+                <svg
+                  className="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  strokeWidth={1.5}
+                  stroke="currentColor"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M10.5 19.5 3 12m0 0 7.5-7.5M3 12h18"
+                  />
                 </svg>
                 All Communities
               </Link>

@@ -1,89 +1,110 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
-import { getAuthUser } from '@/lib/auth';
-import { createPostLimiter } from '@/lib/rate-limit';
-import { createPostSchema, getZodErrorMessage } from '@/lib/schemas';
-import { enrichPostsWithMedia } from '@/lib/post-helpers';
-import { Post, PostType } from '@/lib/types';
-import { v4 as uuidv4 } from 'uuid';
-
-const VALID_POST_TYPES: readonly PostType[] = ['text', 'photo', 'video', 'rich'];
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/db";
+import { getAuthUser } from "@/lib/auth";
+import { createPostLimiter } from "@/lib/rate-limit";
+import { createPostSchema, getZodErrorMessage } from "@/lib/schemas";
+import { enrichPostsWithMedia } from "@/lib/post-helpers";
+import { parsePagination, paginateResults } from "@/lib/pagination";
+import { v4 as uuidv4 } from "uuid";
 
 // GET: List posts in a community
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const auth = await getAuthUser();
-    const db = getDb();
+    const { limit, offset, page } = parsePagination(new URL(request.url).searchParams);
 
-    const community = db.prepare('SELECT id FROM communities WHERE id = ? OR slug = ?').get(id, id) as { id: string } | undefined;
+    const community = await prisma.community.findFirst({
+      where: { OR: [{ id }, { slug: id }] },
+      select: { id: true },
+    });
     if (!community) {
-      return NextResponse.json({ error: 'Community not found.' }, { status: 404 });
+      return NextResponse.json({ error: "Community not found." }, { status: 404 });
     }
 
-    const posts = db.prepare(`
-      SELECT p.*, 
-        u.display_name as author_name, 
-        u.username as author_username,
-        u.avatar_color as author_avatar_color,
-        c.name as community_name,
-        c.slug as community_slug,
-        c.icon as community_icon
-        ${auth ? ", (SELECT type FROM reactions WHERE post_id = p.id AND user_id = ?) as user_reaction" : ""}
-      FROM posts p
-      JOIN users u ON p.author_id = u.id
-      JOIN communities c ON p.community_id = c.id
-      WHERE p.community_id = ?
-      ORDER BY p.created_at DESC
-      LIMIT 50
-    `).all(...(auth ? [auth.userId, community.id] : [community.id])) as Post[];
+    const posts = await prisma.post.findMany({
+      where: { communityId: community.id },
+      include: {
+        author: { select: { displayName: true, username: true, avatarColor: true } },
+        community: { select: { name: true, slug: true, icon: true } },
+        reactions: auth ? { where: { userId: auth.userId }, select: { type: true } } : false,
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit + 1,
+      skip: offset,
+    });
 
-    const enrichedPosts = enrichPostsWithMedia(db, posts);
+    const mapped = posts.map((p) => ({
+      id: p.id,
+      author_id: p.authorId,
+      community_id: p.communityId,
+      post_type: p.postType,
+      posted_to_profile: p.postedToProfile ? 1 : 0,
+      title: p.title,
+      content: p.content,
+      comment_count: p.commentCount,
+      reaction_count: p.reactionCount,
+      created_at: p.createdAt.toISOString(),
+      updated_at: p.updatedAt.toISOString(),
+      author_name: p.author.displayName,
+      author_username: p.author.username,
+      author_avatar_color: p.author.avatarColor,
+      community_name: p.community?.name ?? null,
+      community_slug: p.community?.slug ?? null,
+      community_icon: p.community?.icon ?? null,
+      user_reaction:
+        Array.isArray(p.reactions) && p.reactions.length > 0 ? p.reactions[0].type : null,
+    }));
 
-    return NextResponse.json({ posts: enrichedPosts });
+    const { data, hasMore } = paginateResults(mapped, limit, page);
+    const enrichedPosts = await enrichPostsWithMedia(data);
+
+    return NextResponse.json({ posts: enrichedPosts, hasMore, page });
   } catch (error) {
-    console.error('Community posts error:', error);
-    return NextResponse.json({ error: 'Failed to load posts.' }, { status: 500 });
+    console.error("Community posts error:", error);
+    return NextResponse.json({ error: "Failed to load posts." }, { status: 500 });
   }
 }
 
 // POST: Create a new post
-export async function POST(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
     const auth = await getAuthUser();
     if (!auth) {
-      return NextResponse.json({ error: 'Please log in to post.' }, { status: 401 });
+      return NextResponse.json({ error: "Please log in to post." }, { status: 401 });
     }
     if (!auth.is_verified) {
-      return NextResponse.json({ error: 'Please verify your account before posting.' }, { status: 403 });
+      return NextResponse.json(
+        { error: "Please verify your account before posting." },
+        { status: 403 },
+      );
     }
 
-    const db = getDb();
-    const community = db.prepare('SELECT id FROM communities WHERE id = ? OR slug = ?').get(id, id) as { id: string } | undefined;
+    const community = await prisma.community.findFirst({
+      where: { OR: [{ id }, { slug: id }] },
+      select: { id: true },
+    });
     if (!community) {
-      return NextResponse.json({ error: 'Community not found.' }, { status: 404 });
+      return NextResponse.json({ error: "Community not found." }, { status: 404 });
     }
 
     // Check if user is a member
-    const membership = db.prepare(
-      'SELECT id FROM community_members WHERE user_id = ? AND community_id = ?'
-    ).get(auth.userId, community.id);
+    const membership = await prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId: auth.userId, communityId: community.id } },
+    });
     if (!membership) {
-      return NextResponse.json({ error: 'You must join this community before posting.' }, { status: 403 });
+      return NextResponse.json(
+        { error: "You must join this community before posting." },
+        { status: 403 },
+      );
     }
 
     const limit = createPostLimiter.check(auth.userId);
     if (!limit.allowed) {
       return NextResponse.json(
-        { error: 'Too many posts created. Please try again later.' },
-        { status: 429, headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) } }
+        { error: "Too many posts created. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(limit.retryAfterMs / 1000)) } },
       );
     }
 
@@ -96,87 +117,95 @@ export async function POST(
     const title = parsed.data.title.trim();
     const content = parsed.data.content.trim();
     const media = parsed.data.media;
-    const postToProfile = parsed.data.post_to_profile ? 1 : 0;
+    const postToProfile = parsed.data.post_to_profile ? true : false;
 
     // Type-specific validation
-    if (postType === 'text') {
+    if (postType === "text") {
       if (!title) {
-        return NextResponse.json({ error: 'Title is required for text posts.' }, { status: 400 });
+        return NextResponse.json({ error: "Title is required for text posts." }, { status: 400 });
       }
       if (!content) {
-        return NextResponse.json({ error: 'Content is required for text posts.' }, { status: 400 });
+        return NextResponse.json({ error: "Content is required for text posts." }, { status: 400 });
       }
     }
 
-    if (postType === 'photo') {
+    if (postType === "photo") {
       if (!media.length) {
-        return NextResponse.json({ error: 'At least one image is required for photo posts.' }, { status: 400 });
+        return NextResponse.json(
+          { error: "At least one image is required for photo posts." },
+          { status: 400 },
+        );
       }
       if (media.length > 10) {
-        return NextResponse.json({ error: 'Maximum 10 images per post.' }, { status: 400 });
+        return NextResponse.json({ error: "Maximum 10 images per post." }, { status: 400 });
       }
     }
 
-    if (postType === 'video') {
+    if (postType === "video") {
       if (!media.length) {
-        return NextResponse.json({ error: 'A video is required for video posts.' }, { status: 400 });
+        return NextResponse.json(
+          { error: "A video is required for video posts." },
+          { status: 400 },
+        );
       }
       if (media.length > 1) {
-        return NextResponse.json({ error: 'Only one video per post.' }, { status: 400 });
+        return NextResponse.json({ error: "Only one video per post." }, { status: 400 });
       }
     }
 
-    if (postType === 'rich') {
+    if (postType === "rich") {
       if (!title) {
-        return NextResponse.json({ error: 'Title is required for rich posts.' }, { status: 400 });
+        return NextResponse.json({ error: "Title is required for rich posts." }, { status: 400 });
       }
       if (!content) {
-        return NextResponse.json({ error: 'Content is required for rich posts.' }, { status: 400 });
+        return NextResponse.json({ error: "Content is required for rich posts." }, { status: 400 });
       }
-      // Validate JSON structure
       try {
         const blocks = JSON.parse(content);
         if (!Array.isArray(blocks) || blocks.length === 0) {
-          return NextResponse.json({ error: 'Rich content must have at least one block.' }, { status: 400 });
+          return NextResponse.json(
+            { error: "Rich content must have at least one block." },
+            { status: 400 },
+          );
         }
       } catch {
-        return NextResponse.json({ error: 'Invalid rich content format.' }, { status: 400 });
+        return NextResponse.json({ error: "Invalid rich content format." }, { status: 400 });
       }
     }
 
     const postId = uuidv4();
 
     // Insert the post
-    db.prepare(`
-      INSERT INTO posts (id, author_id, community_id, post_type, posted_to_profile, title, content)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
-    `).run(postId, auth.userId, community.id, postType, postToProfile, title, content);
+    await prisma.post.create({
+      data: {
+        id: postId,
+        authorId: auth.userId,
+        communityId: community.id,
+        postType,
+        postedToProfile: postToProfile,
+        title,
+        content,
+      },
+    });
 
     // Insert media attachments (for photo and video posts)
-    if ((postType === 'photo' || postType === 'video') && media.length > 0) {
-      const insertMedia = db.prepare(`
-        INSERT INTO post_media (id, post_id, media_type, media_source, url, filename, file_size, sort_order)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `);
-
-      for (let i = 0; i < media.length; i++) {
-        const m = media[i];
-        insertMedia.run(
-          uuidv4(),
+    if ((postType === "photo" || postType === "video") && media.length > 0) {
+      await prisma.postMedia.createMany({
+        data: media.map((m, i) => ({
           postId,
-          m.media_type || (postType === 'photo' ? 'image' : 'video'),
-          m.media_source || 'upload',
-          m.url,
-          m.filename || null,
-          m.file_size || null,
-          i
-        );
-      }
+          mediaType: m.media_type || (postType === "photo" ? "image" : "video"),
+          mediaSource: m.media_source || "upload",
+          url: m.url,
+          filename: m.filename || null,
+          fileSize: m.file_size || null,
+          sortOrder: i,
+        })),
+      });
     }
 
-    return NextResponse.json({ message: 'Post created!', postId }, { status: 201 });
+    return NextResponse.json({ message: "Post created!", postId }, { status: 201 });
   } catch (error) {
-    console.error('Create post error:', error);
-    return NextResponse.json({ error: 'Failed to create post.' }, { status: 500 });
+    console.error("Create post error:", error);
+    return NextResponse.json({ error: "Failed to create post." }, { status: 500 });
   }
 }

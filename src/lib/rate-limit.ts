@@ -1,6 +1,6 @@
 /**
  * Simple in-memory rate limiter for API routes.
- * 
+ *
  * For production at scale, replace with Redis-backed rate limiting.
  * This implementation is sufficient for single-instance deployments.
  */
@@ -105,10 +105,10 @@ export const createCommunityLimiter = new RateLimiter({ maxAttempts: 5, windowMs
  * Uses X-Forwarded-For header (for reverse proxies) or falls back to a default.
  */
 export function getClientIp(request: Request): string {
-  const forwarded = request.headers.get('x-forwarded-for');
+  const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
-    return forwarded.split(',')[0].trim();
+    return forwarded.split(",")[0].trim();
   }
   // In development without a proxy, use a fallback
-  return request.headers.get('x-real-ip') || 'unknown';
+  return request.headers.get("x-real-ip") || "unknown";
 }

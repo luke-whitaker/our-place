@@ -18,7 +18,7 @@ export function getVimeoId(url: string): string | null {
 }
 
 export function parseVideoUrl(url: string): {
-  source: 'youtube' | 'vimeo';
+  source: "youtube" | "vimeo";
   id: string;
   embedUrl: string;
   thumbnailUrl: string;
@@ -26,7 +26,7 @@ export function parseVideoUrl(url: string): {
   const ytId = getYouTubeId(url);
   if (ytId) {
     return {
-      source: 'youtube',
+      source: "youtube",
       id: ytId,
       embedUrl: `https://www.youtube.com/embed/${ytId}`,
       thumbnailUrl: `https://img.youtube.com/vi/${ytId}/hqdefault.jpg`,
@@ -36,10 +36,10 @@ export function parseVideoUrl(url: string): {
   const vimeoId = getVimeoId(url);
   if (vimeoId) {
     return {
-      source: 'vimeo',
+      source: "vimeo",
       id: vimeoId,
       embedUrl: `https://player.vimeo.com/video/${vimeoId}`,
-      thumbnailUrl: '', // Vimeo requires API call for thumbnails
+      thumbnailUrl: "", // Vimeo requires API call for thumbnails
     };
   }
 
@@ -47,15 +47,15 @@ export function parseVideoUrl(url: string): {
 }
 
 // Accepted file types
-export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
-export const ACCEPTED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
+export const ACCEPTED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];
 
 export const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 export const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 export const MAX_IMAGES_PER_POST = 10;
 
 export function getFileExtension(filename: string): string {
-  const ext = filename.split('.').pop()?.toLowerCase() || '';
+  const ext = filename.split(".").pop()?.toLowerCase() || "";
   // Normalize .mov to .mp4 extension mapping isn't needed here,
   // just return the actual extension
   return ext;
@@ -70,7 +70,7 @@ export function isVideoType(mimeType: string): boolean {
 }
 
 export function formatFileSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+  if (bytes < 1024) return bytes + " B";
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+  return (bytes / (1024 * 1024)).toFixed(1) + " MB";
 }

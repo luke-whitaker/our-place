@@ -1,17 +1,17 @@
-import jwt from 'jsonwebtoken';
-import crypto from 'crypto';
-import { cookies } from 'next/headers';
-import { AuthPayload } from './types';
+import jwt from "jsonwebtoken";
+import crypto from "crypto";
+import { cookies } from "next/headers";
+import { AuthPayload } from "./types";
 
 function getJwtSecret(): string {
   const secret = process.env.JWT_SECRET;
   if (!secret) {
-    if (process.env.NODE_ENV === 'production') {
-      throw new Error('JWT_SECRET environment variable is required in production');
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("JWT_SECRET environment variable is required in production");
     }
     // Development-only fallback — NEVER use in production
-    console.warn('[AUTH] JWT_SECRET not set — using insecure development fallback');
-    return 'dev-only-insecure-fallback-change-me';
+    console.warn("[AUTH] JWT_SECRET not set — using insecure development fallback");
+    return "dev-only-insecure-fallback-change-me";
   }
   return secret;
 }
@@ -19,7 +19,7 @@ function getJwtSecret(): string {
 const JWT_SECRET = getJwtSecret();
 
 export function signToken(payload: AuthPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: '24h' });
+  return jwt.sign(payload, JWT_SECRET, { expiresIn: "24h" });
 }
 
 export function verifyToken(token: string): AuthPayload | null {
@@ -32,7 +32,7 @@ export function verifyToken(token: string): AuthPayload | null {
 
 export async function getAuthUser(): Promise<AuthPayload | null> {
   const cookieStore = await cookies();
-  const token = cookieStore.get('auth_token')?.value;
+  const token = cookieStore.get("auth_token")?.value;
   if (!token) return null;
   return verifyToken(token);
 }

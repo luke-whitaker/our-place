@@ -1,0 +1,208 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                      String    @id @default(uuid())
+  username                String    @unique
+  displayName             String    @map("display_name")
+  email                   String    @unique
+  phone                   String    @unique
+  passwordHash            String    @map("password_hash")
+  bio                     String    @default("")
+  avatarColor             String    @default("#6366f1") @map("avatar_color")
+  isVerified              Boolean   @default(false) @map("is_verified")
+  verificationCode        String?   @map("verification_code")
+  verificationExpiresAt   DateTime? @map("verification_expires_at")
+  resetCode               String?   @map("reset_code")
+  resetCodeExpiresAt      DateTime? @map("reset_code_expires_at")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  createdCommunities Community[]       @relation("CommunityCreator")
+  memberships        CommunityMember[]
+  posts              Post[]            @relation("PostAuthor")
+  comments           Comment[]
+  reactions          Reaction[]
+  createdEvents      Event[]           @relation("EventCreator")
+  eventRsvps         EventRsvp[]
+  sentFriendships    Friendship[]      @relation("FriendshipSender")
+  receivedFriendships Friendship[]     @relation("FriendshipReceiver")
+
+  @@index([email])
+  @@index([username])
+  @@map("users")
+}
+
+model Community {
+  id          String  @id @default(uuid())
+  name        String  @unique
+  slug        String  @unique
+  description String
+  category    String
+  icon        String  @default("\uD83C\uDF10")
+  bannerColor String  @default("#6366f1") @map("banner_color")
+  guidelines  String  @default("")
+  creatorId   String  @map("creator_id")
+  isOfficial  Boolean @default(false) @map("is_official")
+  memberCount Int     @default(1) @map("member_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  creator  User              @relation("CommunityCreator", fields: [creatorId], references: [id])
+  members  CommunityMember[]
+  posts    Post[]
+  events   Event[]
+
+  @@map("communities")
+}
+
+model CommunityMember {
+  id          String   @id @default(uuid())
+  userId      String   @map("user_id")
+  communityId String   @map("community_id")
+  role        String   @default("member")
+  joinedAt    DateTime @default(now()) @map("joined_at")
+
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  community Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, communityId])
+  @@index([userId])
+  @@index([communityId])
+  @@map("community_members")
+}
+
+model Post {
+  id              String   @id @default(uuid())
+  authorId        String   @map("author_id")
+  communityId     String?  @map("community_id")
+  postType        String   @default("text") @map("post_type")
+  postedToProfile Boolean  @default(false) @map("posted_to_profile")
+  title           String   @default("")
+  content         String   @default("")
+  commentCount    Int      @default(0) @map("comment_count")
+  reactionCount   Int      @default(0) @map("reaction_count")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
+
+  author    User         @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  community Community?   @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  media     PostMedia[]
+  comments  Comment[]
+  reactions Reaction[]
+
+  @@index([communityId])
+  @@index([authorId])
+  @@index([createdAt(sort: Desc)])
+  @@index([communityId, createdAt(sort: Desc)])
+  @@index([authorId, postedToProfile])
+  @@map("posts")
+}
+
+model PostMedia {
+  id          String   @id @default(uuid())
+  postId      String   @map("post_id")
+  mediaType   String   @map("media_type")
+  mediaSource String   @default("upload") @map("media_source")
+  url         String
+  filename    String?
+  fileSize    Int?     @map("file_size")
+  width       Int?
+  height      Int?
+  sortOrder   Int      @default(0) @map("sort_order")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@map("post_media")
+}
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  authorId  String   @map("author_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([authorId])
+  @@map("comments")
+}
+
+model Reaction {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  type      String   @default("like")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([postId, userId])
+  @@index([postId])
+  @@index([userId, postId])
+  @@map("reactions")
+}
+
+model Friendship {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  friendId  String   @map("friend_id")
+  status    String   @default("pending")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User @relation("FriendshipSender", fields: [userId], references: [id], onDelete: Cascade)
+  friend User @relation("FriendshipReceiver", fields: [friendId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, friendId])
+  @@index([userId])
+  @@index([friendId])
+  @@map("friendships")
+}
+
+model Event {
+  id           String    @id @default(uuid())
+  title        String
+  description  String
+  location     String    @default("")
+  eventDate    DateTime  @map("event_date")
+  eventEndDate DateTime? @map("event_end_date")
+  communityId  String?   @map("community_id")
+  creatorId    String    @map("creator_id")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  community Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  creator   User       @relation("EventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  rsvps     EventRsvp[]
+
+  @@index([eventDate])
+  @@index([communityId])
+  @@index([creatorId])
+  @@map("events")
+}
+
+model EventRsvp {
+  id        String   @id @default(uuid())
+  eventId   String   @map("event_id")
+  userId    String   @map("user_id")
+  status    String   @default("going")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  event Event @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+  @@index([eventId])
+  @@index([userId])
+  @@map("event_rsvps")
+}

@@ -1,56 +1,115 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
-import { getAuthUser } from '@/lib/auth';
-import { createEventLimiter } from '@/lib/rate-limit';
-import { createEventSchema, getZodErrorMessage } from '@/lib/schemas';
-import { v4 as uuidv4 } from 'uuid';
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/db";
+import { getAuthUser } from "@/lib/auth";
+import { createEventLimiter } from "@/lib/rate-limit";
+import { createEventSchema, getZodErrorMessage } from "@/lib/schemas";
+import { parsePagination, paginateResults } from "@/lib/pagination";
+import { v4 as uuidv4 } from "uuid";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const auth = await getAuthUser();
     if (!auth) {
-      return NextResponse.json({ error: 'Please log in.' }, { status: 401 });
+      return NextResponse.json({ error: "Please log in." }, { status: 401 });
     }
 
-    const db = getDb();
+    const { limit, offset, page } = parsePagination(new URL(request.url).searchParams);
 
-    // Get upcoming events from the user's communities + events they've RSVP'd to
-    const events = db.prepare(`
-      SELECT DISTINCT e.*,
-        u.display_name as creator_name,
-        u.username as creator_username,
-        u.avatar_color as creator_avatar_color,
-        c.name as community_name,
-        c.icon as community_icon,
-        (SELECT COUNT(*) FROM event_rsvps WHERE event_id = e.id) as rsvp_count,
-        (SELECT status FROM event_rsvps WHERE event_id = e.id AND user_id = ?) as user_rsvp
-      FROM events e
-      JOIN users u ON e.creator_id = u.id
-      LEFT JOIN communities c ON e.community_id = c.id
-      LEFT JOIN community_members cm ON cm.community_id = e.community_id AND cm.user_id = ?
-      LEFT JOIN event_rsvps er ON er.event_id = e.id AND er.user_id = ?
-      WHERE e.event_date >= datetime('now')
-        AND (cm.user_id IS NOT NULL OR er.user_id IS NOT NULL OR e.creator_id = ?)
-      ORDER BY e.event_date ASC
-      LIMIT 50
-    `).all(auth.userId, auth.userId, auth.userId, auth.userId);
+    // Get community IDs the user belongs to
+    const memberships = await prisma.communityMember.findMany({
+      where: { userId: auth.userId },
+      select: { communityId: true },
+    });
+    const communityIds = memberships.map((m) => m.communityId);
+
+    // Get event IDs the user has RSVP'd to
+    const rsvps = await prisma.eventRsvp.findMany({
+      where: { userId: auth.userId },
+      select: { eventId: true },
+    });
+    const rsvpEventIds = rsvps.map((r) => r.eventId);
+
+    // Get upcoming events from user's communities, RSVP'd events, or events they created
+    const events = await prisma.event.findMany({
+      where: {
+        eventDate: { gte: new Date() },
+        OR: [
+          { communityId: { in: communityIds } },
+          { id: { in: rsvpEventIds } },
+          { creatorId: auth.userId },
+        ],
+      },
+      include: {
+        creator: { select: { displayName: true, username: true, avatarColor: true } },
+        community: { select: { name: true, icon: true } },
+        rsvps: { select: { id: true } },
+      },
+      orderBy: { eventDate: "asc" },
+      take: limit + 1,
+      skip: offset,
+    });
+
+    // Get user's RSVP status for each event
+    const userRsvps = await prisma.eventRsvp.findMany({
+      where: { userId: auth.userId, eventId: { in: events.map((e) => e.id) } },
+      select: { eventId: true, status: true },
+    });
+    const rsvpMap = new Map(userRsvps.map((r) => [r.eventId, r.status]));
+
+    const mapped = events.map((e) => ({
+      id: e.id,
+      title: e.title,
+      description: e.description,
+      location: e.location,
+      event_date: e.eventDate.toISOString(),
+      event_end_date: e.eventEndDate?.toISOString() ?? null,
+      community_id: e.communityId,
+      creator_id: e.creatorId,
+      created_at: e.createdAt.toISOString(),
+      creator_name: e.creator.displayName,
+      creator_username: e.creator.username,
+      creator_avatar_color: e.creator.avatarColor,
+      community_name: e.community?.name ?? null,
+      community_icon: e.community?.icon ?? null,
+      rsvp_count: e.rsvps.length,
+      user_rsvp: rsvpMap.get(e.id) ?? null,
+    }));
+
+    const { data: paginatedEvents, hasMore } = paginateResults(mapped, limit, page);
 
     // Get events the user has RSVP'd to (for calendar view)
-    const myEvents = db.prepare(`
-      SELECT e.*, er.status as user_rsvp,
-        c.name as community_name,
-        c.icon as community_icon
-      FROM events e
-      JOIN event_rsvps er ON er.event_id = e.id AND er.user_id = ?
-      LEFT JOIN communities c ON e.community_id = c.id
-      WHERE e.event_date >= datetime('now', '-7 days')
-      ORDER BY e.event_date ASC
-    `).all(auth.userId);
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const myEvents = await prisma.event.findMany({
+      where: {
+        eventDate: { gte: sevenDaysAgo },
+        rsvps: { some: { userId: auth.userId } },
+      },
+      include: {
+        community: { select: { name: true, icon: true } },
+        rsvps: { where: { userId: auth.userId }, select: { status: true } },
+      },
+      orderBy: { eventDate: "asc" },
+    });
 
-    return NextResponse.json({ events, myEvents });
+    const mappedMyEvents = myEvents.map((e) => ({
+      id: e.id,
+      title: e.title,
+      description: e.description,
+      location: e.location,
+      event_date: e.eventDate.toISOString(),
+      event_end_date: e.eventEndDate?.toISOString() ?? null,
+      community_id: e.communityId,
+      creator_id: e.creatorId,
+      created_at: e.createdAt.toISOString(),
+      community_name: e.community?.name ?? null,
+      community_icon: e.community?.icon ?? null,
+      user_rsvp: e.rsvps.length > 0 ? e.rsvps[0].status : null,
+    }));
+
+    return NextResponse.json({ events: paginatedEvents, myEvents: mappedMyEvents, hasMore, page });
   } catch (error) {
-    console.error('Events error:', error);
-    return NextResponse.json({ error: 'Failed to load events.' }, { status: 500 });
+    console.error("Events error:", error);
+    return NextResponse.json({ error: "Failed to load events." }, { status: 500 });
   }
 }
 
@@ -58,14 +117,14 @@ export async function POST(request: NextRequest) {
   try {
     const auth = await getAuthUser();
     if (!auth) {
-      return NextResponse.json({ error: 'Please log in.' }, { status: 401 });
+      return NextResponse.json({ error: "Please log in." }, { status: 401 });
     }
 
     const limit = createEventLimiter.check(auth.userId);
     if (!limit.allowed) {
       return NextResponse.json(
-        { error: 'Too many events created. Please try again later.' },
-        { status: 429, headers: { 'Retry-After': String(Math.ceil(limit.retryAfterMs / 1000)) } }
+        { error: "Too many events created. Please try again later." },
+        { status: 429, headers: { "Retry-After": String(Math.ceil(limit.retryAfterMs / 1000)) } },
       );
     }
 
@@ -76,23 +135,29 @@ export async function POST(request: NextRequest) {
     }
     const { title, description, location, event_date, event_end_date, community_id } = parsed.data;
 
-    const db = getDb();
     const id = uuidv4();
 
-    db.prepare(`
-      INSERT INTO events (id, title, description, location, event_date, event_end_date, community_id, creator_id)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(id, title, description, location || '', event_date, event_end_date || null, community_id || null, auth.userId);
+    await prisma.event.create({
+      data: {
+        id,
+        title,
+        description,
+        location: location || "",
+        eventDate: new Date(event_date),
+        eventEndDate: event_end_date ? new Date(event_end_date) : null,
+        communityId: community_id || null,
+        creatorId: auth.userId,
+      },
+    });
 
     // Auto-RSVP the creator
-    db.prepare(`
-      INSERT INTO event_rsvps (id, event_id, user_id, status)
-      VALUES (?, ?, ?, 'going')
-    `).run(uuidv4(), id, auth.userId);
+    await prisma.eventRsvp.create({
+      data: { eventId: id, userId: auth.userId, status: "going" },
+    });
 
-    return NextResponse.json({ id, message: 'Event created!' }, { status: 201 });
+    return NextResponse.json({ id, message: "Event created!" }, { status: 201 });
   } catch (error) {
-    console.error('Create event error:', error);
-    return NextResponse.json({ error: 'Failed to create event.' }, { status: 500 });
+    console.error("Create event error:", error);
+    return NextResponse.json({ error: "Failed to create event." }, { status: 500 });
   }
 }

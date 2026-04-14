@@ -1,46 +1,69 @@
-import { NextResponse } from 'next/server';
-import { getDb } from '@/lib/db';
-import { getAuthUser } from '@/lib/auth';
-import { enrichPostsWithMedia } from '@/lib/post-helpers';
-import { Post } from '@/lib/types';
+import { NextRequest, NextResponse } from "next/server";
+import prisma from "@/lib/db";
+import { getAuthUser } from "@/lib/auth";
+import { enrichPostsWithMedia } from "@/lib/post-helpers";
+import { parsePagination, paginateResults } from "@/lib/pagination";
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
     const auth = await getAuthUser();
     if (!auth) {
-      return NextResponse.json({ error: 'Please log in.' }, { status: 401 });
+      return NextResponse.json({ error: "Please log in." }, { status: 401 });
     }
 
-    const db = getDb();
+    const { limit, offset, page } = parsePagination(new URL(request.url).searchParams);
 
-    // Get posts from accepted friends (both directions of the friendship)
-    // Includes community posts and My Place posts (profile-only)
-    const posts = db.prepare(`
-      SELECT p.*,
-        u.display_name as author_name,
-        u.username as author_username,
-        u.avatar_color as author_avatar_color,
-        c.name as community_name,
-        c.slug as community_slug,
-        c.icon as community_icon,
-        (SELECT type FROM reactions WHERE post_id = p.id AND user_id = ?) as user_reaction
-      FROM posts p
-      JOIN users u ON p.author_id = u.id
-      LEFT JOIN communities c ON p.community_id = c.id
-      WHERE p.author_id IN (
-        SELECT friend_id FROM friendships WHERE user_id = ? AND status = 'accepted'
-        UNION
-        SELECT user_id FROM friendships WHERE friend_id = ? AND status = 'accepted'
-      )
-      ORDER BY p.created_at DESC
-      LIMIT 50
-    `).all(auth.userId, auth.userId, auth.userId) as Post[];
+    // Get accepted friend IDs (both directions)
+    const friendships = await prisma.friendship.findMany({
+      where: {
+        status: "accepted",
+        OR: [{ userId: auth.userId }, { friendId: auth.userId }],
+      },
+      select: { userId: true, friendId: true },
+    });
 
-    const enrichedPosts = enrichPostsWithMedia(db, posts);
+    const friendIds = friendships.map((f) => (f.userId === auth.userId ? f.friendId : f.userId));
 
-    return NextResponse.json({ posts: enrichedPosts });
+    // Get posts from friends
+    const posts = await prisma.post.findMany({
+      where: { authorId: { in: friendIds } },
+      include: {
+        author: { select: { displayName: true, username: true, avatarColor: true } },
+        community: { select: { name: true, slug: true, icon: true } },
+        reactions: { where: { userId: auth.userId }, select: { type: true } },
+      },
+      orderBy: { createdAt: "desc" },
+      take: limit + 1,
+      skip: offset,
+    });
+
+    const mapped = posts.map((p) => ({
+      id: p.id,
+      author_id: p.authorId,
+      community_id: p.communityId,
+      post_type: p.postType,
+      posted_to_profile: p.postedToProfile ? 1 : 0,
+      title: p.title,
+      content: p.content,
+      comment_count: p.commentCount,
+      reaction_count: p.reactionCount,
+      created_at: p.createdAt.toISOString(),
+      updated_at: p.updatedAt.toISOString(),
+      author_name: p.author.displayName,
+      author_username: p.author.username,
+      author_avatar_color: p.author.avatarColor,
+      community_name: p.community?.name ?? null,
+      community_slug: p.community?.slug ?? null,
+      community_icon: p.community?.icon ?? null,
+      user_reaction: p.reactions.length > 0 ? p.reactions[0].type : null,
+    }));
+
+    const { data, hasMore } = paginateResults(mapped, limit, page);
+    const enrichedPosts = await enrichPostsWithMedia(data);
+
+    return NextResponse.json({ posts: enrichedPosts, hasMore, page });
   } catch (error) {
-    console.error('Friends feed error:', error);
-    return NextResponse.json({ error: 'Failed to load friends feed.' }, { status: 500 });
+    console.error("Friends feed error:", error);
+    return NextResponse.json({ error: "Failed to load friends feed." }, { status: 500 });
   }
 }

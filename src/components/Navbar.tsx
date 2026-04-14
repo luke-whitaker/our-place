@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import Link from 'next/link';
-import { useAuth } from './AuthProvider';
-import { useState } from 'react';
+import Link from "next/link";
+import { useAuth } from "./AuthProvider";
+import { useState } from "react";
 
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
@@ -13,13 +13,11 @@ export default function Navbar() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href={user?.is_verified ? '/feed' : '/'} className="flex items-center gap-2.5">
+          <Link href={user?.is_verified ? "/feed" : "/"} className="flex items-center gap-2.5">
             <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold shadow-md">
               OP
             </div>
-            <span className="text-lg font-bold text-gray-900 tracking-tight">
-              Our Place
-            </span>
+            <span className="text-lg font-bold text-gray-900 tracking-tight">Our Place</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -63,10 +61,20 @@ export default function Navbar() {
                     {user.display_name.charAt(0).toUpperCase()}
                   </div>
                   <span className="hidden sm:block text-sm font-medium text-gray-700">
-                    {user.display_name.split(' ')[0]}
+                    {user.display_name.split(" ")[0]}
                   </span>
-                  <svg className="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="m19.5 8.25-7.5 7.5-7.5-7.5" />
+                  <svg
+                    className="h-4 w-4 text-gray-400"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    strokeWidth={2}
+                    stroke="currentColor"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="m19.5 8.25-7.5 7.5-7.5-7.5"
+                    />
                   </svg>
                 </button>
 
@@ -101,7 +109,10 @@ export default function Navbar() {
                           Communities
                         </Link>
                         <button
-                          onClick={() => { setMenuOpen(false); logout(); }}
+                          onClick={() => {
+                            setMenuOpen(false);
+                            logout();
+                          }}
                           className="block w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
                         >
                           Sign Out

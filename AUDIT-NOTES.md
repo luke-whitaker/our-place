@@ -41,7 +41,7 @@
 - [ ] **Accessibility pass** — add descriptive `alt` text to images, `aria-label` to icon buttons, focus traps on modals, `aria-describedby` on form errors.
 - [ ] **Database migration system** — replace inline schema changes in `initializeDatabase()` with versioned migration files.
 - [ ] **Structured logging** — replace `console.error` with a logging library (Pino recommended for Next.js). Add request IDs for tracing.
-- [ ] **Fix `member_count` drift** — either use a database trigger or compute from COUNT(*) at query time.
+- [ ] **Fix `member_count` drift** — either use a database trigger or compute from COUNT(\*) at query time.
 - [ ] **Replace remaining `SELECT *` queries** — community routes (`/api/communities/[id]`, join, leave) still use `SELECT *`.
 - [ ] **Validate reaction types** — the reactions endpoint accepts any string; restrict to an enum.
 

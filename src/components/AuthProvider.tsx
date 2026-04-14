@@ -1,6 +1,6 @@
-'use client';
+"use client";
 
-import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
 
 interface User {
   id: string;
@@ -35,7 +35,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refresh = useCallback(async () => {
     try {
-      const res = await fetch('/api/auth/me');
+      const res = await fetch("/api/auth/me");
       const data = await res.json();
       setUser(data.user);
     } catch {
@@ -46,9 +46,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const logout = useCallback(async () => {
-    await fetch('/api/auth/me', { method: 'DELETE' });
+    await fetch("/api/auth/me", { method: "DELETE" });
     setUser(null);
-    window.location.href = '/';
+    window.location.href = "/";
   }, []);
 
   useEffect(() => {

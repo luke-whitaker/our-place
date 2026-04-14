@@ -1,31 +1,3 @@
-export interface User {
-  id: string;
-  username: string;
-  display_name: string;
-  email: string;
-  phone: string;
-  password_hash?: string;
-  bio: string;
-  avatar_color: string;
-  is_verified: number;
-  verification_code: string | null;
-  verification_expires_at: string | null;
-  reset_code: string | null;
-  reset_code_expires_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface UserPublic {
-  id: string;
-  username: string;
-  display_name: string;
-  bio: string;
-  avatar_color: string;
-  is_verified: number;
-  created_at: string;
-}
-
 export interface Community {
   id: string;
   name: string;
@@ -46,13 +18,13 @@ export interface CommunityWithMembership extends Community {
   role: string | null;
 }
 
-export type PostType = 'text' | 'photo' | 'video' | 'rich';
+export type PostType = "text" | "photo" | "video" | "rich";
 
 export interface PostMedia {
   id: string;
   post_id: string;
-  media_type: 'image' | 'video';
-  media_source: 'upload' | 'youtube' | 'vimeo' | 'external';
+  media_type: "image" | "video";
+  media_source: "upload" | "youtube" | "vimeo" | "external";
   url: string;
   filename: string | null;
   file_size: number | null;
@@ -63,11 +35,11 @@ export interface PostMedia {
 }
 
 export interface RichContentBlock {
-  type: 'text' | 'image' | 'video';
+  type: "text" | "image" | "video";
   content?: string;
   url?: string;
   alt?: string;
-  media_source?: 'upload' | 'youtube' | 'vimeo';
+  media_source?: "upload" | "youtube" | "vimeo";
 }
 
 export interface Post {
@@ -122,17 +94,11 @@ export interface CommunityMember {
   avatar_color?: string;
 }
 
-export interface AuthPayload {
-  userId: string;
-  username: string;
-  is_verified: number;
-}
-
 export interface Friendship {
   id: string;
   user_id: string;
   friend_id: string;
-  status: 'pending' | 'accepted' | 'declined';
+  status: "pending" | "accepted" | "declined";
   created_at: string;
   friend_name?: string;
   friend_username?: string;
@@ -167,32 +133,24 @@ export interface EventRsvp {
 }
 
 export const COMMUNITY_CATEGORIES = [
-  'General',
-  'Technology',
-  'Science',
-  'Arts & Culture',
-  'Health & Wellness',
-  'Education',
-  'Sports & Fitness',
-  'Food & Cooking',
-  'Music',
-  'Gaming',
-  'Books & Literature',
-  'Environment',
-  'Local & Events',
-  'Support & Advice',
-  'Hobbies & Crafts',
-  'Business & Finance',
-  'Humor',
-  'Pets & Animals',
-  'Travel',
-  'Parenting',
-] as const;
-
-export const AVATAR_COLORS = [
-  '#6366f1', '#8b5cf6', '#a855f7', '#d946ef',
-  '#ec4899', '#f43f5e', '#ef4444', '#f97316',
-  '#f59e0b', '#eab308', '#84cc16', '#22c55e',
-  '#10b981', '#14b8a6', '#06b6d4', '#0ea5e9',
-  '#3b82f6', '#6366f1',
+  "General",
+  "Technology",
+  "Science",
+  "Arts & Culture",
+  "Health & Wellness",
+  "Education",
+  "Sports & Fitness",
+  "Food & Cooking",
+  "Music",
+  "Gaming",
+  "Books & Literature",
+  "Environment",
+  "Local & Events",
+  "Support & Advice",
+  "Hobbies & Crafts",
+  "Business & Finance",
+  "Humor",
+  "Pets & Animals",
+  "Travel",
+  "Parenting",
 ] as const;

@@ -17,7 +17,8 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Our Place — Community-First Social Platform",
-  description: "A safe, secure, and collaborative social platform built around real communities. One human, one account.",
+  description:
+    "A safe, secure, and collaborative social platform built around real communities. One human, one account.",
 };
 
 export default function RootLayout({
@@ -27,16 +28,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <ErrorBoundary>
           <AuthProvider>
             <Navbar />
             <main className="min-h-[calc(100vh-4rem)]">
-              <ErrorBoundary>
-                {children}
-              </ErrorBoundary>
+              <ErrorBoundary>{children}</ErrorBoundary>
             </main>
           </AuthProvider>
         </ErrorBoundary>
