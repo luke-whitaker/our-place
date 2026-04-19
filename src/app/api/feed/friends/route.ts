@@ -1,15 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getAuthUser } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { enrichPostsWithMedia } from "@/lib/post-helpers";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await getAuthUser();
-    if (!auth) {
-      return NextResponse.json({ error: "Please log in." }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
 
     const { limit, offset, page } = parsePagination(new URL(request.url).searchParams);
 
@@ -17,12 +15,12 @@ export async function GET(request: NextRequest) {
     const friendships = await prisma.friendship.findMany({
       where: {
         status: "accepted",
-        OR: [{ userId: auth.userId }, { friendId: auth.userId }],
+        OR: [{ userId: auth.user.userId }, { friendId: auth.user.userId }],
       },
       select: { userId: true, friendId: true },
     });
 
-    const friendIds = friendships.map((f) => (f.userId === auth.userId ? f.friendId : f.userId));
+    const friendIds = friendships.map((f) => (f.userId === auth.user.userId ? f.friendId : f.userId));
 
     // Get posts from friends
     const posts = await prisma.post.findMany({
@@ -30,7 +28,7 @@ export async function GET(request: NextRequest) {
       include: {
         author: { select: { displayName: true, username: true, avatarColor: true } },
         community: { select: { name: true, slug: true, icon: true } },
-        reactions: { where: { userId: auth.userId }, select: { type: true } },
+        reactions: { where: { userId: auth.user.userId }, select: { type: true } },
       },
       orderBy: { createdAt: "desc" },
       take: limit + 1,

@@ -1,14 +1,23 @@
 # Our Place
 
-A community forum and social platform built on trust, belonging, and genuine connection. One human, one account — because real communities are built by real people.
+An invite-only community platform built on trust, belonging, and genuine human connection. Every account represents someone you've met face-to-face.
 
 ![Landing Page](screenshots/01-landing-page.png)
 
 ## What is Our Place?
 
-Our Place is a Reddit-inspired community platform with a twist: an **8-bit RPG overworld** where each community is a building in a town. Users walk around, explore, and enter buildings to access forum content — think Roblox meets Reddit, but pixel art.
+Our Place is a community platform designed around a simple idea: **online spaces should be rooted in real-world relationships.** There is no public registration. Accounts are created in person by existing members who have met you face-to-face. This "web of trust" model means every person on the platform is a real human, vouched for by someone in the community.
+
+The platform combines a Reddit-inspired forum with an **8-bit RPG overworld** where each community is a building in a town. Users walk around, explore, and enter buildings to access forum content — think Roblox meets Reddit, but pixel art.
 
 The forum is fully functional today. The game world is actively in development.
+
+## Philosophy
+
+- **In-Person First** — Accounts are created face-to-face by an admin or trusted member. No anonymous sign-ups, no bots, no strangers. Every user is someone a real person has met and vouched for.
+- **Web of Trust** — The community grows organically through real relationships. You can trace every account back to a chain of people who know each other.
+- **Your Algorithm, Your Rules** — Users will control their own feed algorithm. No engagement-maximizing dark patterns, no infinite dopamine loops. You decide what you see.
+- **Physical Third Spaces** — The long-term vision includes physical community spaces (coffee shops, coworking hubs) where Our Place serves as the digital layer for a real neighborhood.
 
 ## Features
 
@@ -24,11 +33,12 @@ The forum is fully functional today. The game world is actively in development.
 
 ### Authentication & Security
 
+- **Invite-only accounts** — admin-only account creation via dashboard (`/admin`)
 - JWT auth with httpOnly cookies and bcrypt password hashing
-- Email verification and password reset flows
-- Rate limiting on content creation routes
-- Content Security Policy headers
-- Zod schema validation on API request bodies
+- Password reset flow
+- Rate limiting on all auth and content creation routes
+- Zod schema validation on all API request bodies
+- Role-based access control (admin/user roles)
 
 ### 8-Bit World (In Progress)
 
@@ -57,14 +67,16 @@ The forum is fully functional today. The game world is actively in development.
 src/
 ├── app/
 │   ├── api/            # REST API routes
-│   │   ├── auth/       # Register, login, verify, password reset
+│   │   ├── admin/      # Admin dashboard API (user management)
+│   │   ├── auth/       # Login, password reset
 │   │   ├── communities/# CRUD, join/leave, posts
 │   │   ├── posts/      # Comments, reactions
 │   │   ├── feed/       # Personalized, explore, friends
 │   │   ├── my-place/   # Personal space posts
 │   │   ├── events/     # Community events
 │   │   └── upload/     # File uploads
-│   ├── auth/           # Auth pages (login, register, verify, etc.)
+│   ├── admin/          # Admin dashboard (account creation)
+│   ├── auth/           # Auth pages (login, password reset)
 │   ├── communities/    # Community browsing and detail pages
 │   ├── feed/           # Feed dashboard
 │   ├── world/          # 8-bit overworld page
@@ -139,11 +151,11 @@ Open [http://localhost:3000](http://localhost:3000).
 ## Roadmap
 
 - [x] Core forum platform (communities, posts, comments, reactions)
-- [x] Authentication with email verification
+- [x] Invite-only auth with admin dashboard
 - [x] Rich post types and file uploads
 - [x] Feed system with explore/friends tabs
 - [x] My Place personal profiles
-- [x] Security hardening (CSP, rate limits, Zod validation)
+- [x] Security hardening (rate limits, Zod validation, transactions)
 - [x] Game engine foundation (canvas, movement, camera, interactions)
 - [x] PostgreSQL + Prisma migration (see v0.2.0 below)
 - [ ] Deploy to Railway (PostgreSQL + Dockerfile)

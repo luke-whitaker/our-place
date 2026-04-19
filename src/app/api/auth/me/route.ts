@@ -20,6 +20,7 @@ export async function GET() {
         bio: true,
         avatarColor: true,
         isVerified: true,
+        role: true,
         createdAt: true,
       },
     });
@@ -43,6 +44,7 @@ export async function GET() {
         bio: user.bio,
         avatar_color: user.avatarColor,
         is_verified: user.isVerified ? 1 : 0,
+        role: user.role,
         created_at: user.createdAt.toISOString(),
         community_count: communityCount,
       },
@@ -54,6 +56,10 @@ export async function GET() {
 }
 
 export async function DELETE() {
+  const auth = await getAuthUser();
+  if (!auth) {
+    return NextResponse.json({ error: "Not authenticated." }, { status: 401 });
+  }
   const response = NextResponse.json({ message: "Logged out." });
   response.cookies.set("auth_token", "", {
     httpOnly: true,

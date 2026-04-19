@@ -162,9 +162,6 @@ export default function FeedPage() {
   const [loadingFeed, setLoadingFeed] = useState(true);
   const [loadingTab, setLoadingTab] = useState(false);
 
-  // Algorithm settings modal
-  const [showAlgoSettings, setShowAlgoSettings] = useState(false);
-
   // Calendar state
   const now = new Date();
   const [calMonth, setCalMonth] = useState(now.getMonth());
@@ -207,10 +204,6 @@ export default function FeedPage() {
     if (loading) return;
     if (!user) {
       router.replace("/auth/login");
-      return;
-    }
-    if (!user.is_verified) {
-      router.replace("/auth/verify");
       return;
     }
     let cancelled = false;
@@ -313,166 +306,10 @@ export default function FeedPage() {
         });
 
       case "scroll":
-        return (
-          <div>
-            {/* Algorithm Settings Button */}
-            <div className="mb-4 flex justify-end">
-              <button
-                onClick={() => setShowAlgoSettings(true)}
-                className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition-all hover:border-indigo-300 hover:shadow-md"
-              >
-                <svg
-                  className="h-4 w-4 text-indigo-500"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  strokeWidth={1.5}
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    d="M10.5 6h9.75M10.5 6a1.5 1.5 0 1 1-3 0m3 0a1.5 1.5 0 1 0-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 0 1-3 0m3 0a1.5 1.5 0 0 0-3 0m-9.75 0h9.75"
-                  />
-                </svg>
-                Algorithm Settings
-              </button>
-            </div>
-
-            {renderPostList(explorePosts, "Nothing to show yet — be the first to post!", {
-              label: "Explore Communities",
-              href: "/communities",
-            })}
-
-            {/* Algorithm Settings Modal */}
-            {showAlgoSettings && (
-              <>
-                <div
-                  className="fixed inset-0 z-50 bg-black/40 backdrop-blur-sm"
-                  onClick={() => setShowAlgoSettings(false)}
-                />
-                <div className="fixed inset-x-4 top-1/2 z-50 mx-auto max-w-lg -translate-y-1/2 rounded-2xl bg-white p-6 shadow-2xl">
-                  <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-lg font-bold text-gray-900">Algorithm Settings</h2>
-                    <button
-                      onClick={() => setShowAlgoSettings(false)}
-                      className="rounded-lg p-1 text-gray-400 hover:bg-gray-100"
-                    >
-                      <svg
-                        className="h-5 w-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        strokeWidth={1.5}
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          d="M6 18 18 6M6 6l12 12"
-                        />
-                      </svg>
-                    </button>
-                  </div>
-
-                  <p className="text-sm text-gray-500 mb-6">
-                    Customize what appears in your Endless Scroll. These controls give you the power
-                    to shape your own experience.
-                  </p>
-
-                  <div className="space-y-5">
-                    <div className="rounded-xl border border-gray-200 p-4">
-                      <h3 className="text-sm font-semibold text-gray-900">Content Preferences</h3>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Choose which types of content appear more often.
-                      </p>
-                      <div className="mt-3 flex flex-wrap gap-2">
-                        {[
-                          "Discussions",
-                          "News",
-                          "Creative",
-                          "Questions",
-                          "Events",
-                          "Tutorials",
-                        ].map((tag) => (
-                          <button
-                            key={tag}
-                            className="rounded-full border border-gray-200 px-3 py-1 text-xs font-medium text-gray-600 hover:border-indigo-300 hover:bg-indigo-50 hover:text-indigo-600 transition-colors"
-                          >
-                            {tag}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-gray-200 p-4">
-                      <h3 className="text-sm font-semibold text-gray-900">Session Controls</h3>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Set a default session length or enable time check-ins.
-                      </p>
-                      <div className="mt-3 space-y-3">
-                        <div>
-                          <label className="text-xs font-medium text-gray-700">
-                            Default session length
-                          </label>
-                          <select className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400">
-                            <option>No limit</option>
-                            <option>15 minutes</option>
-                            <option>30 minutes</option>
-                            <option>45 minutes</option>
-                            <option>1 hour</option>
-                            <option>2 hours</option>
-                          </select>
-                        </div>
-                        <div>
-                          <label className="text-xs font-medium text-gray-700">
-                            Check-in reminders
-                          </label>
-                          <select className="mt-1 w-full rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400">
-                            <option>Off</option>
-                            <option>Every 15 minutes</option>
-                            <option>Every 30 minutes</option>
-                            <option>Every hour</option>
-                          </select>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="rounded-xl border border-gray-200 p-4">
-                      <h3 className="text-sm font-semibold text-gray-900">Sorting</h3>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Choose how content is ordered in your scroll.
-                      </p>
-                      <div className="mt-3 space-y-2">
-                        {["Trending", "Most Recent", "Most Discussed", "Recommended for You"].map(
-                          (opt) => (
-                            <label
-                              key={opt}
-                              className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer"
-                            >
-                              <input
-                                type="radio"
-                                name="sort"
-                                className="accent-indigo-500"
-                                defaultChecked={opt === "Recommended for You"}
-                              />
-                              {opt}
-                            </label>
-                          ),
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  <button
-                    onClick={() => setShowAlgoSettings(false)}
-                    className="mt-6 w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:brightness-110"
-                  >
-                    Save Preferences
-                  </button>
-                </div>
-              </>
-            )}
-          </div>
-        );
+        return renderPostList(explorePosts, "Nothing to show yet — be the first to post!", {
+          label: "Explore Communities",
+          href: "/communities",
+        });
 
       case "communities":
         return renderPostList(communityPosts, "Your feed is empty", {
@@ -731,7 +568,7 @@ export default function FeedPage() {
       </div>
 
       {/* ── Bottom Dashboard Navigation (fixed on mobile, inline on desktop) ── */}
-      <nav className="fixed bottom-0 inset-x-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-lg sm:static sm:mt-8 sm:rounded-2xl sm:border sm:bg-white sm:shadow-sm">
+      <nav aria-label="Feed navigation" className="fixed bottom-0 inset-x-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-lg sm:static sm:mt-8 sm:rounded-2xl sm:border sm:bg-white sm:shadow-sm">
         <div className="mx-auto max-w-lg flex">
           {[
             { key: "friends" as FeedTab, Icon: FriendsIcon },
@@ -744,6 +581,8 @@ export default function FeedPage() {
               <button
                 key={key}
                 onClick={() => switchTab(key)}
+                aria-label={TAB_CONFIG[key].label}
+                aria-current={active ? "page" : undefined}
                 className={`flex-1 flex flex-col items-center gap-1 py-3 sm:py-4 transition-colors ${
                   active ? "text-indigo-600" : "text-gray-400 hover:text-gray-600"
                 }`}

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getAuthUser } from "@/lib/auth";
+import { getAuthUser, requireAuth } from "@/lib/auth";
 import { createPostLimiter } from "@/lib/rate-limit";
 import { createPostSchema, getZodErrorMessage } from "@/lib/schemas";
-import { enrichPostsWithMedia } from "@/lib/post-helpers";
+import { enrichPostsWithMedia, validatePostContent } from "@/lib/post-helpers";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 import { v4 as uuidv4 } from "uuid";
 
@@ -70,16 +70,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const auth = await getAuthUser();
-    if (!auth) {
-      return NextResponse.json({ error: "Please log in to post." }, { status: 401 });
-    }
-    if (!auth.is_verified) {
-      return NextResponse.json(
-        { error: "Please verify your account before posting." },
-        { status: 403 },
-      );
-    }
+    const postAuth = await requireAuth();
+    if (postAuth.error) return postAuth.error;
 
     const community = await prisma.community.findFirst({
       where: { OR: [{ id }, { slug: id }] },
@@ -91,7 +83,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     // Check if user is a member
     const membership = await prisma.communityMember.findUnique({
-      where: { userId_communityId: { userId: auth.userId, communityId: community.id } },
+      where: { userId_communityId: { userId: postAuth.user.userId, communityId: community.id } },
     });
     if (!membership) {
       return NextResponse.json(
@@ -100,7 +92,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    const limit = createPostLimiter.check(auth.userId);
+    const limit = createPostLimiter.check(postAuth.user.userId);
     if (!limit.allowed) {
       return NextResponse.json(
         { error: "Too many posts created. Please try again later." },
@@ -119,58 +111,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const media = parsed.data.media;
     const postToProfile = parsed.data.post_to_profile ? true : false;
 
-    // Type-specific validation
-    if (postType === "text") {
-      if (!title) {
-        return NextResponse.json({ error: "Title is required for text posts." }, { status: 400 });
-      }
-      if (!content) {
-        return NextResponse.json({ error: "Content is required for text posts." }, { status: 400 });
-      }
-    }
-
-    if (postType === "photo") {
-      if (!media.length) {
-        return NextResponse.json(
-          { error: "At least one image is required for photo posts." },
-          { status: 400 },
-        );
-      }
-      if (media.length > 10) {
-        return NextResponse.json({ error: "Maximum 10 images per post." }, { status: 400 });
-      }
-    }
-
-    if (postType === "video") {
-      if (!media.length) {
-        return NextResponse.json(
-          { error: "A video is required for video posts." },
-          { status: 400 },
-        );
-      }
-      if (media.length > 1) {
-        return NextResponse.json({ error: "Only one video per post." }, { status: 400 });
-      }
-    }
-
-    if (postType === "rich") {
-      if (!title) {
-        return NextResponse.json({ error: "Title is required for rich posts." }, { status: 400 });
-      }
-      if (!content) {
-        return NextResponse.json({ error: "Content is required for rich posts." }, { status: 400 });
-      }
-      try {
-        const blocks = JSON.parse(content);
-        if (!Array.isArray(blocks) || blocks.length === 0) {
-          return NextResponse.json(
-            { error: "Rich content must have at least one block." },
-            { status: 400 },
-          );
-        }
-      } catch {
-        return NextResponse.json({ error: "Invalid rich content format." }, { status: 400 });
-      }
+    const validation = validatePostContent(postType, title, content, media);
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     const postId = uuidv4();
@@ -179,7 +122,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     await prisma.post.create({
       data: {
         id: postId,
-        authorId: auth.userId,
+        authorId: postAuth.user.userId,
         communityId: community.id,
         postType,
         postedToProfile: postToProfile,

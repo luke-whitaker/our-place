@@ -24,6 +24,7 @@ async function main() {
       passwordHash: "$2a$12$placeholder.hash.for.system.user.only",
       bio: "The official Our Place community account.",
       avatarColor: "#6366f1",
+      role: "admin",
       isVerified: true,
     },
   });

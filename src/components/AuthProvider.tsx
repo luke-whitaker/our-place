@@ -11,6 +11,7 @@ interface User {
   bio?: string;
   avatar_color: string;
   is_verified: number;
+  role: string;
   community_count?: number;
   created_at?: string;
 }

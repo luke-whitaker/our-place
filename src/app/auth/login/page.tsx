@@ -33,11 +33,7 @@ export default function LoginPage() {
 
       await refresh();
 
-      if (data.user.is_verified) {
-        router.push("/feed");
-      } else {
-        router.push("/auth/verify");
-      }
+      router.push("/feed");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -158,14 +154,8 @@ export default function LoginPage() {
             {loading ? "Signing In..." : "Sign In"}
           </button>
 
-          <p className="mt-5 text-center text-sm text-gray-500">
-            Don&apos;t have an account?{" "}
-            <Link
-              href="/auth/register"
-              className="font-medium text-indigo-600 hover:text-indigo-500"
-            >
-              Create Your Account
-            </Link>
+          <p className="mt-5 text-center text-sm text-gray-400">
+            Accounts are created in person by an existing member.
           </p>
         </form>
       </div>

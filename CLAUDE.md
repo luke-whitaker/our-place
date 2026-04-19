@@ -10,7 +10,11 @@
 - **JWT** auth with httpOnly cookies, bcrypt (12 rounds)
 - **Zod** for validation, **Vitest** for unit tests, **Playwright** for UI tests
 
-Core features already built: auth (register/login/verify/reset), communities, posts, comments, reactions, events, file uploads, user profiles, rich content editor, feed, "My Place" personal space.
+Core features already built: auth (admin-managed accounts, login, password reset), communities, posts, comments, reactions, events, file uploads, user profiles, rich content editor, feed, admin dashboard, "My Place" personal space.
+
+### Account Model
+
+Our Place uses an **invite-only, in-person-first** account model. There is no public registration. Only admins can create accounts via the admin dashboard (`/admin`). This reflects the platform's philosophy: every account represents someone an existing member has met face-to-face. See `src/app/api/admin/users/route.ts` and `src/app/admin/page.tsx`.
 
 ---
 
@@ -53,8 +57,8 @@ Use `@/` path alias (maps to `src/`). Order:
 
 Types are split by domain under `src/lib/types/`:
 
-- `auth.ts` — User, UserPublic, AuthPayload, AVATAR_COLORS
-- `forum.ts` — Community, Post, Comment, Event, and all forum-related types + COMMUNITY_CATEGORIES
+- `auth.ts` — AuthPayload, AVATAR_COLORS
+- `forum.ts` — Community, Post, Comment, CommunityMember, and API response types + COMMUNITY_CATEGORIES
 - `index.ts` — barrel re-export (all existing `@/lib/types` imports work unchanged)
 
 When adding game engine types, create `src/lib/types/game.ts` and add exports to `index.ts`.
@@ -220,17 +224,17 @@ See `AUDIT-NOTES.md` for full details. Current score: **7.2 / 10** (as of Feb 10
 
 ### Still Outstanding (High Priority)
 
-- [ ] Rate limit content creation routes (posts, comments, reactions, communities, uploads, events)
+- [x] Rate limit content creation routes — done for posts, comments, reactions, communities, events
 - [ ] Add Content-Security-Policy header to `next.config.ts`
 - [ ] Add CSRF protection (switch cookies to `sameSite: 'strict'` or implement double-submit tokens)
-- [ ] Add runtime Zod validation on all API request bodies
-- [ ] Add pagination to all list endpoints (currently hardcoded `LIMIT 50`)
+- [x] Add runtime Zod validation on all API request bodies
+- [x] Add pagination to all list endpoints
 
 ### Medium Priority
 
-- [ ] Accessibility pass (alt text, aria-labels, focus traps, aria-describedby on form errors)
+- [x] Accessibility pass — `aria-label` on icon buttons, `alt` on images, `role="dialog"` + keyboard nav on lightbox, `role="alert"` on errors
 - [x] Database migration system — now using Prisma migrations (`prisma migrate dev`)
 - [ ] Structured logging (replace `console.error` with Pino)
-- [ ] Fix `member_count` drift (use DB trigger or COUNT(\*) at query time)
+- [x] Fix count drift — write operations wrapped in `$transaction`
 - [ ] Replace remaining `SELECT *` in community routes
-- [ ] Validate reaction types against an enum
+- [x] Validate reaction types against `REACTION_TYPES` enum

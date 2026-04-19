@@ -37,6 +37,29 @@ export async function getAuthUser(): Promise<AuthPayload | null> {
   return verifyToken(token);
 }
 
-export function generateVerificationCode(): string {
+export async function requireAuth(): Promise<
+  { user: AuthPayload; error?: never } | { user?: never; error: Response }
+> {
+  const auth = await getAuthUser();
+  if (!auth) {
+    const { NextResponse } = await import("next/server");
+    return { error: NextResponse.json({ error: "Not authenticated." }, { status: 401 }) };
+  }
+  return { user: auth };
+}
+
+export async function requireAdmin(): Promise<
+  { user: AuthPayload; error?: never } | { user?: never; error: Response }
+> {
+  const result = await requireAuth();
+  if (result.error) return result;
+  if (result.user.role !== "admin") {
+    const { NextResponse } = await import("next/server");
+    return { error: NextResponse.json({ error: "Unauthorized." }, { status: 403 }) };
+  }
+  return result;
+}
+
+export function generateCode(): string {
   return crypto.randomInt(100000, 999999).toString();
 }

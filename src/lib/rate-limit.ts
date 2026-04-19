@@ -70,12 +70,6 @@ class RateLimiter {
 /** Login: 10 attempts per 15 minutes per IP */
 export const loginLimiter = new RateLimiter({ maxAttempts: 10, windowMs: 15 * 60 * 1000 });
 
-/** Registration: 5 attempts per hour per IP */
-export const registerLimiter = new RateLimiter({ maxAttempts: 5, windowMs: 60 * 60 * 1000 });
-
-/** Verification code submission: 5 attempts per 15 minutes per user */
-export const verifyLimiter = new RateLimiter({ maxAttempts: 5, windowMs: 15 * 60 * 1000 });
-
 /** Password reset request: 3 attempts per 15 minutes per IP */
 export const forgotPasswordLimiter = new RateLimiter({ maxAttempts: 3, windowMs: 15 * 60 * 1000 });
 

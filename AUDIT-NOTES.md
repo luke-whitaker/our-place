@@ -30,28 +30,27 @@
 
 ### High Priority
 
-- [ ] **Rate limit content creation routes** — posts, comments, reactions, communities, uploads, events currently have no throttling. Apply the existing `RateLimiter` class from `src/lib/rate-limit.ts`.
+- [x] **Rate limit content creation routes** — posts, comments, reactions, communities, uploads, events now throttled via `RateLimiter` class.
 - [ ] **Add Content-Security-Policy header** — the single most important missing defense against XSS. Add to `next.config.ts` security headers.
 - [ ] **Add CSRF protection** — either switch cookies to `sameSite: 'strict'` or implement double-submit CSRF tokens via middleware.
-- [ ] **Add runtime input validation** — use Zod schemas to validate API request bodies at runtime instead of trusting TypeScript `as` casts.
-- [ ] **Add pagination** — all list endpoints hardcode `LIMIT 50`. Add cursor-based or offset pagination.
+- [x] **Add runtime input validation** — all API request bodies validated with Zod schemas.
+- [x] **Add pagination** — all list endpoints use offset pagination via shared `parsePagination()` / `paginateResults()` helpers.
 
 ### Medium Priority
 
-- [ ] **Accessibility pass** — add descriptive `alt` text to images, `aria-label` to icon buttons, focus traps on modals, `aria-describedby` on form errors.
-- [ ] **Database migration system** — replace inline schema changes in `initializeDatabase()` with versioned migration files.
+- [x] **Accessibility pass** — added `alt` text to images, `aria-label` to icon buttons, `role="alert"` on errors, `role="dialog"` + keyboard navigation on lightbox, `aria-expanded` on toggles, `aria-label` on nav.
+- [x] **Database migration system** — now using Prisma migrations (`prisma migrate dev`).
 - [ ] **Structured logging** — replace `console.error` with a logging library (Pino recommended for Next.js). Add request IDs for tracing.
-- [ ] **Fix `member_count` drift** — either use a database trigger or compute from COUNT(\*) at query time.
-- [ ] **Replace remaining `SELECT *` queries** — community routes (`/api/communities/[id]`, join, leave) still use `SELECT *`.
-- [ ] **Validate reaction types** — the reactions endpoint accepts any string; restrict to an enum.
+- [x] **Fix `member_count` drift** — write operations (join/leave, reactions, comments) now wrapped in `$transaction` to prevent partial updates.
+- [ ] **Replace remaining `SELECT *` queries** — community routes (`/api/communities/[id]`, join, leave) still select all fields.
+- [x] **Validate reaction types** — reactions validated against `REACTION_TYPES` enum via Zod schema.
 
 ### Low Priority
 
-- [ ] **Split large components** — `PostCard.tsx` (525 lines) and `CreatePostForm.tsx` (727 lines) into sub-components.
+- [ ] **Split large components** — `PostCard.tsx` and `CreatePostForm.tsx` into sub-components.
 - [ ] **Extract shared utilities** — `timeAgo()` and avatar rendering are duplicated across files.
 - [ ] **Add HSTS header** — `Strict-Transport-Security` for HTTPS enforcement.
 - [ ] **Add API documentation** — OpenAPI/Swagger spec as the API grows.
-- [ ] **Clean up repo root** — `test-ui.mjs`, `test-ui-simple.mjs`, `screenshots/` are untracked.
 - [ ] **Add `.env.example`** — document required environment variables.
 - [ ] **Add loading skeletons** — replace spinner-only loading states with content-shaped placeholders.
 
@@ -59,8 +58,8 @@
 
 ## Architecture Notes
 
-- **Stack:** Next.js 16 (App Router) + TypeScript + SQLite (better-sqlite3) + Tailwind CSS
-- **Auth:** JWT in httpOnly cookies, bcrypt (12 rounds), verification code flow
+- **Stack:** Next.js 16 (App Router) + TypeScript + PostgreSQL (Prisma 7 ORM) + Tailwind CSS
+- **Auth:** JWT in httpOnly cookies, bcrypt (12 rounds), admin-only account creation (invite-only model)
 - **Rate limiting:** In-memory (`src/lib/rate-limit.ts`) — works for single-instance; swap to Redis for multi-instance
-- **DB file:** `data/our-place.db` — 9 tables, foreign keys enforced via PRAGMA
-- **New files this session:** `src/lib/rate-limit.ts`, `src/components/ErrorBoundary.tsx`
+- **Database:** PostgreSQL via Prisma 7 — schema in `prisma/schema.prisma`, migrations in `prisma/migrations/`
+- **Key lib files:** `src/lib/rate-limit.ts`, `src/lib/auth.ts` (requireAuth/requireAdmin helpers), `src/lib/post-helpers.ts` (validatePostContent, enrichPostsWithMedia), `src/components/ErrorBoundary.tsx`

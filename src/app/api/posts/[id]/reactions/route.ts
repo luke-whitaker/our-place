@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getAuthUser } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { reactionLimiter } from "@/lib/rate-limit";
 import { createReactionSchema } from "@/lib/schemas";
 import { v4 as uuidv4 } from "uuid";
@@ -8,12 +8,10 @@ import { v4 as uuidv4 } from "uuid";
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const auth = await getAuthUser();
-    if (!auth) {
-      return NextResponse.json({ error: "Please log in to react." }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
 
-    const limit = reactionLimiter.check(auth.userId);
+    const limit = reactionLimiter.check(auth.user.userId);
     if (!limit.allowed) {
       return NextResponse.json(
         { error: "Too many reactions. Please try again later." },
@@ -23,27 +21,32 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const body = await request.json();
     const parsed = createReactionSchema.safeParse(body);
-    const reactionType = parsed.success ? parsed.data.type : "like";
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid reaction type." }, { status: 400 });
+    }
+    const reactionType = parsed.data.type;
 
     // Check if reaction already exists
     const existing = await prisma.reaction.findUnique({
-      where: { postId_userId: { postId: id, userId: auth.userId } },
+      where: { postId_userId: { postId: id, userId: auth.user.userId } },
     });
 
     if (existing) {
-      // Remove reaction (toggle off)
-      await prisma.reaction.delete({ where: { id: existing.id } });
-      await prisma.$executeRaw`UPDATE posts SET reaction_count = GREATEST(0, reaction_count - 1) WHERE id = ${id}`;
+      await prisma.$transaction(async (tx) => {
+        await tx.reaction.delete({ where: { id: existing.id } });
+        await tx.$executeRaw`UPDATE posts SET reaction_count = GREATEST(0, reaction_count - 1) WHERE id = ${id}`;
+      });
       return NextResponse.json({ message: "Reaction removed.", reacted: false });
     } else {
-      // Add reaction
-      await prisma.reaction.create({
-        data: { id: uuidv4(), postId: id, userId: auth.userId, type: reactionType },
-      });
-      await prisma.post.update({
-        where: { id },
-        data: { reactionCount: { increment: 1 } },
-      });
+      await prisma.$transaction([
+        prisma.reaction.create({
+          data: { id: uuidv4(), postId: id, userId: auth.user.userId, type: reactionType },
+        }),
+        prisma.post.update({
+          where: { id },
+          data: { reactionCount: { increment: 1 } },
+        }),
+      ]);
       return NextResponse.json({ message: "Reaction added!", reacted: true, type: reactionType });
     }
   } catch (error) {

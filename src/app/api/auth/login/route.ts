@@ -38,6 +38,7 @@ export async function POST(request: NextRequest) {
         bio: true,
         avatarColor: true,
         isVerified: true,
+        role: true,
         passwordHash: true,
       },
     });
@@ -55,6 +56,7 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       username: user.username,
       is_verified: user.isVerified ? 1 : 0,
+      role: user.role,
     });
 
     const response = NextResponse.json({
@@ -67,6 +69,7 @@ export async function POST(request: NextRequest) {
         bio: user.bio,
         avatar_color: user.avatarColor,
         is_verified: user.isVerified ? 1 : 0,
+        role: user.role,
       },
     });
 

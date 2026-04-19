@@ -11,7 +11,7 @@ export const registerSchema = z.object({
   display_name: z.string({ error: "All fields are required." }).min(1, "All fields are required."),
   email: z
     .string({ error: "All fields are required." })
-    .regex(/^[^\s@]+@[^\s@]+\.[^\s@]+$/, "Please enter a valid email address."),
+    .email("Please enter a valid email address."),
   phone: z.string({ error: "All fields are required." }).min(1, "All fields are required."),
   password: z
     .string({ error: "All fields are required." })
@@ -27,14 +27,8 @@ export const loginSchema = z.object({
     .min(1, "Please enter your email/username and password."),
 });
 
-export const verifySchema = z.object({
-  code: z
-    .string({ error: "Verification code is required." })
-    .min(1, "Verification code is required."),
-});
-
 export const forgotPasswordSchema = z.object({
-  email: z.string({ error: "Email is required." }).min(1, "Email is required."),
+  email: z.string({ error: "Email is required." }).email("Please enter a valid email address."),
 });
 
 export const resetPasswordSchema = z.object({

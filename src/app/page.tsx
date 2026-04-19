@@ -55,14 +55,8 @@ export default function Home() {
 
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
-              href="/auth/register"
-              className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:shadow-indigo-500/30 hover:brightness-110"
-            >
-              Create Your Account
-            </Link>
-            <Link
               href="/auth/login"
-              className="w-full sm:w-auto rounded-xl border border-gray-200 bg-white px-8 py-3.5 text-base font-semibold text-gray-700 shadow-sm transition-all hover:bg-gray-50 hover:shadow-md"
+              className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:shadow-indigo-500/30 hover:brightness-110"
             >
               Sign In
             </Link>
@@ -101,10 +95,11 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">One Human, One Account</h3>
+              <h3 className="text-lg font-semibold text-gray-900">In-Person First</h3>
               <p className="mt-2 text-sm text-gray-500 leading-relaxed">
-                Every account is verified to belong to a real person. No bots, no duplicates, no
-                anonymous trolling. Just real people having real conversations.
+                Every account starts with a real-life connection. You can only join if someone who
+                knows you creates your account in person. No strangers, no bots — just people who
+                have actually met.
               </p>
             </div>
 
@@ -172,10 +167,10 @@ export default function Home() {
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500 text-white text-xl font-bold shadow-lg shadow-indigo-500/25">
                 1
               </div>
-              <h3 className="mt-5 text-base font-semibold text-gray-900">Verify Your Identity</h3>
+              <h3 className="mt-5 text-base font-semibold text-gray-900">Meet Someone</h3>
               <p className="mt-2 text-sm text-gray-500">
-                Create your one and only account. Our verification ensures every person here is
-                real.
+                Our Place starts in real life. Meet a member in person and they&apos;ll create
+                your account on the spot.
               </p>
             </div>
             <div className="text-center">
@@ -191,10 +186,10 @@ export default function Home() {
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500 text-white text-xl font-bold shadow-lg shadow-pink-500/25">
                 3
               </div>
-              <h3 className="mt-5 text-base font-semibold text-gray-900">Share & Connect</h3>
+              <h3 className="mt-5 text-base font-semibold text-gray-900">Connect Online & Offline</h3>
               <p className="mt-2 text-sm text-gray-500">
-                Post, comment, react, and build genuine connections with people who share your
-                passions.
+                Post, comment, organize events, and build genuine connections — then take them
+                into the real world.
               </p>
             </div>
           </div>

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { generateVerificationCode } from "@/lib/auth";
+import { generateCode } from "@/lib/auth";
 import { forgotPasswordLimiter, getClientIp } from "@/lib/rate-limit";
 import { forgotPasswordSchema, getZodErrorMessage } from "@/lib/schemas";
 
@@ -36,7 +36,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate a 6-digit reset code with 30-minute expiration
-    const resetCode = generateVerificationCode();
+    const resetCode = generateCode();
     const expiresAt = new Date(Date.now() + 30 * 60 * 1000);
 
     await prisma.user.update({

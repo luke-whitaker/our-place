@@ -52,6 +52,8 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setMenuOpen(!menuOpen)}
+                  aria-label="User menu"
+                  aria-expanded={menuOpen}
                   className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 transition-colors hover:bg-gray-100"
                 >
                   <div
@@ -80,8 +82,8 @@ export default function Navbar() {
 
                 {menuOpen && (
                   <>
-                    <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} />
-                    <div className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+                    <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} aria-hidden="true" />
+                    <div role="menu" className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
                       <div className="border-b border-gray-100 px-4 py-3">
                         <p className="text-sm font-semibold text-gray-900">{user.display_name}</p>
                         <p className="text-xs text-gray-500">@{user.username}</p>
@@ -94,6 +96,15 @@ export default function Navbar() {
                         >
                           Profile
                         </Link>
+                        {user.role === "admin" && (
+                          <Link
+                            href="/admin"
+                            onClick={() => setMenuOpen(false)}
+                            className="block px-4 py-2.5 text-sm text-indigo-600 hover:bg-indigo-50"
+                          >
+                            Admin
+                          </Link>
+                        )}
                         <Link
                           href="/feed"
                           onClick={() => setMenuOpen(false)}
@@ -123,20 +134,12 @@ export default function Navbar() {
                 )}
               </div>
             ) : (
-              <div className="flex items-center gap-2">
-                <Link
-                  href="/auth/login"
-                  className="rounded-lg px-4 py-2 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-100"
-                >
-                  Sign In
-                </Link>
-                <Link
-                  href="/auth/register"
-                  className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-2 text-sm font-medium text-white shadow-md transition-all hover:shadow-lg hover:brightness-110"
-                >
-                  Join Our Place
-                </Link>
-              </div>
+              <Link
+                href="/auth/login"
+                className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-2 text-sm font-medium text-white shadow-md transition-all hover:shadow-lg hover:brightness-110"
+              >
+                Sign In
+              </Link>
             )}
           </div>
         </div>

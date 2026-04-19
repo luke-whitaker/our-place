@@ -93,13 +93,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const commentId = uuidv4();
-    await prisma.comment.create({
-      data: { id: commentId, postId: id, authorId: auth.userId, content: content.trim() },
-    });
-    await prisma.post.update({
-      where: { id },
-      data: { commentCount: { increment: 1 } },
-    });
+    await prisma.$transaction([
+      prisma.comment.create({
+        data: { id: commentId, postId: id, authorId: auth.userId, content: content.trim() },
+      }),
+      prisma.post.update({
+        where: { id },
+        data: { commentCount: { increment: 1 } },
+      }),
+    ]);
 
     return NextResponse.json({ message: "Comment added!", commentId }, { status: 201 });
   } catch (error) {

@@ -33,14 +33,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       );
     }
 
-    await prisma.communityMember.create({
-      data: { userId: auth.userId, communityId: community.id, role: "member" },
-    });
-
-    await prisma.community.update({
-      where: { id: community.id },
-      data: { memberCount: { increment: 1 } },
-    });
+    await prisma.$transaction([
+      prisma.communityMember.create({
+        data: { userId: auth.userId, communityId: community.id, role: "member" },
+      }),
+      prisma.community.update({
+        where: { id: community.id },
+        data: { memberCount: { increment: 1 } },
+      }),
+    ]);
 
     return NextResponse.json({ message: "Welcome to the community!" }, { status: 201 });
   } catch (error) {

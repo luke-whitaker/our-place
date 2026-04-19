@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getAuthUser } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { enrichPostsWithMedia } from "@/lib/post-helpers";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await getAuthUser();
-    if (!auth) {
-      return NextResponse.json({ error: "Please log in to view your feed." }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
 
     const { limit, offset, page } = parsePagination(new URL(request.url).searchParams);
 
     // Get community IDs the user is a member of
     const memberships = await prisma.communityMember.findMany({
-      where: { userId: auth.userId },
+      where: { userId: auth.user.userId },
       select: { communityId: true },
     });
     const communityIds = memberships.map((m) => m.communityId);
@@ -28,7 +26,7 @@ export async function GET(request: NextRequest) {
       include: {
         author: { select: { displayName: true, username: true, avatarColor: true } },
         community: { select: { name: true, slug: true, icon: true } },
-        reactions: { where: { userId: auth.userId }, select: { type: true } },
+        reactions: { where: { userId: auth.user.userId }, select: { type: true } },
       },
       orderBy: { createdAt: "desc" },
       take: limit + 1,

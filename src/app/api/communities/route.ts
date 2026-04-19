@@ -144,19 +144,30 @@ export async function POST(request: NextRequest) {
     ];
     const banner_color = bannerColors[Math.floor(Math.random() * bannerColors.length)];
 
-    const community = await prisma.community.create({
-      data: {
-        name,
-        slug,
-        description,
-        category,
-        icon: icon || "\uD83C\uDF10",
-        bannerColor: banner_color,
-        guidelines: guidelines || "",
-        creatorId: auth.userId,
-        memberCount: 1,
-      },
-    });
+    let community;
+    try {
+      community = await prisma.community.create({
+        data: {
+          name,
+          slug,
+          description,
+          category,
+          icon: icon || "\uD83C\uDF10",
+          bannerColor: banner_color,
+          guidelines: guidelines || "",
+          creatorId: auth.userId,
+          memberCount: 1,
+        },
+      });
+    } catch (err: unknown) {
+      if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
+        return NextResponse.json(
+          { error: "A community with this name already exists." },
+          { status: 409 },
+        );
+      }
+      throw err;
+    }
 
     // Auto-join creator as admin
     await prisma.communityMember.create({

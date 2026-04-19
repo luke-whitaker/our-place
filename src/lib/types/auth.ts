@@ -1,35 +1,8 @@
-export interface User {
-  id: string;
-  username: string;
-  display_name: string;
-  email: string;
-  phone: string;
-  password_hash?: string;
-  bio: string;
-  avatar_color: string;
-  is_verified: number;
-  verification_code: string | null;
-  verification_expires_at: string | null;
-  reset_code: string | null;
-  reset_code_expires_at: string | null;
-  created_at: string;
-  updated_at: string;
-}
-
-export interface UserPublic {
-  id: string;
-  username: string;
-  display_name: string;
-  bio: string;
-  avatar_color: string;
-  is_verified: number;
-  created_at: string;
-}
-
 export interface AuthPayload {
   userId: string;
   username: string;
   is_verified: number;
+  role: string;
 }
 
 export const AVATAR_COLORS = [
@@ -50,5 +23,4 @@ export const AVATAR_COLORS = [
   "#06b6d4",
   "#0ea5e9",
   "#3b82f6",
-  "#6366f1",
 ] as const;

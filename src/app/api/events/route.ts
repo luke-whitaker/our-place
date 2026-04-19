@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getAuthUser } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { createEventLimiter } from "@/lib/rate-limit";
 import { createEventSchema, getZodErrorMessage } from "@/lib/schemas";
 import { parsePagination, paginateResults } from "@/lib/pagination";
@@ -8,23 +8,21 @@ import { v4 as uuidv4 } from "uuid";
 
 export async function GET(request: NextRequest) {
   try {
-    const auth = await getAuthUser();
-    if (!auth) {
-      return NextResponse.json({ error: "Please log in." }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
 
     const { limit, offset, page } = parsePagination(new URL(request.url).searchParams);
 
     // Get community IDs the user belongs to
     const memberships = await prisma.communityMember.findMany({
-      where: { userId: auth.userId },
+      where: { userId: auth.user.userId },
       select: { communityId: true },
     });
     const communityIds = memberships.map((m) => m.communityId);
 
     // Get event IDs the user has RSVP'd to
     const rsvps = await prisma.eventRsvp.findMany({
-      where: { userId: auth.userId },
+      where: { userId: auth.user.userId },
       select: { eventId: true },
     });
     const rsvpEventIds = rsvps.map((r) => r.eventId);
@@ -36,7 +34,7 @@ export async function GET(request: NextRequest) {
         OR: [
           { communityId: { in: communityIds } },
           { id: { in: rsvpEventIds } },
-          { creatorId: auth.userId },
+          { creatorId: auth.user.userId },
         ],
       },
       include: {
@@ -51,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     // Get user's RSVP status for each event
     const userRsvps = await prisma.eventRsvp.findMany({
-      where: { userId: auth.userId, eventId: { in: events.map((e) => e.id) } },
+      where: { userId: auth.user.userId, eventId: { in: events.map((e) => e.id) } },
       select: { eventId: true, status: true },
     });
     const rsvpMap = new Map(userRsvps.map((r) => [r.eventId, r.status]));
@@ -82,11 +80,11 @@ export async function GET(request: NextRequest) {
     const myEvents = await prisma.event.findMany({
       where: {
         eventDate: { gte: sevenDaysAgo },
-        rsvps: { some: { userId: auth.userId } },
+        rsvps: { some: { userId: auth.user.userId } },
       },
       include: {
         community: { select: { name: true, icon: true } },
-        rsvps: { where: { userId: auth.userId }, select: { status: true } },
+        rsvps: { where: { userId: auth.user.userId }, select: { status: true } },
       },
       orderBy: { eventDate: "asc" },
     });
@@ -115,12 +113,10 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await getAuthUser();
-    if (!auth) {
-      return NextResponse.json({ error: "Please log in." }, { status: 401 });
-    }
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
 
-    const limit = createEventLimiter.check(auth.userId);
+    const limit = createEventLimiter.check(auth.user.userId);
     if (!limit.allowed) {
       return NextResponse.json(
         { error: "Too many events created. Please try again later." },
@@ -146,13 +142,13 @@ export async function POST(request: NextRequest) {
         eventDate: new Date(event_date),
         eventEndDate: event_end_date ? new Date(event_end_date) : null,
         communityId: community_id || null,
-        creatorId: auth.userId,
+        creatorId: auth.user.userId,
       },
     });
 
     // Auto-RSVP the creator
     await prisma.eventRsvp.create({
-      data: { eventId: id, userId: auth.userId, status: "going" },
+      data: { eventId: id, userId: auth.user.userId, status: "going" },
     });
 
     return NextResponse.json({ id, message: "Event created!" }, { status: 201 });

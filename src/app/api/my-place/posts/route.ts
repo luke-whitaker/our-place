@@ -3,7 +3,7 @@ import prisma from "@/lib/db";
 import { getAuthUser } from "@/lib/auth";
 import { createPostLimiter } from "@/lib/rate-limit";
 import { createMyPlacePostSchema, getZodErrorMessage } from "@/lib/schemas";
-import { enrichPostsWithMedia } from "@/lib/post-helpers";
+import { enrichPostsWithMedia, validatePostContent } from "@/lib/post-helpers";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 import { v4 as uuidv4 } from "uuid";
 
@@ -96,58 +96,9 @@ export async function POST(request: NextRequest) {
     const content = parsed.data.content.trim();
     const media = parsed.data.media;
 
-    // Type-specific validation (same as community posts)
-    if (postType === "text") {
-      if (!title) {
-        return NextResponse.json({ error: "Title is required for text posts." }, { status: 400 });
-      }
-      if (!content) {
-        return NextResponse.json({ error: "Content is required for text posts." }, { status: 400 });
-      }
-    }
-
-    if (postType === "photo") {
-      if (!media.length) {
-        return NextResponse.json(
-          { error: "At least one image is required for photo posts." },
-          { status: 400 },
-        );
-      }
-      if (media.length > 10) {
-        return NextResponse.json({ error: "Maximum 10 images per post." }, { status: 400 });
-      }
-    }
-
-    if (postType === "video") {
-      if (!media.length) {
-        return NextResponse.json(
-          { error: "A video is required for video posts." },
-          { status: 400 },
-        );
-      }
-      if (media.length > 1) {
-        return NextResponse.json({ error: "Only one video per post." }, { status: 400 });
-      }
-    }
-
-    if (postType === "rich") {
-      if (!title) {
-        return NextResponse.json({ error: "Title is required for rich posts." }, { status: 400 });
-      }
-      if (!content) {
-        return NextResponse.json({ error: "Content is required for rich posts." }, { status: 400 });
-      }
-      try {
-        const blocks = JSON.parse(content);
-        if (!Array.isArray(blocks) || blocks.length === 0) {
-          return NextResponse.json(
-            { error: "Rich content must have at least one block." },
-            { status: 400 },
-          );
-        }
-      } catch {
-        return NextResponse.json({ error: "Invalid rich content format." }, { status: 400 });
-      }
+    const validation = validatePostContent(postType, title, content, media);
+    if (!validation.valid) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     const postId = uuidv4();
