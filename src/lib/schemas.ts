@@ -2,12 +2,12 @@ import { z } from "zod";
 
 // ── Auth schemas ──
 
-export const registerSchema = z.object({
+export const createUserSchema = z.object({
   username: z
     .string({ error: "All fields are required." })
     .min(3, "Username must be 3-24 characters.")
     .max(24, "Username must be 3-24 characters.")
-    .regex(/^[a-zA-Z0-9_]+$/, "Username can only contain letters, numbers, and underscores."),
+    .regex(/^[a-z0-9_]+$/, "Lowercase letters, numbers, and underscores only."),
   display_name: z.string({ error: "All fields are required." }).min(1, "All fields are required."),
   email: z
     .string({ error: "All fields are required." })

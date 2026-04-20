@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  registerSchema,
+  createUserSchema,
   loginSchema,
   createPostSchema,
   createCommentSchema,
@@ -8,9 +8,9 @@ import {
   getZodErrorMessage,
 } from "./schemas";
 
-// ── Register schema ──
+// ── Create user schema ──
 
-describe("registerSchema", () => {
+describe("createUserSchema", () => {
   const valid = {
     username: "testuser",
     display_name: "Test User",
@@ -20,23 +20,27 @@ describe("registerSchema", () => {
   };
 
   it("accepts valid input", () => {
-    expect(registerSchema.safeParse(valid).success).toBe(true);
+    expect(createUserSchema.safeParse(valid).success).toBe(true);
   });
 
   it("rejects short username", () => {
-    expect(registerSchema.safeParse({ ...valid, username: "ab" }).success).toBe(false);
+    expect(createUserSchema.safeParse({ ...valid, username: "ab" }).success).toBe(false);
+  });
+
+  it("rejects username with uppercase", () => {
+    expect(createUserSchema.safeParse({ ...valid, username: "UserName" }).success).toBe(false);
   });
 
   it("rejects username with special characters", () => {
-    expect(registerSchema.safeParse({ ...valid, username: "user@name" }).success).toBe(false);
+    expect(createUserSchema.safeParse({ ...valid, username: "user@name" }).success).toBe(false);
   });
 
   it("rejects invalid email", () => {
-    expect(registerSchema.safeParse({ ...valid, email: "notanemail" }).success).toBe(false);
+    expect(createUserSchema.safeParse({ ...valid, email: "notanemail" }).success).toBe(false);
   });
 
   it("rejects short password", () => {
-    expect(registerSchema.safeParse({ ...valid, password: "short" }).success).toBe(false);
+    expect(createUserSchema.safeParse({ ...valid, password: "short" }).success).toBe(false);
   });
 });
 
@@ -121,7 +125,7 @@ describe("createReactionSchema", () => {
 
 describe("getZodErrorMessage", () => {
   it("returns first issue message", () => {
-    const result = registerSchema.safeParse({ username: "a" });
+    const result = createUserSchema.safeParse({ username: "a" });
     if (!result.success) {
       expect(getZodErrorMessage(result)).toBe("Username must be 3-24 characters.");
     }

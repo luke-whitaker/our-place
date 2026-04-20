@@ -1,21 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
+import { createUserSchema, getZodErrorMessage } from "@/lib/schemas";
 import { AVATAR_COLORS } from "@/lib/types";
 import bcrypt from "bcryptjs";
-import { z } from "zod/v4";
-
-const createUserSchema = z.object({
-  display_name: z.string().min(1, "Name is required").max(100),
-  username: z
-    .string()
-    .min(3, "Username must be at least 3 characters")
-    .max(24)
-    .regex(/^[a-z0-9_]+$/, "Lowercase letters, numbers, and underscores only"),
-  email: z.string().min(1, "Email is required").email("Invalid email address"),
-  phone: z.string().min(1, "Phone is required"),
-  password: z.string().min(8, "Password must be at least 8 characters"),
-});
 
 export async function GET() {
   try {
@@ -50,8 +38,7 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const parsed = createUserSchema.safeParse(body);
     if (!parsed.success) {
-      const firstError = parsed.error.issues[0]?.message || "Invalid input.";
-      return NextResponse.json({ error: firstError }, { status: 400 });
+      return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
 
     const { display_name, username, email, phone, password } = parsed.data;
