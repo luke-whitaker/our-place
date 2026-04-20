@@ -82,8 +82,15 @@ export default function Navbar() {
 
                 {menuOpen && (
                   <>
-                    <div className="fixed inset-0 z-40" onClick={() => setMenuOpen(false)} aria-hidden="true" />
-                    <div role="menu" className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg">
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setMenuOpen(false)}
+                      aria-hidden="true"
+                    />
+                    <div
+                      role="menu"
+                      className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
+                    >
                       <div className="border-b border-gray-100 px-4 py-3">
                         <p className="text-sm font-semibold text-gray-900">{user.display_name}</p>
                         <p className="text-xs text-gray-500">@{user.username}</p>

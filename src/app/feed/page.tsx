@@ -206,6 +206,10 @@ export default function FeedPage() {
       router.replace("/auth/login");
       return;
     }
+    if (!user.avatar) {
+      router.replace("/avatar-builder");
+      return;
+    }
     let cancelled = false;
     (async () => {
       if (!cancelled) await loadCommunityFeed().finally(() => setLoadingFeed(false));
@@ -568,7 +572,10 @@ export default function FeedPage() {
       </div>
 
       {/* ── Bottom Dashboard Navigation (fixed on mobile, inline on desktop) ── */}
-      <nav aria-label="Feed navigation" className="fixed bottom-0 inset-x-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-lg sm:static sm:mt-8 sm:rounded-2xl sm:border sm:bg-white sm:shadow-sm">
+      <nav
+        aria-label="Feed navigation"
+        className="fixed bottom-0 inset-x-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-lg sm:static sm:mt-8 sm:rounded-2xl sm:border sm:bg-white sm:shadow-sm"
+      >
         <div className="mx-auto max-w-lg flex">
           {[
             { key: "friends" as FeedTab, Icon: FriendsIcon },

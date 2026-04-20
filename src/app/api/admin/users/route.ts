@@ -48,7 +48,10 @@ export async function POST(request: NextRequest) {
 
     const existingEmail = await prisma.user.findUnique({ where: { email: emailLower } });
     if (existingEmail) {
-      return NextResponse.json({ error: "An account with this email already exists." }, { status: 409 });
+      return NextResponse.json(
+        { error: "An account with this email already exists." },
+        { status: 409 },
+      );
     }
 
     const existingPhone = await prisma.user.findUnique({ where: { phone: phoneClean } });

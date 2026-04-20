@@ -10,6 +10,7 @@ interface User {
   phone?: string;
   bio?: string;
   avatar_color: string;
+  avatar: Record<string, string> | null;
   is_verified: number;
   role: string;
   community_count?: number;

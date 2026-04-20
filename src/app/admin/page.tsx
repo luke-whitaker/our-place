@@ -148,7 +148,10 @@ export default function AdminPage() {
                     type="text"
                     value={form.username}
                     onChange={(e) =>
-                      updateField("username", e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))
+                      updateField(
+                        "username",
+                        e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""),
+                      )
                     }
                     placeholder="username"
                     maxLength={24}
@@ -205,8 +208,8 @@ export default function AdminPage() {
 
             <div className="mt-5 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3">
               <p className="text-xs text-indigo-700 leading-relaxed">
-                <strong>In-Person Accounts Only:</strong> Only create accounts for people you&apos;ve
-                met face-to-face. This is how Our Place builds real community.
+                <strong>In-Person Accounts Only:</strong> Only create accounts for people
+                you&apos;ve met face-to-face. This is how Our Place builds real community.
               </p>
             </div>
 
@@ -222,9 +225,7 @@ export default function AdminPage() {
 
         {/* User List */}
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">
-            Members ({users.length})
-          </h2>
+          <h2 className="text-lg font-semibold text-gray-900 mb-4">Members ({users.length})</h2>
           <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
             {loadingUsers ? (
               <div className="flex items-center justify-center py-12">
@@ -240,7 +241,9 @@ export default function AdminPage() {
                   <li key={u.id} className="flex items-center justify-between px-5 py-3.5">
                     <div>
                       <p className="text-sm font-medium text-gray-900">{u.displayName}</p>
-                      <p className="text-xs text-gray-500">@{u.username} &middot; {u.email}</p>
+                      <p className="text-xs text-gray-500">
+                        @{u.username} &middot; {u.email}
+                      </p>
                     </div>
                     <div className="flex items-center gap-2">
                       {u.role === "admin" && (

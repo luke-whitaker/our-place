@@ -12,3 +12,6 @@ export type {
   Comment,
 } from "./forum";
 export { COMMUNITY_CATEGORIES } from "./forum";
+
+export type { AvatarConfig } from "./game";
+export { SKIN_TONES, SHIRT_COLORS, PANTS_COLORS, SHOES_COLORS, DEFAULT_AVATAR } from "./game";

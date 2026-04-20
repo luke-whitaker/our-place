@@ -1,11 +1,11 @@
 import { TILE, PAL, DIR } from "./constants";
 import type { Direction } from "./constants";
+import type { AvatarConfig } from "@/lib/types";
+import { DEFAULT_AVATAR } from "@/lib/types";
 
-/**
- * Generate player sprite sheet: 4 directions × 2 walk frames = 8 canvases.
- * Accessed as sprites[direction][frame].
- */
-export function generatePlayerSprites(): Record<Direction, [HTMLCanvasElement, HTMLCanvasElement]> {
+export function generatePlayerSprites(
+  config: AvatarConfig = DEFAULT_AVATAR,
+): Record<Direction, [HTMLCanvasElement, HTMLCanvasElement]> {
   function make(draw: (ctx: CanvasRenderingContext2D) => void): HTMLCanvasElement {
     const c = document.createElement("canvas");
     c.width = TILE;
@@ -16,22 +16,28 @@ export function generatePlayerSprites(): Record<Direction, [HTMLCanvasElement, H
   }
 
   function drawBody(ctx: CanvasRenderingContext2D, dir: Direction, frame: 0 | 1) {
+    const { hairStyle, skinTone, shirtColor, pantsColor, shoesColor } = config;
+    const hairColor = darkenColor(skinTone, 0.35);
+
     // Head / hair
-    ctx.fillStyle = PAL.hair;
+    ctx.fillStyle = hairColor;
     ctx.fillRect(4, 0, 8, 4);
 
+    if (hairStyle === "long") {
+      ctx.fillRect(3, 3, 2, 5);
+      ctx.fillRect(11, 3, 2, 5);
+    }
+
     // Face
-    ctx.fillStyle = PAL.skin;
+    ctx.fillStyle = skinTone;
     if (dir === DIR.DOWN) {
       ctx.fillRect(5, 3, 6, 4);
-      // Eyes
       ctx.fillStyle = PAL.darkest;
       ctx.fillRect(6, 4, 1, 1);
       ctx.fillRect(9, 4, 1, 1);
     } else if (dir === DIR.UP) {
       ctx.fillRect(5, 3, 6, 3);
-      // Hair covers face
-      ctx.fillStyle = PAL.hair;
+      ctx.fillStyle = hairColor;
       ctx.fillRect(5, 3, 6, 1);
     } else if (dir === DIR.LEFT) {
       ctx.fillRect(4, 3, 5, 4);
@@ -44,22 +50,22 @@ export function generatePlayerSprites(): Record<Direction, [HTMLCanvasElement, H
     }
 
     // Shirt
-    ctx.fillStyle = PAL.shirt;
+    ctx.fillStyle = shirtColor;
     ctx.fillRect(4, 7, 8, 4);
 
-    // Arms (shift with walk frame)
+    // Arms
     const armShift = frame === 1 ? 1 : 0;
-    ctx.fillStyle = PAL.skin;
+    ctx.fillStyle = skinTone;
     ctx.fillRect(3, 7 + armShift, 1, 3);
     ctx.fillRect(12, 8 - armShift, 1, 3);
 
     // Pants
-    ctx.fillStyle = PAL.pants;
+    ctx.fillStyle = pantsColor;
     ctx.fillRect(5, 11, 3, 3);
     ctx.fillRect(8, 11, 3, 3);
 
-    // Legs (alternate with walk frame)
-    ctx.fillStyle = PAL.shoes;
+    // Shoes
+    ctx.fillStyle = shoesColor;
     if (frame === 0) {
       ctx.fillRect(5, 14, 3, 2);
       ctx.fillRect(8, 14, 3, 2);
@@ -76,4 +82,15 @@ export function generatePlayerSprites(): Record<Direction, [HTMLCanvasElement, H
   }
 
   return sprites;
+}
+
+function darkenColor(hex: string, amount: number): string {
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  const darken = (c: number) =>
+    Math.round(c * (1 - amount))
+      .toString(16)
+      .padStart(2, "0");
+  return `#${darken(r)}${darken(g)}${darken(b)}`;
 }

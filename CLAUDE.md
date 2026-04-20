@@ -158,10 +158,11 @@ Communities are user-created, so the world must grow as new ones appear. Recomme
 
 - [ ] The map has pre-defined zones by community category (one district per category group)
 - [ ] When a community is created, it gets assigned a building slot in its category zone
-- [ ] Add a `world_buildings` table to the DB: `community_id`, `map_x`, `map_y`, `building_type`
+- [ ] Add a `world_buildings` table to the DB: `community_id`, `map_x`, `map_y`, `building_type` (plain integer coordinates to start)
 - [ ] When a community is created, auto-assign a position in the appropriate zone
 - [ ] World API endpoint returns community data + map positions
 - [ ] Buildings render dynamically at their assigned tile coordinates
+- [ ] **Future: PostGIS migration** — when the world grows large (hundreds+ buildings), add PostGIS extension for spatial indexing and efficient viewport queries. Start with plain x/y integers now; migrate to `GEOMETRY(Point)` column later when scale demands it.
 
 Alternative (more complex): procedural town expansion where new communities cause new buildings to appear at the edge of the map.
 
@@ -184,12 +185,22 @@ Two paths:
 
 ---
 
-## Phase 5 — Player Identity & Customization
+## Phase 5 — Player Identity & Avatar Builder
 
-- [ ] Player character color maps to the user's existing `avatar_color` field
-- [ ] Username floats above the character (like a Pokémon trainer name tag)
-- [ ] Basic customization screen — pick sprite style/color on account setup or in profile settings
-- [ ] Store character appearance in the DB (JSON column on the users table is fine)
+Avatar customization is part of the first-login experience — right after an admin creates your account and you log in for the first time.
+
+**Design principle:** Gender-neutral options. No "male/female" selector. Just hair, skin, and clothing choices.
+
+- [ ] **Avatar builder UI** — shown on first login (or accessible from profile settings)
+  - Hair style: short, long (2 options to start, expand later)
+  - Skin tone: 5–6 inclusive tones
+  - T-shirt color: pick from palette
+  - Pants color: pick from palette
+  - Shoes: optional if sprite detail allows at 32px
+- [ ] Store appearance as JSON on the user record (e.g. `{ hair: "short", skin: "#C68642", shirt: "#3b82f6", pants: "#1e293b" }`)
+- [ ] Generate sprite sheet from appearance config (composited layers or pre-built combinations)
+- [ ] Username floats above the character in the world
+- [ ] Avatar renders in forum UI too (profile, post headers) as a small pixel-art portrait
 
 ---
 

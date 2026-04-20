@@ -20,7 +20,9 @@ export async function GET(request: NextRequest) {
       select: { userId: true, friendId: true },
     });
 
-    const friendIds = friendships.map((f) => (f.userId === auth.user.userId ? f.friendId : f.userId));
+    const friendIds = friendships.map((f) =>
+      f.userId === auth.user.userId ? f.friendId : f.userId,
+    );
 
     // Get posts from friends
     const posts = await prisma.post.findMany({

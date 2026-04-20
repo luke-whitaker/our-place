@@ -16,6 +16,7 @@ model User {
   passwordHash            String    @map("password_hash")
   bio                     String    @default("")
   avatarColor             String    @default("#6366f1") @map("avatar_color")
+  avatar                  Json?
   role                    String    @default("user")
   isVerified              Boolean   @default(true) @map("is_verified")
   resetCode               String?   @map("reset_code")

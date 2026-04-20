@@ -11,7 +11,7 @@ export default function Home() {
 
   useEffect(() => {
     if (!loading && user?.is_verified) {
-      router.replace("/feed");
+      router.replace(user.avatar ? "/feed" : "/avatar-builder");
     }
   }, [user, loading, router]);
 
@@ -169,8 +169,8 @@ export default function Home() {
               </div>
               <h3 className="mt-5 text-base font-semibold text-gray-900">Meet Someone</h3>
               <p className="mt-2 text-sm text-gray-500">
-                Our Place starts in real life. Meet a member in person and they&apos;ll create
-                your account on the spot.
+                Our Place starts in real life. Meet a member in person and they&apos;ll create your
+                account on the spot.
               </p>
             </div>
             <div className="text-center">
@@ -186,10 +186,12 @@ export default function Home() {
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500 text-white text-xl font-bold shadow-lg shadow-pink-500/25">
                 3
               </div>
-              <h3 className="mt-5 text-base font-semibold text-gray-900">Connect Online & Offline</h3>
+              <h3 className="mt-5 text-base font-semibold text-gray-900">
+                Connect Online & Offline
+              </h3>
               <p className="mt-2 text-sm text-gray-500">
-                Post, comment, organize events, and build genuine connections — then take them
-                into the real world.
+                Post, comment, organize events, and build genuine connections — then take them into
+                the real world.
               </p>
             </div>
           </div>

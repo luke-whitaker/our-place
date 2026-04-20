@@ -1,11 +1,7 @@
 "use client";
 
 import { useRef } from "react";
-import {
-  ACCEPTED_IMAGE_TYPES,
-  MAX_IMAGE_SIZE,
-  formatFileSize,
-} from "@/lib/media-utils";
+import { ACCEPTED_IMAGE_TYPES, MAX_IMAGE_SIZE, formatFileSize } from "@/lib/media-utils";
 
 export interface UploadedMedia {
   url: string;
@@ -150,7 +146,11 @@ export default function PhotoUploader({
           {photos.map((photo, idx) => (
             <div key={idx} className="group relative aspect-square overflow-hidden rounded-lg">
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photo.url} alt={`Uploaded photo ${idx + 1}`} className="h-full w-full object-cover" />
+              <img
+                src={photo.url}
+                alt={`Uploaded photo ${idx + 1}`}
+                className="h-full w-full object-cover"
+              />
               <button
                 type="button"
                 onClick={() => removePhoto(idx)}

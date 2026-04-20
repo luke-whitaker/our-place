@@ -360,6 +360,19 @@ export default function ProfilePage() {
               </div>
             </div>
             <div className="border-t border-gray-100" />
+            <div className="flex items-center justify-between py-2">
+              <div>
+                <p className="text-sm font-medium text-gray-700">Avatar</p>
+                <p className="text-sm text-gray-400">Your 8-bit character</p>
+              </div>
+              <Link
+                href="/avatar-builder"
+                className="rounded-lg bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-100 transition-colors"
+              >
+                Edit
+              </Link>
+            </div>
+            <div className="border-t border-gray-100" />
             <button
               onClick={logout}
               className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
