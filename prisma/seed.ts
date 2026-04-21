@@ -51,8 +51,8 @@ async function main() {
       guidelines: "Be patient, constructive, and respectful when offering support.",
     },
     {
-      name: "Creative Corner",
-      slug: "creative-corner",
+      name: "Creative",
+      slug: "creative",
       description:
         "A space for artists, writers, musicians, and creators of all kinds to share their work, get feedback, and inspire each other.",
       category: "Arts & Culture",
@@ -62,8 +62,8 @@ async function main() {
         "Always give credit. Constructive feedback only. Celebrate creativity in all forms.",
     },
     {
-      name: "Tech & Innovation",
-      slug: "tech-innovation",
+      name: "Technology",
+      slug: "technology",
       description:
         "Discuss the latest in technology, share projects, ask for help with coding, and explore the future of innovation together.",
       category: "Technology",
@@ -72,8 +72,8 @@ async function main() {
       guidelines: "Share knowledge freely. No gatekeeping. Help others learn.",
     },
     {
-      name: "Health & Wellness",
-      slug: "health-wellness",
+      name: "Health",
+      slug: "health",
       description:
         "Support each other on journeys toward better physical and mental health. Share tips, experiences, and encouragement.",
       category: "Health & Wellness",
@@ -83,39 +83,8 @@ async function main() {
         "Be sensitive and supportive. No medical advice — encourage professional help when needed.",
     },
     {
-      name: "Book Club",
-      slug: "book-club",
-      description:
-        "For readers and book lovers! Share recommendations, discuss what you're reading, and join monthly reading challenges.",
-      category: "Books & Literature",
-      icon: "\uD83D\uDCDA",
-      bannerColor: "#f59e0b",
-      guidelines:
-        "Use spoiler warnings. Respect different reading tastes. Share your honest thoughts.",
-    },
-    {
-      name: "Local Events & Meetups",
-      slug: "local-events",
-      description:
-        "Discover and organize local events, meetups, and gatherings. Connect with people in your area.",
-      category: "Local & Events",
-      icon: "\uD83D\uDCCD",
-      bannerColor: "#ef4444",
-      guidelines: "Always prioritize safety. Verify event details. Respect privacy.",
-    },
-    {
-      name: "Sustainability Hub",
-      slug: "sustainability",
-      description:
-        "Dedicated to environmental awareness, sustainable living, and making a positive impact on our planet together.",
-      category: "Environment",
-      icon: "\uD83C\uDF0D",
-      bannerColor: "#22c55e",
-      guidelines: "Focus on actionable solutions. Be encouraging, not judgmental.",
-    },
-    {
-      name: "Music & Sound",
-      slug: "music-sound",
+      name: "Music",
+      slug: "music",
       description:
         "Share music, discuss artists, collaborate on projects, and discover new sounds from around the world.",
       category: "Music",
@@ -125,8 +94,8 @@ async function main() {
         "Respect all genres. Share credit for collaborations. Support independent artists.",
     },
     {
-      name: "Food & Cooking",
-      slug: "food-cooking",
+      name: "Food",
+      slug: "food",
       description:
         "Exchange recipes, cooking tips, food photography, and culinary adventures. From home cooks to food enthusiasts!",
       category: "Food & Cooking",
@@ -135,8 +104,8 @@ async function main() {
       guidelines: "Share complete recipes when possible. Be inclusive of dietary preferences.",
     },
     {
-      name: "Fitness & Sports",
-      slug: "fitness-sports",
+      name: "Sports",
+      slug: "sports",
       description:
         "Whether you're a beginner or an athlete, share workout routines, sports discussions, and fitness goals.",
       category: "Sports & Fitness",
@@ -145,8 +114,8 @@ async function main() {
       guidelines: "Encourage all fitness levels. No body shaming. Celebrate personal progress.",
     },
     {
-      name: "Gaming Lounge",
-      slug: "gaming-lounge",
+      name: "Gaming",
+      slug: "gaming",
       description:
         "A community for gamers of all platforms. Discuss games, find teammates, share clips, and stay updated on gaming news.",
       category: "Gaming",
