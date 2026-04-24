@@ -42,11 +42,13 @@ The forum is fully functional today. The game world is actively in development.
 
 ### 8-Bit World (In Progress)
 
-- Tile-based game engine built with React and HTML Canvas
+- Tile-based game engine built with React and HTML Canvas (32px tiles)
 - Player movement (WASD/arrows + mobile touch D-pad)
 - Camera system, collision detection, and walk animations
 - Building interaction system with fade transitions
 - Responsive canvas scaling for mobile
+- **Avatar builder** — gender-neutral character customization (hair, skin, shirt, pants) on first login
+- **Procedural frontier generator** — deterministic 500×500 tile world with 6 themed biomes (flower meadow, beach, mountain valley, island, misty grove, ancient ruins), the capital city stamped at its center, passages, a river system, and a mushroom warp network between shrines
 
 ## Tech Stack
 
@@ -88,7 +90,7 @@ src/
 │   └── ...
 ├── generated/prisma/   # Auto-generated Prisma client (not committed)
 └── lib/
-    ├── game/           # Game engine (sprites, input, engine, types)
+    ├── game/           # Game engine (sprites, input, engine, types, tileset)
     ├── types/          # TypeScript type definitions
     ├── db.ts           # Prisma client singleton
     ├── schemas.ts      # Zod validation schemas
@@ -97,7 +99,14 @@ src/
 prisma/
 ├── schema.prisma       # Database schema (source of truth)
 ├── migrations/         # Prisma migration history
-└── seed.ts             # Seed data (12 starter communities)
+└── seed.ts             # Seed data (9 starter communities)
+scripts/
+├── generate-world.ts   # Procedural frontier world generator (deterministic)
+├── generate-tiles.lua  # Aseprite script — generate tile sprite sheet
+└── generate-player.lua # Aseprite script — generate player sprite sheet
+public/world/
+├── world.bin           # Generated tile grid (500×500, one byte per tile)
+└── world.meta.json     # Spawn, doors, node bounds, passages, mushroom network
 ```
 
 ## Getting Started
@@ -147,6 +156,7 @@ Open [http://localhost:3000](http://localhost:3000).
 | `npm run db:migrate` | Run Prisma migrations          |
 | `npm run db:seed`    | Seed starter communities       |
 | `npm run db:studio`  | Open Prisma Studio (DB viewer) |
+| `npm run world:generate` | Regenerate `public/world/*` from the seeded procedural generator |
 
 ## Roadmap
 
@@ -158,44 +168,36 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Security hardening (rate limits, Zod validation, transactions)
 - [x] Game engine foundation (canvas, movement, camera, interactions)
 - [x] PostgreSQL + Prisma migration (see v0.2.0 below)
-- [ ] Deploy to Railway (PostgreSQL + Dockerfile)
-- [ ] Static town map with community buildings
-- [ ] Dynamic world generation from database
-- [ ] Pixel art assets (sprites, terrain, buildings)
-- [ ] Player identity tied to user accounts
+- [x] Deploy to Railway (PostgreSQL + Dockerfile — see v0.3.0 below)
+- [x] 32px tile upgrade + Aseprite generation pipeline
+- [x] Avatar builder (gender-neutral first-login customization)
+- [x] Procedural frontier world generator (500×500, 6 biomes, capital stamp, mushroom network)
+- [ ] Wire generated world into `WorldCanvas` (Phase B: loader + renderer)
+- [ ] Mushroom warp UI (warp menu, discovery tracking, teleport transition)
+- [ ] Aseprite pixel-art pass to replace placeholder sprites
+- [ ] Dynamic building placement from the DB (community buildings inside the capital)
+- [ ] Player identity bound to world position + username rendered above avatar
 - [ ] Real-time multiplayer presence
-
-## Next Steps — Deployment
-
-The database has been migrated to PostgreSQL via Prisma. The remaining steps to get Our Place live:
-
-### Step 1: Set up PostgreSQL on Railway
-
-- Create a PostgreSQL service in Railway (one-click provisioning)
-- Note the connection string (Railway provides `DATABASE_URL` automatically)
-
-### Step 2: Add a Dockerfile
-
-Create a production Dockerfile for the Next.js app:
-
-- Multi-stage build (install deps → build → run)
-- Use `npm run build` + `npm run start` (not dev mode)
-- Expose port 3000
-
-### Step 3: Deploy to Railway
-
-- Connect the GitHub repo to Railway
-- Add the PostgreSQL service + link it to the app
-- Set environment variables: `DATABASE_URL` (auto-linked from PostgreSQL service), `JWT_SECRET` (strong random string)
-- Deploy and verify
-
-### Step 4: Update README with live URL
-
-Add the public Railway URL to this README, similar to StatLab's setup.
 
 ---
 
 ## Version History
+
+### v0.3.0 — Railway Deployment + Avatar Builder + Frontier World (April 2026)
+
+**Why:** With the platform on Postgres and the forum stable, this cycle focused on three things: getting Our Place actually running in production, making the first-login experience feel personal, and laying the groundwork for the 8-bit world to be more than a bare test map.
+
+**What changed:**
+
+- **Deployed to Railway** — production Dockerfile (multi-stage build with standalone Next.js output), PostgreSQL service linked, healthcheck on `/`. Several iterations to get the Docker runner stage correct: full `node_modules` copy (native binaries + Prisma/effect runtime deps), Prisma schema copied into deps stage, dummy env vars for build-time Next.js compilation, `.npmrc` removed so native binary installs work.
+- **Avatar builder** — gender-neutral character customization shown on first login. Hair style, skin tone, shirt color, pants color, stored as JSON on the user record. No male/female selector.
+- **Audit overhaul** — invite-only auth tightened, admin dashboard cleanup, `createUserSchema` consolidation (removed orphaned `registerSchema`), code-quality pass across the admin surface.
+- **32px tile upgrade** — tile size doubled from 16px to 32px for better readability at modern resolutions. New Aseprite Lua scripts (`scripts/generate-tiles.lua`, `scripts/generate-player.lua`) for sprite-sheet generation.
+- **Procedural frontier world generator** (`scripts/generate-world.ts`, `npm run world:generate`) — deterministic 500×500 tile world built from a single seed. 9-stage pipeline: base fill → 8 passages (tree-walled corridors with tall-grass patches) → lakes + rivers (Iowa River N-S) → 6 themed nodes (flower meadow, beach, mountain valley, island, misty grove, ancient ruins) → capital stamp at (220,230) → wilderness fill (noise-driven forest vs. clearing) → border wall → mushroom warp network (1 capital gate + 6 node shrines, full-mesh connections). Emits `public/world/world.bin` (one byte per tile) and `world.meta.json` (spawn, doors, node bounds, passages, mushroom network).
+- **8 new tile types** — `TALL_GRASS`, `FLOWER_RED/YELLOW/PURPLE`, `SAND`, `MOUNTAIN`, `MUSHROOM`, `STONE_RUIN` — palette entries and placeholder procedural sprites (to be refined in Aseprite later).
+- **Seed trimmed** — 12 starter communities → 9, with simpler names.
+
+**Not yet done (intentional):** The generated world is on disk but not yet read by `WorldCanvas`. Phase B — loader + renderer + mushroom warp UI — is the next cycle.
 
 ### v0.2.0 — PostgreSQL + Prisma Migration (April 2026)
 
