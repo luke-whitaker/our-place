@@ -9,7 +9,7 @@ import type { AvatarConfig } from "@/lib/types";
 import { SKIN_TONES, SHIRT_COLORS, PANTS_COLORS, SHOES_COLORS, DEFAULT_AVATAR } from "@/lib/types";
 
 const PREVIEW_SCALE = 8;
-const PREVIEW_SIZE = 16 * PREVIEW_SCALE;
+const PREVIEW_SIZE = 32 * PREVIEW_SCALE;
 const ANIM_INTERVAL = 400;
 
 export default function AvatarBuilderPage() {

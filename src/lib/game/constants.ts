@@ -1,18 +1,18 @@
 // ── Tile & Map ──
 
-export const TILE = 16;
+export const TILE = 32;
 
 // Viewport: 30 tiles wide × 20 tiles tall
-export const CANVAS_W = 480;
-export const CANVAS_H = 320;
+export const CANVAS_W = 960;
+export const CANVAS_H = 640;
 
 // ── Player ──
 
-export const PLAYER_SPEED = 1.5; // pixels per tick
-export const PLAYER_W = 12; // collision hitbox width
-export const PLAYER_H = 12; // collision hitbox height
-export const PLAYER_OFFSET_X = 2; // hitbox offset from sprite left
-export const PLAYER_OFFSET_Y = 4; // hitbox offset from sprite top
+export const PLAYER_SPEED = 3; // pixels per tick
+export const PLAYER_W = 24; // collision hitbox width
+export const PLAYER_H = 24; // collision hitbox height
+export const PLAYER_OFFSET_X = 4; // hitbox offset from sprite left
+export const PLAYER_OFFSET_Y = 8; // hitbox offset from sprite top
 
 // ── Animation ──
 
