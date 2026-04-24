@@ -107,4 +107,33 @@ export const PAL = {
   // Capital building
   capitalRoof: "#5a5888",
   capitalRoofDark: "#353540",
+
+  // Frontier — tall grass (slightly taller/brighter than GRASS)
+  tallGrass1: "#6b9a5f",
+  tallGrass2: "#4f7a47",
+
+  // Frontier — flowers
+  flowerRed: "#ca5954",
+  flowerYellow: "#eeb551",
+  flowerPurple: "#8773a8",
+  flowerStem: "#446350",
+
+  // Frontier — beach / desert
+  sand1: "#e4d2a3",
+  sand2: "#c9b684",
+
+  // Frontier — mountain / rock
+  mountain1: "#7d7a77",
+  mountain2: "#5a5756",
+  mountainShadow: "#3d3b3a",
+
+  // Frontier — mushroom (red-and-white, mycelium network)
+  mushroomCap: "#ca5954",
+  mushroomSpot: "#ede4da",
+  mushroomStem: "#e4d2a3",
+
+  // Frontier — ancient ruins (stone)
+  ruinStone: "#918d8d",
+  ruinStoneDark: "#636167",
+  ruinMoss: "#557d55",
 } as const;

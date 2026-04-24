@@ -331,5 +331,142 @@ export function generateTileset(): Map<Tile, HTMLCanvasElement> {
     }),
   );
 
+  // ── Frontier tiles (placeholder sprites — to refine in Aseprite) ──
+
+  tileset.set(
+    Tile.TALL_GRASS,
+    make((ctx) => {
+      ctx.fillStyle = PAL.grass1;
+      ctx.fillRect(0, 0, TILE, TILE);
+      // Vertical blades
+      ctx.fillStyle = PAL.tallGrass1;
+      ctx.fillRect(3, 9, 1, 6);
+      ctx.fillRect(7, 7, 1, 8);
+      ctx.fillRect(11, 10, 1, 5);
+      ctx.fillRect(14, 8, 1, 6);
+      // Shorter blades
+      ctx.fillStyle = PAL.tallGrass2;
+      ctx.fillRect(5, 12, 1, 3);
+      ctx.fillRect(9, 11, 1, 4);
+      ctx.fillRect(13, 13, 1, 2);
+    }),
+  );
+
+  const drawFlower = (ctx: CanvasRenderingContext2D, petalColor: string) => {
+    ctx.fillStyle = PAL.grass1;
+    ctx.fillRect(0, 0, TILE, TILE);
+    // Stem
+    ctx.fillStyle = PAL.flowerStem;
+    ctx.fillRect(7, 8, 1, 5);
+    // Petals (cross shape)
+    ctx.fillStyle = petalColor;
+    ctx.fillRect(6, 5, 3, 3);
+    ctx.fillRect(7, 4, 1, 1);
+    ctx.fillRect(7, 8, 1, 1);
+    ctx.fillRect(5, 6, 1, 1);
+    ctx.fillRect(9, 6, 1, 1);
+    // Center
+    ctx.fillStyle = PAL.flowerYellow;
+    ctx.fillRect(7, 6, 1, 1);
+  };
+
+  tileset.set(
+    Tile.FLOWER_RED,
+    make((ctx) => drawFlower(ctx, PAL.flowerRed)),
+  );
+  tileset.set(
+    Tile.FLOWER_YELLOW,
+    make((ctx) => drawFlower(ctx, PAL.flowerYellow)),
+  );
+  tileset.set(
+    Tile.FLOWER_PURPLE,
+    make((ctx) => drawFlower(ctx, PAL.flowerPurple)),
+  );
+
+  tileset.set(
+    Tile.SAND,
+    make((ctx) => {
+      ctx.fillStyle = PAL.sand1;
+      ctx.fillRect(0, 0, TILE, TILE);
+      // Scattered grains
+      ctx.fillStyle = PAL.sand2;
+      ctx.fillRect(4, 5, 1, 1);
+      ctx.fillRect(11, 3, 1, 1);
+      ctx.fillRect(7, 9, 1, 1);
+      ctx.fillRect(13, 11, 1, 1);
+      ctx.fillRect(2, 12, 1, 1);
+      ctx.fillRect(9, 13, 1, 1);
+    }),
+  );
+
+  tileset.set(
+    Tile.MOUNTAIN,
+    make((ctx) => {
+      ctx.fillStyle = PAL.mountain1;
+      ctx.fillRect(0, 0, TILE, TILE);
+      // Darker patches (rocky texture)
+      ctx.fillStyle = PAL.mountain2;
+      ctx.fillRect(0, 10, TILE, 6);
+      ctx.fillRect(10, 0, 6, 10);
+      // Deep shadow
+      ctx.fillStyle = PAL.mountainShadow;
+      ctx.fillRect(14, 14, 2, 2);
+      ctx.fillRect(0, 15, TILE, 1);
+      ctx.fillRect(15, 0, 1, TILE);
+      // Highlight
+      ctx.fillStyle = PAL.light;
+      ctx.fillRect(2, 2, 3, 1);
+      ctx.fillRect(3, 3, 1, 1);
+    }),
+  );
+
+  tileset.set(
+    Tile.MUSHROOM,
+    make((ctx) => {
+      ctx.fillStyle = PAL.grass1;
+      ctx.fillRect(0, 0, TILE, TILE);
+      // Stem
+      ctx.fillStyle = PAL.mushroomStem;
+      ctx.fillRect(6, 8, 4, 5);
+      ctx.fillStyle = PAL.sand2;
+      ctx.fillRect(6, 8, 1, 5);
+      // Cap (red dome)
+      ctx.fillStyle = PAL.mushroomCap;
+      ctx.fillRect(3, 4, 10, 5);
+      ctx.fillRect(4, 3, 8, 1);
+      // Cap underside shadow
+      ctx.fillStyle = PAL.brick1;
+      ctx.fillRect(3, 8, 10, 1);
+      // White spots
+      ctx.fillStyle = PAL.mushroomSpot;
+      ctx.fillRect(5, 5, 1, 1);
+      ctx.fillRect(10, 6, 1, 1);
+      ctx.fillRect(7, 7, 1, 1);
+    }),
+  );
+
+  tileset.set(
+    Tile.STONE_RUIN,
+    make((ctx) => {
+      ctx.fillStyle = PAL.grass1;
+      ctx.fillRect(0, 0, TILE, TILE);
+      // Stone block
+      ctx.fillStyle = PAL.ruinStone;
+      ctx.fillRect(1, 3, 14, 11);
+      // Shadow on bottom
+      ctx.fillStyle = PAL.ruinStoneDark;
+      ctx.fillRect(1, 12, 14, 2);
+      // Mortar lines (cracks)
+      ctx.fillRect(1, 7, 14, 1);
+      ctx.fillRect(7, 3, 1, 4);
+      ctx.fillRect(8, 8, 1, 6);
+      // Moss accents
+      ctx.fillStyle = PAL.ruinMoss;
+      ctx.fillRect(2, 6, 2, 1);
+      ctx.fillRect(11, 9, 2, 1);
+      ctx.fillRect(4, 13, 1, 1);
+    }),
+  );
+
   return tileset;
 }

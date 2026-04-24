@@ -25,6 +25,15 @@ export enum Tile {
   BRIDGE = 19,
   BRIDGE_RAIL = 20,
   HOUSE_DOOR = 21,
+  // ── Frontier tiles (wilderness expansion) ──
+  TALL_GRASS = 22,
+  FLOWER_RED = 23,
+  FLOWER_YELLOW = 24,
+  FLOWER_PURPLE = 25,
+  SAND = 26,
+  MOUNTAIN = 27,
+  MUSHROOM = 28,
+  STONE_RUIN = 29,
 }
 
 // Tiles the player cannot walk through
@@ -41,6 +50,9 @@ export const SOLID_TILES = new Set<Tile>([
   Tile.ROOF_RIGHT,
   Tile.WALL_LEFT,
   Tile.WALL_RIGHT,
+  Tile.MOUNTAIN,
+  Tile.MUSHROOM,
+  Tile.STONE_RUIN,
 ]);
 
 // ── Player ──
@@ -69,6 +81,41 @@ export interface Door {
   /** Identifier passed to the onInteract callback (e.g., community slug) */
   id: string;
   label: string;
+}
+
+// ── Mushroom warp network (mycelium fast-travel) ──
+
+export interface MushroomWarp {
+  id: string;
+  col: number;
+  row: number;
+  label: string;
+  /** Which node this mushroom belongs to (or "capital") */
+  nodeId: string;
+  /** IDs of other mushrooms reachable from this one. "all" = full mesh. */
+  connections: string[] | "all";
+  /** Whether this mushroom can be reached on foot at world-gen time. */
+  reachableOnFoot: boolean;
+}
+
+// ── Node regions (themed clearings in the frontier) ──
+
+export type NodeTheme =
+  | "flower-meadow"
+  | "beach"
+  | "mountain-valley"
+  | "island"
+  | "misty-grove"
+  | "ancient-ruins";
+
+export interface NodeRegion {
+  id: string;
+  label: string;
+  theme: NodeTheme;
+  /** Axis-aligned bounding box of the 100×100 (or smaller) clearing */
+  bounds: { col: number; row: number; w: number; h: number };
+  /** Center coordinates (for mushroom placement, minimap markers, etc.) */
+  center: { col: number; row: number };
 }
 
 // ── Game Map ──
