@@ -50,6 +50,6 @@ next-env.d.ts
 
 /src/generated/prisma
 
-# private audit notes — kept local, never committed (public repo)
-/JUNE-AUDIT.md
-/AUDIT-NOTES\[old\].md
+# private audit/security notes — kept local, never committed (public repo).
+# Drop any audit docs in here; the whole directory stays off the remote.
+/audits/

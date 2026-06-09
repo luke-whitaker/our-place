@@ -17,7 +17,7 @@ const geistMono = Geist_Mono({
 
 // Rendered dynamically so the per-request CSP nonce from src/proxy.ts reaches Next's
 // inline <script> tags — nonce-based CSP (our primary XSS defense) requires dynamic
-// rendering. See JUNE-AUDIT.md (CSP section).
+// rendering.
 //
 // REVISIT this force-dynamic choice when ANY of these becomes true (it's a refinement,
 // not a rewrite — make just the affected routes static with their own relaxed CSP):

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Nonce-based Content-Security-Policy (JUNE-AUDIT — CSP hardening).
+// Nonce-based Content-Security-Policy (XSS hardening).
 //
 // Uses Next 16's `proxy` convention (the former `middleware`). A per-request nonce
 // lets us keep `script-src` free of 'unsafe-inline', which is the only CSP
