@@ -53,3 +53,6 @@ next-env.d.ts
 # private audit/security notes — kept local, never committed (public repo).
 # Drop any audit docs in here; the whole directory stays off the remote.
 /audits/
+
+# local-only session handoff notes for the next session — never committed
+/LAST-SESSION.md
