@@ -10,6 +10,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const community = await prisma.community.findFirst({
       where: { OR: [{ id }, { slug: id }] },
+      select: { id: true, creatorId: true },
     });
 
     if (!community) {

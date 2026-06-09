@@ -280,11 +280,7 @@ function chance(p: number): boolean {
 
 /** Smooth large-scale noise: sum of sines. Range ≈ [-3, 3]. */
 function noise(col: number, row: number, freq = 0.08): number {
-  return (
-    Math.sin(col * freq) +
-    Math.sin(row * freq * 1.1) +
-    Math.sin((col + row) * freq * 0.7)
-  );
+  return Math.sin(col * freq) + Math.sin(row * freq * 1.1) + Math.sin((col + row) * freq * 0.7);
 }
 
 function flowerColor(): Tile {
@@ -348,9 +344,7 @@ function carvePassage(
       } else {
         // Walkable interior: smooth noise drives tall-grass patches
         const patchNoise =
-          Math.sin(col * 0.18) +
-          Math.sin(row * 0.22) +
-          Math.sin((col + row) * 0.13);
+          Math.sin(col * 0.18) + Math.sin(row * 0.22) + Math.sin((col + row) * 0.13);
         if (patchNoise > 0.6) {
           w.set(col, row, Tile.TALL_GRASS, CLAIM_PASSAGE);
         } else if (chance(0.05)) {
@@ -537,15 +531,7 @@ function carveMistyGrove(w: World, node: NodeSpec) {
   });
 
   // Small pond off-center
-  stampEllipse(
-    w,
-    node.center.col + 15,
-    node.center.row - 10,
-    5,
-    3,
-    Tile.WATER,
-    CLAIM_NODE,
-  );
+  stampEllipse(w, node.center.col + 15, node.center.row - 10, 5, 3, Tile.WATER, CLAIM_NODE);
 }
 
 function carveAncientRuins(w: World, node: NodeSpec) {
@@ -599,12 +585,7 @@ function carveAncientRuins(w: World, node: NodeSpec) {
   }
 }
 
-function scatterTrees(
-  w: World,
-  node: NodeSpec,
-  density: number,
-  where: "edges" | "anywhere",
-) {
+function scatterTrees(w: World, node: NodeSpec, density: number, where: "edges" | "anywhere") {
   const half = Math.floor(node.size / 2);
   const c0 = node.center.col - half;
   const r0 = node.center.row - half;
@@ -715,8 +696,16 @@ function carveRiver(w: World, spec: RiverSpec) {
 
 function carveLake(w: World, spec: LakeSpec) {
   // Irregular elliptical blob
-  for (let r = Math.floor(spec.center[1] - spec.ry - 3); r <= Math.ceil(spec.center[1] + spec.ry + 3); r++) {
-    for (let c = Math.floor(spec.center[0] - spec.rx - 3); c <= Math.ceil(spec.center[0] + spec.rx + 3); c++) {
+  for (
+    let r = Math.floor(spec.center[1] - spec.ry - 3);
+    r <= Math.ceil(spec.center[1] + spec.ry + 3);
+    r++
+  ) {
+    for (
+      let c = Math.floor(spec.center[0] - spec.rx - 3);
+      c <= Math.ceil(spec.center[0] + spec.rx + 3);
+      c++
+    ) {
       const dx = (c - spec.center[0]) / spec.rx;
       const dy = (r - spec.center[1]) / spec.ry;
       const distSq = dx * dx + dy * dy;
@@ -971,7 +960,7 @@ function printPreview(w: World) {
 
   console.log("");
   console.log("Preview (100×100 downsample; 1 char ≈ 5×5 tiles):");
-  console.log("  . = grass   , = grass2   \" = tall grass   ~ = water   # = tree");
+  console.log('  . = grass   , = grass2   " = tall grass   ~ = water   # = tree');
   console.log("  H = wall    D = door     W = window       b = brick   _ = sand");
   console.log("  ^ = mountain * = flower   & = mushroom     R = ruin    = = bridge");
   console.log("");
@@ -1038,7 +1027,9 @@ function main() {
   }
   console.log("");
   console.log(`Spawn: (${meta.spawnCol}, ${meta.spawnRow})`);
-  console.log(`Nodes: ${meta.nodes.length}, Passages: ${meta.passages.length}, Mushrooms: ${meta.mushrooms.length}`);
+  console.log(
+    `Nodes: ${meta.nodes.length}, Passages: ${meta.passages.length}, Mushrooms: ${meta.mushrooms.length}`,
+  );
 
   printPreview(w);
 }

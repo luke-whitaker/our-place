@@ -15,6 +15,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const community = await prisma.community.findFirst({
       where: { OR: [{ id }, { slug: id }] },
+      select: { id: true },
     });
 
     if (!community) {
@@ -24,6 +25,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Check if already a member
     const existing = await prisma.communityMember.findUnique({
       where: { userId_communityId: { userId: auth.userId, communityId: community.id } },
+      select: { id: true },
     });
 
     if (existing) {

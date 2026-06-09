@@ -8,9 +8,6 @@ import { parseVideoUrl } from "@/lib/media-utils";
 export function PhotoGallery({ media }: { media: PostMediaType[] }) {
   const [lightboxIdx, setLightboxIdx] = useState<number | null>(null);
   const images = media.filter((m) => m.media_type === "image");
-  if (images.length === 0) return null;
-
-  const count = images.length;
 
   const handleLightboxKeyDown = useCallback(
     (e: KeyboardEvent) => {
@@ -29,6 +26,10 @@ export function PhotoGallery({ media }: { media: PostMediaType[] }) {
       return () => document.removeEventListener("keydown", handleLightboxKeyDown);
     }
   }, [lightboxIdx, handleLightboxKeyDown]);
+
+  if (images.length === 0) return null;
+
+  const count = images.length;
 
   return (
     <>

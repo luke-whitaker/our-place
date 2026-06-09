@@ -15,6 +15,20 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+// Rendered dynamically so the per-request CSP nonce from src/proxy.ts reaches Next's
+// inline <script> tags — nonce-based CSP (our primary XSS defense) requires dynamic
+// rendering. See JUNE-AUDIT.md (CSP section).
+//
+// REVISIT this force-dynamic choice when ANY of these becomes true (it's a refinement,
+// not a rewrite — make just the affected routes static with their own relaxed CSP):
+//   1. You add public, cacheable pages you want served from a CDN/edge (landing page,
+//      public community browse, SEO pages).
+//   2. You move past invite-only to public / at-scale signups.
+//   3. Monitoring shows page-render CPU or TTFB among your top costs (realistically only
+//      at thousands of concurrent users, since these pages render as DB-free shells and
+//      fetch their data client-side).
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "Our Place — Community-First Social Platform",
   description:

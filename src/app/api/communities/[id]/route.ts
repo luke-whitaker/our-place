@@ -12,6 +12,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Find community by slug or id
     const community = await prisma.community.findFirst({
       where: { OR: [{ slug: id }, { id }] },
+      select: {
+        id: true,
+        name: true,
+        slug: true,
+        description: true,
+        category: true,
+        icon: true,
+        bannerColor: true,
+        guidelines: true,
+        creatorId: true,
+        isOfficial: true,
+        memberCount: true,
+        createdAt: true,
+      },
     });
 
     if (!community) {
@@ -23,13 +37,25 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     if (auth) {
       membership = await prisma.communityMember.findUnique({
         where: { userId_communityId: { userId: auth.userId, communityId: community.id } },
+        select: {
+          id: true,
+          userId: true,
+          communityId: true,
+          role: true,
+          joinedAt: true,
+        },
       });
     }
 
     // Get members list (paginated)
     const members = await prisma.communityMember.findMany({
       where: { communityId: community.id },
-      include: {
+      select: {
+        id: true,
+        userId: true,
+        communityId: true,
+        role: true,
+        joinedAt: true,
         user: { select: { displayName: true, username: true, avatarColor: true } },
       },
       orderBy: { joinedAt: "asc" },

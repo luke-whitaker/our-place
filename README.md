@@ -6,14 +6,22 @@ An invite-only community platform built on trust, belonging, and genuine human c
 
 ## What is Our Place?
 
-Our Place is a community platform designed around a simple idea: **online spaces should be rooted in real-world relationships.** There is no public registration. Accounts are created in person by existing members who have met you face-to-face. This "web of trust" model means every person on the platform is a real human, vouched for by someone in the community.
+Our Place is a community platform built on one conviction: **online spaces should be rooted in real-world relationships.** It brings the analog back into the digital — every account begins with a face-to-face connection, and everything the platform does is meant to push interaction back out into the real world.
 
-The platform combines a Reddit-inspired forum with an **8-bit RPG overworld** where each community is a building in a town. Users walk around, explore, and enter buildings to access forum content — think Roblox meets Reddit, but pixel art.
+There is no public registration. Accounts are created in person by existing members who have met you face-to-face. This "web of trust" means every person here is a real human, vouched for by someone in the community — and it's how Our Place grows beyond its first members.
 
-The forum is fully functional today. The game world is actively in development.
+Most social media silos people into echo chambers and infinite scroll. Our Place is the opposite: a digital layer for real communities, where you keep up with what's happening locally, start and share events, and turn online conversations into in-person ones.
+
+### Two ways to experience it
+
+- **The forum** — a Reddit-/Discord-inspired space to follow the communities you care about: post, comment, react, and organize events. Familiar social media, without the dark patterns.
+- **The world** — an **8-bit RPG overworld** you can teleport into, where each community is a building in a town. Instead of scrolling mindlessly, you wander, explore, and build — leaving room for the kind of boredom that turns into a creative idea. Approach a building and step inside to reach its forum content. Think Roblox meets Reddit, but pixel art.
+
+The forum is fully functional today. The world is actively in development.
 
 ## Philosophy
 
+- **Social Media That's Actually Social** — The goal isn't time-on-app, it's getting people offline and together. Digital interaction here is a means to real-world connection, not a replacement for it.
 - **In-Person First** — Accounts are created face-to-face by an admin or trusted member. No anonymous sign-ups, no bots, no strangers. Every user is someone a real person has met and vouched for.
 - **Web of Trust** — The community grows organically through real relationships. You can trace every account back to a chain of people who know each other.
 - **Your Algorithm, Your Rules** — Users will control their own feed algorithm. No engagement-maximizing dark patterns, no infinite dopamine loops. You decide what you see.
@@ -113,7 +121,7 @@ public/world/
 
 ### Prerequisites
 
-- Node.js 18+
+- Node.js 20+
 - npm
 - PostgreSQL (local or hosted)
 
@@ -146,16 +154,16 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Other Commands
 
-| Command              | Purpose                        |
-| -------------------- | ------------------------------ |
-| `npm run build`      | Production build               |
-| `npm run lint`       | ESLint                         |
-| `npm run format`     | Prettier auto-fix              |
-| `npm run test`       | Run unit tests                 |
-| `npm run test:watch` | Run tests in watch mode        |
-| `npm run db:migrate` | Run Prisma migrations          |
-| `npm run db:seed`    | Seed starter communities       |
-| `npm run db:studio`  | Open Prisma Studio (DB viewer) |
+| Command                  | Purpose                                                          |
+| ------------------------ | ---------------------------------------------------------------- |
+| `npm run build`          | Production build                                                 |
+| `npm run lint`           | ESLint                                                           |
+| `npm run format`         | Prettier auto-fix                                                |
+| `npm run test`           | Run unit tests                                                   |
+| `npm run test:watch`     | Run tests in watch mode                                          |
+| `npm run db:migrate`     | Run Prisma migrations                                            |
+| `npm run db:seed`        | Seed starter communities                                         |
+| `npm run db:studio`      | Open Prisma Studio (DB viewer)                                   |
 | `npm run world:generate` | Regenerate `public/world/*` from the seeded procedural generator |
 
 ## Roadmap

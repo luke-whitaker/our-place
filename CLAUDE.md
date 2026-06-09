@@ -2,7 +2,9 @@
 
 ## Project Overview
 
-**Our Place** is a community forum/social platform (think Reddit-lite) built with:
+**Our Place** is a community platform built on one conviction: **online spaces should be rooted in real-world relationships.** It is invite-only and in-person-first, and it has two faces — a familiar forum and an explorable 8-bit world — both pointed at the same goal: turning digital interaction into real-world connection.
+
+Tech stack:
 
 - **Next.js 16** (App Router) + **TypeScript**
 - **PostgreSQL** via **Prisma 7** ORM (schema in `prisma/schema.prisma`)
@@ -10,11 +12,25 @@
 - **JWT** auth with httpOnly cookies, bcrypt (12 rounds)
 - **Zod** for validation, **Vitest** for unit tests, **Playwright** for UI tests
 
-Core features already built: auth (admin-managed accounts, login, password reset), communities, posts, comments, reactions, events, file uploads, user profiles, rich content editor, feed, admin dashboard, "My Place" personal space.
+Core features built: auth (admin-managed accounts, login, password reset), communities, posts, comments, reactions, events, file uploads, user profiles, rich content editor, feed, admin dashboard, "My Place" personal space, avatar builder, and a procedural world generator.
 
-### Account Model
+---
 
-Our Place uses an **invite-only, in-person-first** account model. There is no public registration. Only admins can create accounts via the admin dashboard (`/admin`). This reflects the platform's philosophy: every account represents someone an existing member has met face-to-face. See `src/app/api/admin/users/route.ts` and `src/app/admin/page.tsx`.
+## Project Vision & Philosophy
+
+Read this before making product decisions — it is the "why" behind the constraints.
+
+- **Rooted in the real world.** Our Place exists to drive in-person connection, not to replace it. Online activity (events, posts, plans) should pull people back out into their actual community. The design north star: _does this strengthen a real-world relationship?_
+- **Analog feel in a digital space.** The experience should feel less like an engagement machine and more like a _place_. No infinite-scroll dopamine loops, no engagement-maximizing dark patterns.
+- **Two components, one purpose.**
+  1. **Forum** — Reddit-/Discord-style community interaction: follow communities, post, comment, react, run events.
+  2. **World** — an 8-bit explorable overworld you "teleport" into. Each community is a building. The point is to wander and build rather than scroll — to leave room for boredom that becomes creativity.
+- **Web of trust.** Accounts are created only through a direct, face-to-face connection with an existing member. This is how the platform expands beyond the creator, and it is a hard product boundary — **never reintroduce public registration.**
+- **Anti-echo-chamber.** Social media that fosters social connection instead of siloing people. This is the differentiator; weigh features against it.
+
+## Account Model
+
+Our Place uses an **invite-only, in-person-first** account model. There is no public registration. Only admins can create accounts via the admin dashboard (`/admin`). Every account represents someone an existing member has met face-to-face. See `src/app/api/admin/users/route.ts` and `src/app/admin/page.tsx`.
 
 ---
 
@@ -61,7 +77,7 @@ Types are split by domain under `src/lib/types/`:
 - `forum.ts` — Community, Post, Comment, CommunityMember, and API response types + COMMUNITY_CATEGORIES
 - `index.ts` — barrel re-export (all existing `@/lib/types` imports work unchanged)
 
-When adding game engine types, create `src/lib/types/game.ts` and add exports to `index.ts`.
+Game engine types live alongside the engine in `src/lib/game/`.
 
 ### API Response Conventions
 
@@ -90,162 +106,54 @@ When adding game engine types, create `src/lib/types/game.ts` and add exports to
 
 ### Commands
 
-| Command                | Purpose                        |
-| ---------------------- | ------------------------------ |
-| `npm run dev`          | Dev server                     |
-| `npm run build`        | Production build               |
-| `npm run lint`         | ESLint                         |
-| `npm run format`       | Prettier (auto-fix)            |
-| `npm run format:check` | Prettier (CI check)            |
-| `npm run test`         | Vitest (single run)            |
-| `npm run test:watch`   | Vitest (watch mode)            |
-| `npm run db:migrate`   | Run Prisma migrations          |
-| `npm run db:push`      | Push schema without migration  |
-| `npm run db:seed`      | Seed starter communities       |
-| `npm run db:studio`    | Open Prisma Studio (DB viewer) |
+| Command                  | Purpose                                                   |
+| ------------------------ | --------------------------------------------------------- |
+| `npm run dev`            | Dev server                                                |
+| `npm run build`          | Production build                                          |
+| `npm run lint`           | ESLint                                                    |
+| `npm run format`         | Prettier (auto-fix)                                       |
+| `npm run format:check`   | Prettier (CI check)                                       |
+| `npm run test`           | Vitest (single run)                                       |
+| `npm run test:watch`     | Vitest (watch mode)                                       |
+| `npm run db:migrate`     | Run Prisma migrations                                     |
+| `npm run db:push`        | Push schema without migration                             |
+| `npm run db:seed`        | Seed starter communities                                  |
+| `npm run db:studio`      | Open Prisma Studio (DB viewer)                            |
+| `npm run world:generate` | Regenerate `public/world/*` from the procedural generator |
 
 ---
 
-## 8-Bit World UI — Vision & Roadmap
+## The 8-Bit World — Current Status
 
-The goal is to build a **Pokémon/Legend of Zelda-style 8-bit overworld** as the primary navigation experience for logged-in users. Each community is a building in a town. Users walk around, approach buildings, and enter them to access forum content. Think Roblox, but 8-bit, built for community/hobbyist groups.
+**Architecture decision (still holds):** the world is the logged-in home / navigation layer (Option B). Entering a building transitions to the existing community pages. Rendering forum content _inside_ the world (Option A) remains a future possibility, not current scope.
 
-### Architecture Decision
+**Done:** the game engine (`<WorldCanvas />`, tile renderer, player movement, camera, collision, touch D-pad, responsive scaling, interaction prompts, fade transitions), the 32px tile upgrade + Aseprite pipeline, the gender-neutral avatar builder (first-login), and a deterministic procedural frontier generator (`scripts/generate-world.ts`, `npm run world:generate`) that emits `public/world/world.bin` + `world.meta.json`.
 
-**World as navigation (Option B — recommended starting point)**
-The 8-bit world is the logged-in home/feed page. Entering a building transitions to the existing community pages (standard Next.js UI). This keeps scope manageable and lets the game engine be built independently of the forum UI.
+**Next (the canonical roadmap lives in `README.md` → Roadmap):**
 
-Option A (world as the full app, with posts/comments rendered inside the world) is a future possibility but is dramatically more work.
+- Wire the generated world into `WorldCanvas` (loader + renderer)
+- Mushroom warp UI (warp menu, discovery tracking, teleport transition)
+- Aseprite pixel-art pass to replace placeholder sprites
+- Dynamic building placement from the DB (community buildings inside the capital)
+- Player identity bound to world position; username rendered above the avatar
+- Real-time multiplayer presence (most infra-heavy — do this last)
 
----
+Game engine code lives in `src/lib/game/`.
 
-## Phase 1 — The Game Engine (React/Canvas Component)
-
-Port the tile-based engine from the portfolio site into a reusable React component. Key files will live in `src/lib/game/`.
-
-- [x] `<WorldCanvas />` — React component owning a `<canvas>` element, runs the game loop via `useEffect`
-- [x] Tile map renderer — tile grid, procedural tileset, frustum-culled, water animation
-- [x] Player movement — WASD/arrows, per-axis collision, walk animation
-- [x] Camera that follows the player (viewport offset, clamped to map bounds)
-- [x] Collision detection — walk-blocking tiles (SOLID_TILES set), building footprints
-- [x] Player movement — touch D-pad (mobile support, auto-detected via pointer:coarse)
-- [x] Responsive canvas scaling — fills viewport width on mobile, crisp pixel rendering
-- [x] Interaction system — Enter/Space near a door shows prompt + triggers onDoorInteract callback
-- [x] Fade transitions — door entry fades to black, fires callback at peak, fades back in
-- [ ] Wire in auth state — player is the logged-in user, not an anonymous character
-
-**Note:** The portfolio site (`~/Desktop/portfolio-site`) already has a proven implementation of all of this (tile maps, player movement, collision, overlays, camera, touch D-pad). Start by adapting those patterns into React before writing anything from scratch.
+> Historical note: the engine was adapted from the pixel-art RPG in `~/Desktop/portfolio-site`.
 
 ---
 
-## Phase 2 — Static Town
+## Security & Audit Status
 
-Design the base overworld map before making anything dynamic:
+Detailed audit notes and the launch checklist are kept **locally, not committed** (this is a public repo).
 
-- [ ] Design a "town" tile map — paths, grass, a plaza, districts by category
-- [ ] Place a fixed set of community buildings manually (Gaming District, Creative Quarter, Tech Hub, etc.)
-- [ ] Each building has a defined door tile that triggers an interaction
-- [ ] Interaction shows a community info popup (name, description, member count) with an "Enter" button → routes to `/communities/[slug]`
-- [ ] Add a notice board or bulletin board NPC for announcements / global feed
+Security conventions reflected in the code:
 
-Get something playable before solving dynamic world generation.
+- **CSRF:** auth cookies use `sameSite: "strict"` (`src/app/api/auth/*`).
+- **CSP:** nonce-based, per-request, in `src/proxy.ts`; pages render dynamically so the nonce applies (see the note in `src/app/layout.tsx`).
+- **Supply-chain:** `.npmrc` disables install scripts by default; `engines` pins node `>=20`. Run `npm run db:generate` after a fresh `npm install` (generates the Prisma client).
+- **Validation & data:** Zod on all request bodies; rate limiting on auth + content routes; explicit Prisma `select` (no `SELECT *`); count updates wrapped in `$transaction`.
+- **Headers:** `next.config.ts` sets X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.
 
----
-
-## Phase 3 — Dynamic World Generation
-
-Communities are user-created, so the world must grow as new ones appear. Recommended approach: **district-based zones**.
-
-- [ ] The map has pre-defined zones by community category (one district per category group)
-- [ ] When a community is created, it gets assigned a building slot in its category zone
-- [ ] Add a `world_buildings` table to the DB: `community_id`, `map_x`, `map_y`, `building_type` (plain integer coordinates to start)
-- [ ] When a community is created, auto-assign a position in the appropriate zone
-- [ ] World API endpoint returns community data + map positions
-- [ ] Buildings render dynamically at their assigned tile coordinates
-- [ ] **Future: PostGIS migration** — when the world grows large (hundreds+ buildings), add PostGIS extension for spatial indexing and efficient viewport queries. Start with plain x/y integers now; migrate to `GEOMETRY(Point)` column later when scale demands it.
-
-Alternative (more complex): procedural town expansion where new communities cause new buildings to appear at the edge of the map.
-
----
-
-## Phase 4 — Pixel Art Assets
-
-Tile size: **32px** (more readable at modern resolutions than 16px).
-
-Two paths:
-
-- **Draw your own** — full creative control
-- **Free asset packs** — LPC (Liberated Pixel Cup, CC-licensed) assets are high quality; RPG Maker RTP-style assets are widely available. Use these for terrain/building shells and customize signage/labels per community.
-
-- [ ] Decide on tile size and finalize art direction
-- [ ] Player character sprite sheet (idle + walk in 4 directions)
-- [ ] 5–6 building variants (one per category group)
-- [ ] Terrain tile set (grass, stone path, water, flowers, fences)
-- [ ] 8-bit dialog box / overlay frame for community info popups
-
----
-
-## Phase 5 — Player Identity & Avatar Builder
-
-Avatar customization is part of the first-login experience — right after an admin creates your account and you log in for the first time.
-
-**Design principle:** Gender-neutral options. No "male/female" selector. Just hair, skin, and clothing choices.
-
-- [ ] **Avatar builder UI** — shown on first login (or accessible from profile settings)
-  - Hair style: short, long (2 options to start, expand later)
-  - Skin tone: 5–6 inclusive tones
-  - T-shirt color: pick from palette
-  - Pants color: pick from palette
-  - Shoes: optional if sprite detail allows at 32px
-- [ ] Store appearance as JSON on the user record (e.g. `{ hair: "short", skin: "#C68642", shirt: "#3b82f6", pants: "#1e293b" }`)
-- [ ] Generate sprite sheet from appearance config (composited layers or pre-built combinations)
-- [ ] Username floats above the character in the world
-- [ ] Avatar renders in forum UI too (profile, post headers) as a small pixel-art portrait
-
----
-
-## Phase 6 — Real-Time Presence
-
-What makes it feel like a living world — seeing other users walking around.
-
-- [ ] Add a WebSocket layer — Next.js doesn't have native WS support; add a small companion Node.js server, or use a managed service (Ably, Pusher)
-- [ ] On world load, subscribe to a presence channel
-- [ ] Broadcast player position every ~100ms
-- [ ] Render other users' characters on the map with their username floating above
-- [ ] Show a visual indicator when players are inside a building
-
-This is optional for the first version but is the core "Roblox-like" element.
-
----
-
-## Recommended Build Order
-
-1. `<WorldCanvas />` with a hardcoded test map, player movement, and camera — get it feeling right
-2. Static town with 3–4 hardcoded community buildings + working interaction → community page routing
-3. Dynamic building placement from DB
-4. Pixel art pass (real sprites replacing placeholder colored rectangles)
-5. Player identity & customization
-6. Real-time presence (most infrastructure-heavy — do this last)
-
----
-
-## Security Audit Status
-
-See `AUDIT-NOTES.md` for full details. Current score: **7.2 / 10** (as of Feb 10, 2026).
-
-### Still Outstanding (High Priority)
-
-- [x] Rate limit content creation routes — done for posts, comments, reactions, communities, events
-- [ ] Add Content-Security-Policy header to `next.config.ts`
-- [ ] Add CSRF protection (switch cookies to `sameSite: 'strict'` or implement double-submit tokens)
-- [x] Add runtime Zod validation on all API request bodies
-- [x] Add pagination to all list endpoints
-
-### Medium Priority
-
-- [x] Accessibility pass — `aria-label` on icon buttons, `alt` on images, `role="dialog"` + keyboard nav on lightbox, `role="alert"` on errors
-- [x] Database migration system — now using Prisma migrations (`prisma migrate dev`)
-- [ ] Structured logging (replace `console.error` with Pino)
-- [x] Fix count drift — write operations wrapped in `$transaction`
-- [ ] Replace remaining `SELECT *` in community routes
-- [x] Validate reaction types against `REACTION_TYPES` enum
+**Done:** rate limiting (auth + content routes), Zod validation on all request bodies, pagination on list endpoints, `$transaction`-wrapped count updates, reaction-type validation against the enum, security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy), Prisma migrations.

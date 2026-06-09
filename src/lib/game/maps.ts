@@ -51,11 +51,26 @@ function createIowaCityMap(): GameMap {
 
   // ── Grass variety ──
   const grass2Spots = [
-    [3, 5], [6, 14], [10, 3], [14, 8],
-    [22, 6], [28, 12], [33, 3], [37, 10],
-    [5, 18], [12, 20], [30, 18], [36, 7],
-    [8, 48], [15, 55], [25, 56], [32, 50],
-    [37, 45], [6, 36], [29, 42], [35, 54],
+    [3, 5],
+    [6, 14],
+    [10, 3],
+    [14, 8],
+    [22, 6],
+    [28, 12],
+    [33, 3],
+    [37, 10],
+    [5, 18],
+    [12, 20],
+    [30, 18],
+    [36, 7],
+    [8, 48],
+    [15, 55],
+    [25, 56],
+    [32, 50],
+    [37, 45],
+    [6, 36],
+    [29, 42],
+    [35, 54],
   ];
   for (const [r, c] of grass2Spots) {
     if (r < rows && c < cols) tiles[r][c] = T.GRASS2;
@@ -127,11 +142,22 @@ function createIowaCityMap(): GameMap {
   fillRect(tiles, 18, 10, 4, 1, T.DIRT);
 
   // ── West-side tree clusters ──
-  for (const [r, c] of [[5, 4], [5, 6], [5, 8], [7, 5], [7, 9]] as [number, number][]) {
+  for (const [r, c] of [
+    [5, 4],
+    [5, 6],
+    [5, 8],
+    [7, 5],
+    [7, 9],
+  ] as [number, number][]) {
     tiles[r][c] = T.TREE_TOP;
     tiles[r + 1][c] = T.TREE_TRUNK;
   }
-  for (const [r, c] of [[28, 4], [28, 7], [30, 5], [30, 9]] as [number, number][]) {
+  for (const [r, c] of [
+    [28, 4],
+    [28, 7],
+    [30, 5],
+    [30, 9],
+  ] as [number, number][]) {
     tiles[r][c] = T.TREE_TOP;
     tiles[r + 1][c] = T.TREE_TRUNK;
   }
@@ -157,19 +183,19 @@ function createIowaCityMap(): GameMap {
   //  [Food]             [Gaming]             [Sports]
 
   // Top row
-  placeBuilding(tiles, 5, 31);   // Creative
-  placeBuilding(tiles, 5, 39);   // Community Support
-  placeBuilding(tiles, 5, 47);   // Technology
+  placeBuilding(tiles, 5, 31); // Creative
+  placeBuilding(tiles, 5, 39); // Community Support
+  placeBuilding(tiles, 5, 47); // Technology
 
   // Middle row
-  placeBuilding(tiles, 13, 31);  // Health
-  placeBuilding(tiles, 13, 39);  // Welcome Center
-  placeBuilding(tiles, 13, 47);  // Music
+  placeBuilding(tiles, 13, 31); // Health
+  placeBuilding(tiles, 13, 39); // Welcome Center
+  placeBuilding(tiles, 13, 47); // Music
 
   // Bottom row
-  placeBuilding(tiles, 25, 31);  // Food
-  placeBuilding(tiles, 25, 39);  // Gaming
-  placeBuilding(tiles, 25, 47);  // Sports
+  placeBuilding(tiles, 25, 31); // Food
+  placeBuilding(tiles, 25, 39); // Gaming
+  placeBuilding(tiles, 25, 47); // Sports
 
   // ── Grid paths ──
 
@@ -198,7 +224,12 @@ function createIowaCityMap(): GameMap {
   }
 
   // ── East-side trees along river bank ──
-  for (const [r, c] of [[4, 29], [28, 28], [32, 29], [36, 28]] as [number, number][]) {
+  for (const [r, c] of [
+    [4, 29],
+    [28, 28],
+    [32, 29],
+    [36, 28],
+  ] as [number, number][]) {
     if (tiles[r][c] === T.GRASS || tiles[r][c] === T.GRASS2) {
       tiles[r][c] = T.TREE_TOP;
       if (r + 1 < rows) tiles[r + 1][c] = T.TREE_TRUNK;
@@ -206,7 +237,13 @@ function createIowaCityMap(): GameMap {
   }
 
   // ── East-side trees along far edge ──
-  for (const [r, c] of [[4, 55], [10, 56], [26, 55], [32, 56], [36, 55]] as [number, number][]) {
+  for (const [r, c] of [
+    [4, 55],
+    [10, 56],
+    [26, 55],
+    [32, 56],
+    [36, 55],
+  ] as [number, number][]) {
     if (r < rows - 2 && c < cols - 2) {
       tiles[r][c] = T.TREE_TOP;
       tiles[r + 1][c] = T.TREE_TRUNK;
