@@ -35,7 +35,9 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-# Create non-root user for security
+# Create non-root user for security. su-exec lets start.sh drop to this
+# user after fixing volume-mount ownership (Railway mounts volumes as root).
+RUN apk add --no-cache su-exec
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
@@ -61,7 +63,9 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY start.sh ./start.sh
 RUN chmod +x ./start.sh
 
-USER nextjs
+# No USER directive: the container starts as root so start.sh can chown the
+# volume mounted at public/uploads, then it immediately drops to nextjs via
+# su-exec. The app itself never runs as root.
 
 EXPOSE 3000
 
