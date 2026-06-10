@@ -1,0 +1,288 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { useAuth } from "@/components/AuthProvider";
+
+type EditableField = "email" | "phone" | "password";
+
+const inputClass =
+  "w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400";
+
+const editButtonClass =
+  "rounded-lg bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-100 transition-colors";
+
+export default function AccountSettings() {
+  const { user, refresh, logout } = useAuth();
+  const [editing, setEditing] = useState<EditableField | null>(null);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  if (!user) return null;
+
+  function startEditing(field: EditableField) {
+    setEditing(field);
+    setError("");
+    setSuccess("");
+    setEmail(user?.email || "");
+    setPhone(user?.phone || "");
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+  }
+
+  function cancelEditing() {
+    setEditing(null);
+    setError("");
+  }
+
+  async function handleSave(e: React.FormEvent) {
+    e.preventDefault();
+    setError("");
+
+    const body: Record<string, string> = {};
+    if (editing === "email") {
+      if (!email.trim()) {
+        setError("Email cannot be empty.");
+        return;
+      }
+      body.email = email.trim();
+    }
+    if (editing === "phone") {
+      if (!phone.trim()) {
+        setError("Phone number cannot be empty.");
+        return;
+      }
+      body.phone = phone.trim();
+    }
+    if (editing === "password") {
+      if (newPassword.length < 8) {
+        setError("New password must be at least 8 characters.");
+        return;
+      }
+      if (newPassword !== confirmPassword) {
+        setError("New passwords do not match.");
+        return;
+      }
+      body.current_password = currentPassword;
+      body.new_password = newPassword;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch("/api/auth/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to update account.");
+        return;
+      }
+      setSuccess(editing === "password" ? "Password changed." : "Account updated.");
+      setEditing(null);
+      await refresh();
+    } catch {
+      setError("Something went wrong.");
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function renderEditForm(field: EditableField) {
+    return (
+      <form onSubmit={handleSave} className="mt-3 space-y-3">
+        {field === "email" && (
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@example.com"
+            autoFocus
+            className={inputClass}
+          />
+        )}
+        {field === "phone" && (
+          <input
+            type="tel"
+            value={phone}
+            onChange={(e) => setPhone(e.target.value)}
+            placeholder="Phone number"
+            autoFocus
+            className={inputClass}
+          />
+        )}
+        {field === "password" && (
+          <>
+            <input
+              type="password"
+              value={currentPassword}
+              onChange={(e) => setCurrentPassword(e.target.value)}
+              placeholder="Current password"
+              autoComplete="current-password"
+              autoFocus
+              className={inputClass}
+            />
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              placeholder="New password (8+ characters)"
+              autoComplete="new-password"
+              className={inputClass}
+            />
+            <input
+              type="password"
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              placeholder="Confirm new password"
+              autoComplete="new-password"
+              className={inputClass}
+            />
+          </>
+        )}
+
+        {error && (
+          <div role="alert" className="rounded-lg bg-red-50 px-4 py-2.5 text-sm text-red-600">
+            {error}
+          </div>
+        )}
+
+        <div className="flex gap-2">
+          <button
+            type="submit"
+            disabled={saving}
+            className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-600 disabled:opacity-50"
+          >
+            {saving ? "Saving..." : "Save"}
+          </button>
+          <button
+            type="button"
+            onClick={cancelEditing}
+            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+          >
+            Cancel
+          </button>
+        </div>
+      </form>
+    );
+  }
+
+  return (
+    <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">Account</h2>
+
+      {success && (
+        <div
+          role="status"
+          className="mb-4 rounded-lg bg-green-50 px-4 py-2.5 text-sm text-green-700"
+        >
+          {success}
+        </div>
+      )}
+
+      <div className="space-y-3">
+        {/* Email */}
+        <div className="py-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Email</p>
+              <p className="text-sm text-gray-400">{user.email}</p>
+            </div>
+            {editing !== "email" && (
+              <button onClick={() => startEditing("email")} className={editButtonClass}>
+                Edit
+              </button>
+            )}
+          </div>
+          {editing === "email" && renderEditForm("email")}
+        </div>
+        <div className="border-t border-gray-100" />
+
+        {/* Phone */}
+        <div className="py-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Phone</p>
+              <p className="text-sm text-gray-400">{user.phone || "—"}</p>
+            </div>
+            {editing !== "phone" && (
+              <button onClick={() => startEditing("phone")} className={editButtonClass}>
+                Edit
+              </button>
+            )}
+          </div>
+          {editing === "phone" && renderEditForm("phone")}
+        </div>
+        <div className="border-t border-gray-100" />
+
+        {/* Password */}
+        <div className="py-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-700">Password</p>
+              <p className="text-sm text-gray-400">••••••••</p>
+            </div>
+            {editing !== "password" && (
+              <button onClick={() => startEditing("password")} className={editButtonClass}>
+                Change
+              </button>
+            )}
+          </div>
+          {editing === "password" && renderEditForm("password")}
+        </div>
+        <div className="border-t border-gray-100" />
+
+        {/* Username (read-only) */}
+        <div className="flex items-center justify-between py-2">
+          <div>
+            <p className="text-sm font-medium text-gray-700">Username</p>
+            <p className="text-sm text-gray-400">@{user.username}</p>
+          </div>
+        </div>
+        <div className="border-t border-gray-100" />
+
+        {/* Avatar */}
+        <div className="flex items-center justify-between py-2">
+          <div>
+            <p className="text-sm font-medium text-gray-700">Avatar</p>
+            <p className="text-sm text-gray-400">Your 8-bit character</p>
+          </div>
+          <Link href="/avatar-builder" className={editButtonClass}>
+            Edit
+          </Link>
+        </div>
+        <div className="border-t border-gray-100" />
+
+        {/* Sign out */}
+        <button
+          onClick={logout}
+          className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
+        >
+          <svg
+            className="h-4 w-4"
+            fill="none"
+            viewBox="0 0 24 24"
+            strokeWidth={1.5}
+            stroke="currentColor"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"
+            />
+          </svg>
+          Sign Out
+        </button>
+      </div>
+    </div>
+  );
+}

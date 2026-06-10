@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   createUserSchema,
   loginSchema,
+  updateAccountSchema,
   createPostSchema,
   createCommentSchema,
   createReactionSchema,
@@ -55,6 +56,46 @@ describe("loginSchema", () => {
 
   it("rejects empty login", () => {
     expect(loginSchema.safeParse({ login: "", password: "pass123" }).success).toBe(false);
+  });
+});
+
+// ── Update account schema ──
+
+describe("updateAccountSchema", () => {
+  it("accepts an email-only update", () => {
+    expect(updateAccountSchema.safeParse({ email: "new@example.com" }).success).toBe(true);
+  });
+
+  it("accepts a phone-only update", () => {
+    expect(updateAccountSchema.safeParse({ phone: "555-9876" }).success).toBe(true);
+  });
+
+  it("accepts a password change with current password", () => {
+    expect(
+      updateAccountSchema.safeParse({
+        current_password: "oldpassword",
+        new_password: "newsecurepass",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects an empty update", () => {
+    expect(updateAccountSchema.safeParse({}).success).toBe(false);
+  });
+
+  it("rejects a new password without the current password", () => {
+    expect(updateAccountSchema.safeParse({ new_password: "newsecurepass" }).success).toBe(false);
+  });
+
+  it("rejects a short new password", () => {
+    expect(
+      updateAccountSchema.safeParse({ current_password: "oldpassword", new_password: "short" })
+        .success,
+    ).toBe(false);
+  });
+
+  it("rejects an invalid email", () => {
+    expect(updateAccountSchema.safeParse({ email: "notanemail" }).success).toBe(false);
   });
 });
 

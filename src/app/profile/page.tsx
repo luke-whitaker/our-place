@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
+import AccountSettings from "@/components/AccountSettings";
 import PostCard from "@/components/PostCard";
 import CreatePostForm from "@/components/CreatePostForm";
 import { CommunityWithMembership, Post } from "@/lib/types";
@@ -76,7 +77,7 @@ const TABS: { id: ProfileTab; label: string; icon: React.ReactNode }[] = [
 ];
 
 export default function ProfilePage() {
-  const { user, loading, logout } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<ProfileTab>("my-place");
   const [communities, setCommunities] = useState<CommunityWithMembership[]>([]);
@@ -342,59 +343,7 @@ export default function ProfilePage() {
       )}
 
       {/* ── Account Tab ── */}
-      {activeTab === "account" && (
-        <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6">
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Account</h2>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="text-sm font-medium text-gray-700">Email</p>
-                <p className="text-sm text-gray-400">{user.email}</p>
-              </div>
-            </div>
-            <div className="border-t border-gray-100" />
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="text-sm font-medium text-gray-700">Username</p>
-                <p className="text-sm text-gray-400">@{user.username}</p>
-              </div>
-            </div>
-            <div className="border-t border-gray-100" />
-            <div className="flex items-center justify-between py-2">
-              <div>
-                <p className="text-sm font-medium text-gray-700">Avatar</p>
-                <p className="text-sm text-gray-400">Your 8-bit character</p>
-              </div>
-              <Link
-                href="/avatar-builder"
-                className="rounded-lg bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-100 transition-colors"
-              >
-                Edit
-              </Link>
-            </div>
-            <div className="border-t border-gray-100" />
-            <button
-              onClick={logout}
-              className="flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium text-red-600 hover:bg-red-50 transition-colors"
-            >
-              <svg
-                className="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                strokeWidth={1.5}
-                stroke="currentColor"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M15.75 9V5.25A2.25 2.25 0 0 0 13.5 3h-6a2.25 2.25 0 0 0-2.25 2.25v13.5A2.25 2.25 0 0 0 7.5 21h6a2.25 2.25 0 0 0 2.25-2.25V15m3 0 3-3m0 0-3-3m3 3H9"
-                />
-              </svg>
-              Sign Out
-            </button>
-          </div>
-        </div>
-      )}
+      {activeTab === "account" && <AccountSettings />}
     </div>
   );
 }

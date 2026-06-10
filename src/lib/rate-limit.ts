@@ -76,6 +76,9 @@ export const forgotPasswordLimiter = new RateLimiter({ maxAttempts: 3, windowMs:
 /** Password reset submission: 5 attempts per 15 minutes per IP */
 export const resetPasswordLimiter = new RateLimiter({ maxAttempts: 5, windowMs: 15 * 60 * 1000 });
 
+/** Account updates (email/phone/password): 5 per 15 minutes per user */
+export const updateAccountLimiter = new RateLimiter({ maxAttempts: 5, windowMs: 15 * 60 * 1000 });
+
 /** Post creation: 20 per hour per user */
 export const createPostLimiter = new RateLimiter({ maxAttempts: 20, windowMs: 60 * 60 * 1000 });
 
