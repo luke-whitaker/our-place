@@ -56,3 +56,6 @@ next-env.d.ts
 
 # local-only session handoff notes for the next session — never committed
 /LAST-SESSION.md
+
+# internal roadmap / decisions-to-revisit — never committed (public repo)
+/ROADMAP.md
