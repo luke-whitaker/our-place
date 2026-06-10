@@ -180,8 +180,10 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] 32px tile upgrade + Aseprite generation pipeline
 - [x] Avatar builder (gender-neutral first-login customization)
 - [x] Procedural frontier world generator (500×500, 6 biomes, capital stamp, mushroom network)
-- [ ] Wire generated world into `WorldCanvas` (Phase B: loader + renderer)
-- [ ] Mushroom warp UI (warp menu, discovery tracking, teleport transition)
+- [x] Wire generated world into `WorldCanvas` (Phase B: loader + renderer)
+- [x] Mushroom warp UI (warp menu, discovery tracking, teleport transition)
+- [x] Ports v1 — two-way travel between forum view and world view (Portal buttons + doors)
+- [ ] Ports v2 — building interiors with PC sprites (log on to the forum, or warp PC-to-PC)
 - [ ] Aseprite pixel-art pass to replace placeholder sprites
 - [ ] Dynamic building placement from the DB (community buildings inside the capital)
 - [ ] Player identity bound to world position + username rendered above avatar
@@ -190,6 +192,35 @@ Open [http://localhost:3000](http://localhost:3000).
 ---
 
 ## Version History
+
+### v0.4.0 — The World Goes Live: Ports v1 (June 2026)
+
+**Why:** The generated frontier had been sitting on disk since April. This cycle made it the
+actual, explorable heart of the platform — and introduced **Ports**: the idea that the forum
+and the world are two views of the same place, and you travel between them deliberately.
+
+**What changed:**
+
+- **World loader** — `WorldCanvas` now fetches the generated 500×500 frontier
+  (`world.bin` + `world.meta.json`) and renders it through the existing frustum-culled
+  engine. The hand-built test map is retired from the live page.
+- **Ports (v1)** — "Portal" buttons on My Place and community pages drop you into the world
+  at that building's door (`/world?at=<slug>`); walking into a door ports you back to that
+  place's forum view. Two views, one place.
+- **Mushroom fast travel** — walking up to a shrine discovers it ("Sun Beach Shrine
+  discovered!"); pressing Enter opens the Mycelium Network warp menu listing your discovered
+  shrines. The Capital Gate starts unlocked. Warps ride the existing fade transition.
+- **Region toasts** — entering the capital or any of the 6 frontier nodes shows a brief
+  banner with the region's name.
+- **Per-device persistence** — position and discovered shrines are saved to localStorage
+  (a stopgap until player position is bound to identity in the DB).
+- **Account settings** — profile → Account now edits email, phone, and password
+  (current password required, rate-limited).
+- **Production fixes** — media rendering after the Prisma migration (video embeds, photo
+  galleries), upload permissions on the Railway volume, date parsing fossils.
+
+**Next (Ports v2):** building interiors with PC sprites — enter a building, sit at the PC,
+and choose to "log on" (exit to the forum view) or warp to another PC.
 
 ### v0.3.0 — Railway Deployment + Avatar Builder + Frontier World (April 2026)
 

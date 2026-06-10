@@ -127,12 +127,13 @@ Game engine types live alongside the engine in `src/lib/game/`.
 
 **Architecture decision (still holds):** the world is the logged-in home / navigation layer (Option B). Entering a building transitions to the existing community pages. Rendering forum content _inside_ the world (Option A) remains a future possibility, not current scope.
 
-**Done:** the game engine (`<WorldCanvas />`, tile renderer, player movement, camera, collision, touch D-pad, responsive scaling, interaction prompts, fade transitions), the 32px tile upgrade + Aseprite pipeline, the gender-neutral avatar builder (first-login), and a deterministic procedural frontier generator (`scripts/generate-world.ts`, `npm run world:generate`) that emits `public/world/world.bin` + `world.meta.json`.
+**Done:** the game engine (`<WorldCanvas />`, tile renderer, player movement, camera, collision, touch D-pad, responsive scaling, interaction prompts, fade transitions), the 32px tile upgrade + Aseprite pipeline, the gender-neutral avatar builder (first-login), the deterministic procedural frontier generator (`scripts/generate-world.ts`, `npm run world:generate`), and **Ports v1** (v0.4.0): the generated 500×500 world is live at `/world` — loader, mushroom warp menu with discover-to-unlock, region toasts, localStorage position persistence, and two-way porting (Portal buttons on My Place/community pages ↔ doors back to forum view).
+
+**Product concept — Ports:** the forum and the world are two views of the same place; users travel between them deliberately. Door ids in `world.meta.json` match community slugs (`/world?at=<slug>` spawns at that building).
 
 **Next (the canonical roadmap lives in `README.md` → Roadmap):**
 
-- Wire the generated world into `WorldCanvas` (loader + renderer)
-- Mushroom warp UI (warp menu, discovery tracking, teleport transition)
+- Ports v2 — building interiors with PC sprites: enter a building, sit at the PC, choose "log on" (exit to that page's forum view) or warp to another PC (PCs join the mushroom warp network)
 - Aseprite pixel-art pass to replace placeholder sprites
 - Dynamic building placement from the DB (community buildings inside the capital)
 - Player identity bound to world position; username rendered above the avatar

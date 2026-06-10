@@ -245,13 +245,20 @@ export default function ProfilePage() {
                   />
                 </svg>
               </div>
-              <div>
+              <div className="min-w-0 flex-1">
                 <h2 className="text-sm font-semibold text-gray-900">Welcome to My Place</h2>
                 <p className="text-xs text-gray-500 mt-0.5">
                   Your personal space to share thoughts, photos, and more. Posts here and
                   cross-posts from communities all live here.
                 </p>
               </div>
+              <Link
+                href="/world?at=my-place"
+                title="Port into the 8-bit world at your home"
+                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm font-medium text-violet-600 shadow-sm transition-colors hover:bg-violet-100"
+              >
+                <span aria-hidden>🍄</span> Portal
+              </Link>
             </div>
           </div>
 

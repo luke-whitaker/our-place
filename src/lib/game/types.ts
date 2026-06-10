@@ -118,6 +118,14 @@ export interface NodeRegion {
   center: { col: number; row: number };
 }
 
+// ── Named regions (for entry toasts: the 6 nodes + the capital) ──
+
+export interface Region {
+  id: string;
+  label: string;
+  bounds: { col: number; row: number; w: number; h: number };
+}
+
 // ── Game Map ──
 
 export interface GameMap {
@@ -127,11 +135,15 @@ export interface GameMap {
   spawnCol: number;
   spawnRow: number;
   doors: Door[];
+  /** Mushroom warp shrines (absent on maps without fast travel) */
+  mushrooms?: MushroomWarp[];
+  /** Named regions for entry toasts (absent on maps without them) */
+  regions?: Region[];
 }
 
 // ── Game Mode ──
 
-export type GameMode = "overworld" | "dialogue" | "fading";
+export type GameMode = "overworld" | "dialogue" | "fading" | "warp-menu";
 
 // ── Game State ──
 
@@ -147,4 +159,16 @@ export interface GameState {
   nearbyDoor: Door | null;
   /** Door that triggered a fade transition (action fires at peak) */
   pendingDoor: Door | null;
+  /** Warp shrine the player is currently near (for prompt display) */
+  nearbyMushroom: MushroomWarp | null;
+  /** Warp destination teleported to at peak of fade */
+  pendingWarp: MushroomWarp | null;
+  /** IDs of shrines the player has discovered (warp menu entries) */
+  discovered: Set<string>;
+  /** Currently highlighted entry in the warp menu */
+  warpMenuIndex: number;
+  /** Region the player is currently inside (for entry-toast edge detection) */
+  currentRegionId: string | null;
+  /** Banner text + remaining ticks (region entries, shrine discoveries) */
+  toast: { text: string; ticksLeft: number } | null;
 }

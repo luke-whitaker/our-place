@@ -1,21 +1,42 @@
 "use client";
 
+import { Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import WorldCanvas from "@/components/WorldCanvas";
 import type { Door } from "@/lib/game/types";
 
-export default function WorldPage() {
+function WorldView() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  // Portal deep-link: /world?at=<door id> spawns at that building
+  const spawnAt = searchParams.get("at") ?? undefined;
+
   function handleDoorInteract(door: Door) {
-    // In Phase 2 this will route to /communities/[slug]
-    alert(`Entered: ${door.label} (id: ${door.id})`);
+    // Doors port you back to the forum view of that place
+    if (door.id === "my-place") {
+      router.push("/profile");
+    } else {
+      router.push(`/communities/${door.id}`);
+    }
   }
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 p-2">
-      <h1 className="mb-4 text-lg font-bold text-white">Our Place — World Engine Test</h1>
-      <WorldCanvas onDoorInteract={handleDoorInteract} />
-      <p className="mt-4 text-sm text-gray-400">
-        WASD or arrow keys to move — Enter near a door to interact
+      <h1 className="mb-4 text-lg font-bold text-white">The World</h1>
+      <WorldCanvas onDoorInteract={handleDoorInteract} spawnAt={spawnAt} />
+      <p className="mt-4 text-center text-sm text-gray-400">
+        WASD or arrow keys to move — Enter to use doors and mushroom shrines
       </p>
     </div>
+  );
+}
+
+export default function WorldPage() {
+  return (
+    <Suspense
+      fallback={<div className="flex min-h-screen items-center justify-center bg-gray-900" />}
+    >
+      <WorldView />
+    </Suspense>
   );
 }

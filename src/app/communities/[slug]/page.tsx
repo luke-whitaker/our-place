@@ -156,6 +156,13 @@ export default function CommunityDetailPage() {
                 {community.category}
               </p>
             </div>
+            <Link
+              href={`/world?at=${community.slug}`}
+              title="Port into the 8-bit world at this community's building"
+              className="mb-0.5 flex items-center gap-1.5 rounded-xl bg-white/90 px-3 py-2 text-sm font-medium text-indigo-600 shadow-lg backdrop-blur-sm transition-colors hover:bg-white"
+            >
+              <span aria-hidden>🍄</span> Portal
+            </Link>
           </div>
         </div>
       </div>

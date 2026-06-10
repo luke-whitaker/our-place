@@ -1,38 +1,101 @@
 "use client";
 
 import { useRef, useEffect, useCallback, useState } from "react";
-import { CANVAS_W, CANVAS_H, TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
+import { TILE, CANVAS_W, CANVAS_H, TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
 import { generateTileset } from "@/lib/game/tileset";
 import { generatePlayerSprites } from "@/lib/game/sprites";
 import { createInitialState, update, render } from "@/lib/game/engine";
-import { TEST_MAP } from "@/lib/game/maps";
-import type { Door } from "@/lib/game/types";
+import { loadWorld } from "@/lib/game/world-loader";
+import { loadWorldSave, persistWorldSave, isValidPosition } from "@/lib/game/world-save";
+import type { Door, GameMap, GameState } from "@/lib/game/types";
 
 interface WorldCanvasProps {
   /** Called when the player interacts with a door (at peak of fade) */
   onDoorInteract?: (door: Door) => void;
+  /** Door id to spawn at (Portal deep-link); falls back to saved/default spawn */
+  spawnAt?: string;
 }
+
+/** Persist position + discoveries every few seconds while playing */
+const SAVE_INTERVAL_MS = 3000;
 
 /**
  * <WorldCanvas /> — the 8-bit overworld game engine.
  *
- * Renders a tile-based world on a <canvas> element with:
+ * Loads the generated 500×500 frontier world (public/world/*) and renders it
+ * on a <canvas> element with:
  * - WASD/arrow key + touch D-pad movement
  * - Per-axis collision detection
  * - Camera that follows the player
  * - Door interaction with fade transitions
+ * - Mushroom shrine fast travel (discover-to-unlock warp menu)
+ * - Region entry toasts
  * - Responsive scaling (fills viewport width on mobile)
  */
-export default function WorldCanvas({ onDoorInteract }: WorldCanvasProps) {
+export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
-  const stateRef = useRef(createInitialState(TEST_MAP));
+  const stateRef = useRef<GameState | null>(null);
   const inputRef = useRef(createInputManager());
+  const [map, setMap] = useState<GameMap | null>(null);
+  const [loadError, setLoadError] = useState("");
   const onDoorInteractRef = useRef(onDoorInteract);
   useEffect(() => {
     onDoorInteractRef.current = onDoorInteract;
   }, [onDoorInteract]);
+
+  // ── World loading + spawn resolution ──
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const { map: world, meta } = await loadWorld();
+        if (cancelled) return;
+
+        const save = loadWorldSave();
+        const discovered = new Set(save?.discovered ?? []);
+        // The capital gate is every traveler's home shrine — always unlocked
+        const capitalGate = meta.mushrooms.find((m) => m.nodeId === "capital");
+        if (capitalGate) discovered.add(capitalGate.id);
+
+        let spawnX: number | undefined;
+        let spawnY: number | undefined;
+        const portalDoor = spawnAt && world.doors.find((d) => d.id === spawnAt);
+        if (portalDoor) {
+          // Arriving via a Portal: appear just below that building's door
+          spawnX = portalDoor.col * TILE;
+          spawnY = (portalDoor.row + 1) * TILE;
+        } else if (save && isValidPosition(world, save.x, save.y)) {
+          spawnX = save.x;
+          spawnY = save.y;
+        }
+
+        stateRef.current = createInitialState(world, { spawnX, spawnY, discovered });
+        setMap(world);
+      } catch (err) {
+        console.error("World load error:", err);
+        if (!cancelled) setLoadError("The world failed to load. Please refresh to try again.");
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [spawnAt]);
+
+  // ── Save position + discoveries periodically and on unmount ──
+  useEffect(() => {
+    if (!map) return;
+    function save() {
+      const state = stateRef.current;
+      if (state) persistWorldSave(state.player.x, state.player.y, state.discovered);
+    }
+    const interval = setInterval(save, SAVE_INTERVAL_MS);
+    return () => {
+      clearInterval(interval);
+      save();
+    };
+  }, [map]);
 
   const [isTouchDevice] = useState(
     () =>
@@ -64,7 +127,8 @@ export default function WorldCanvas({ onDoorInteract }: WorldCanvasProps) {
   // ── Game loop ──
   const gameLoop = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const state = stateRef.current;
+    if (!canvas || !map || !state) return;
 
     const ctx = canvas.getContext("2d")!;
 
@@ -72,11 +136,9 @@ export default function WorldCanvas({ onDoorInteract }: WorldCanvasProps) {
     if (!tilesetRef.current) tilesetRef.current = generateTileset();
     if (!spritesRef.current) spritesRef.current = generatePlayerSprites();
 
-    const state = stateRef.current;
     const input = inputRef.current;
     const tileset = tilesetRef.current;
     const sprites = spritesRef.current;
-    const map = TEST_MAP;
 
     let lastTime = performance.now();
     let accumulator = 0;
@@ -88,12 +150,12 @@ export default function WorldCanvas({ onDoorInteract }: WorldCanvasProps) {
       accumulator = Math.min(accumulator + elapsed, MAX_ACCUMULATOR);
 
       while (accumulator >= TICK_RATE) {
-        update(state, map, input, onDoorInteractRef.current);
+        update(state!, map!, input, onDoorInteractRef.current);
         accumulator -= TICK_RATE;
       }
 
       ctx.imageSmoothingEnabled = false;
-      render(ctx, state, map, tileset, sprites);
+      render(ctx, state!, map!, tileset, sprites);
 
       rafId = requestAnimationFrame(loop);
     }
@@ -101,7 +163,7 @@ export default function WorldCanvas({ onDoorInteract }: WorldCanvasProps) {
     rafId = requestAnimationFrame(loop);
 
     return () => cancelAnimationFrame(rafId);
-  }, []);
+  }, [map]);
 
   useEffect(() => {
     const cleanupInput = inputRef.current.attach();
@@ -132,13 +194,24 @@ export default function WorldCanvas({ onDoorInteract }: WorldCanvasProps) {
 
   return (
     <div ref={wrapperRef} className="flex flex-col items-center w-full">
-      <canvas
-        ref={canvasRef}
-        width={CANVAS_W}
-        height={CANVAS_H}
-        className="block border-2 border-gray-800 rounded-lg"
-        style={{ imageRendering: "pixelated" }}
-      />
+      <div className="relative">
+        <canvas
+          ref={canvasRef}
+          width={CANVAS_W}
+          height={CANVAS_H}
+          className="block border-2 border-gray-800 rounded-lg"
+          style={{ imageRendering: "pixelated" }}
+        />
+        {!map && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-gray-900">
+            {loadError ? (
+              <p className="px-6 text-center font-mono text-sm text-red-400">{loadError}</p>
+            ) : (
+              <p className="animate-pulse font-mono text-sm text-gray-400">Entering the world...</p>
+            )}
+          </div>
+        )}
+      </div>
 
       {/* Touch D-pad — only shown on touch devices */}
       {isTouchDevice && (
