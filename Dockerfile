@@ -39,8 +39,12 @@ ENV HOSTNAME=0.0.0.0
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy public assets first
-COPY --from=builder /app/public ./public
+# Copy public assets first. Must be owned by the runtime user: the upload API
+# writes to public/uploads/ (mount a persistent volume there in production so
+# uploads survive redeploys).
+COPY --from=builder --chown=nextjs:nodejs /app/public ./public
+RUN mkdir -p public/uploads/images public/uploads/videos && \
+    chown -R nextjs:nodejs public/uploads
 
 # Copy the standalone server (this includes its own node_modules)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./

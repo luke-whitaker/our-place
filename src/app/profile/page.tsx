@@ -193,7 +193,7 @@ export default function ProfilePage() {
             <div>
               <p className="text-2xl font-bold text-gray-900">
                 {user.created_at
-                  ? new Date(user.created_at + "Z").toLocaleDateString("en-US", {
+                  ? new Date(user.created_at).toLocaleDateString("en-US", {
                       month: "short",
                       year: "numeric",
                     })

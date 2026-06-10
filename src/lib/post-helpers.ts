@@ -65,10 +65,25 @@ export async function enrichPostsWithMedia<T extends PostWithId>(posts: T[]): Pr
     orderBy: { sortOrder: "asc" },
   });
 
-  const mediaByPost: Record<string, typeof media> = {};
-  for (const m of media) {
-    if (!mediaByPost[m.postId]) mediaByPost[m.postId] = [];
-    mediaByPost[m.postId].push(m);
+  // Map Prisma's camelCase fields to the snake_case shape the frontend expects
+  const mapped = media.map((m) => ({
+    id: m.id,
+    post_id: m.postId,
+    media_type: m.mediaType,
+    media_source: m.mediaSource,
+    url: m.url,
+    filename: m.filename,
+    file_size: m.fileSize,
+    width: m.width,
+    height: m.height,
+    sort_order: m.sortOrder,
+    created_at: m.createdAt.toISOString(),
+  }));
+
+  const mediaByPost: Record<string, typeof mapped> = {};
+  for (const m of mapped) {
+    if (!mediaByPost[m.post_id]) mediaByPost[m.post_id] = [];
+    mediaByPost[m.post_id].push(m);
   }
 
   return posts.map((p) => ({

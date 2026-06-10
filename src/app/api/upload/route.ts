@@ -17,11 +17,9 @@ import path from "path";
 const UPLOAD_BASE = path.join(process.cwd(), "public", "uploads");
 
 async function ensureDir(dir: string) {
-  try {
-    await fs.mkdir(dir, { recursive: true });
-  } catch {
-    // Directory already exists
-  }
+  // Recursive mkdir is a no-op if the directory exists; real failures
+  // (e.g. permissions) must propagate so they get logged, not swallowed.
+  await fs.mkdir(dir, { recursive: true });
 }
 
 export async function POST(request: NextRequest) {
