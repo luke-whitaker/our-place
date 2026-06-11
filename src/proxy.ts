@@ -12,6 +12,18 @@ import { NextRequest, NextResponse } from "next/server";
 // Previously the CSP lived in next.config.ts as a static `script-src 'self'`, which
 // (with no nonce and no 'unsafe-inline') blocks Next's own inline hydration scripts
 // in production — it only "worked" in dev because dev used Report-Only mode.
+// R2 public host for uploaded media (e.g. https://pub-….r2.dev). Read from env
+// so the bucket URL isn't hardcoded in a public repo; empty string if unset.
+const r2Host = (() => {
+  const base = process.env.R2_PUBLIC_BASE_URL;
+  if (!base) return "";
+  try {
+    return new URL(base).origin;
+  } catch {
+    return "";
+  }
+})();
+
 export function proxy(request: NextRequest) {
   const isDev = process.env.NODE_ENV !== "production";
 
@@ -26,8 +38,8 @@ export function proxy(request: NextRequest) {
     // dev additionally needs 'unsafe-eval' for React Fast Refresh.
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: blob: https://img.youtube.com",
-    "media-src 'self' blob:",
+    `img-src 'self' data: blob: https://img.youtube.com${r2Host ? ` ${r2Host}` : ""}`,
+    `media-src 'self' blob:${r2Host ? ` ${r2Host}` : ""}`,
     "font-src 'self'",
     "frame-src https://www.youtube.com https://player.vimeo.com",
     // dev needs websockets for HMR.

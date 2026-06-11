@@ -11,16 +11,7 @@ import {
   isVideoType,
   getFileExtension,
 } from "@/lib/media-utils";
-import fs from "fs/promises";
-import path from "path";
-
-const UPLOAD_BASE = path.join(process.cwd(), "public", "uploads");
-
-async function ensureDir(dir: string) {
-  // Recursive mkdir is a no-op if the directory exists; real failures
-  // (e.g. permissions) must propagate so they get logged, not swallowed.
-  await fs.mkdir(dir, { recursive: true });
-}
+import { uploadToStorage } from "@/lib/storage";
 
 export async function POST(request: NextRequest) {
   try {
@@ -70,22 +61,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Determine subdirectory
+    // Object key mirrors the old /uploads/<subdir>/<uuid>.<ext> layout
     const subDir = isImage ? "images" : "videos";
-    const uploadDir = path.join(UPLOAD_BASE, subDir);
-    await ensureDir(uploadDir);
-
-    // Generate unique filename
     const ext = getFileExtension(file.name) || (isImage ? "jpg" : "mp4");
-    const uniqueName = `${uuidv4()}.${ext}`;
-    const filePath = path.join(uploadDir, uniqueName);
+    const key = `${subDir}/${uuidv4()}.${ext}`;
 
-    // Write file to disk
     const arrayBuffer = await file.arrayBuffer();
-    await fs.writeFile(filePath, Buffer.from(arrayBuffer));
-
-    // Build public URL
-    const url = `/uploads/${subDir}/${uniqueName}`;
+    const url = await uploadToStorage(key, arrayBuffer, mimeType);
 
     return NextResponse.json({
       url,

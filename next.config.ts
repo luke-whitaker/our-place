@@ -1,6 +1,6 @@
 import type { NextConfig } from "next";
 
-// Content-Security-Policy is set per-request (with a nonce) in src/middleware.ts —
+// Content-Security-Policy is set per-request (with a nonce) in src/proxy.ts —
 // a static header here can't carry a nonce, and nonce-based script-src is what
 // actually protects a UGC forum from script-injection XSS.
 const securityHeaders = [
