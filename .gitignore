@@ -64,3 +64,6 @@ next-env.d.ts
 # (public repo; contains copyrighted game art / reference material)
 /social media UI inspo/
 /world UI inspo/
+
+# local design-direction mockups (exploratory, pre-decision) — never committed
+/mockups/
