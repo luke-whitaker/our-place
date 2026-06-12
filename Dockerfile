@@ -35,18 +35,12 @@ ENV NODE_ENV=production
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
-# Create non-root user for security. su-exec lets start.sh drop to this
-# user after fixing volume-mount ownership (Railway mounts volumes as root).
-RUN apk add --no-cache su-exec
+# Create non-root user for security. Media uploads go to Cloudflare R2
+# (src/lib/storage.ts), so no writable volume or ownership fixups are needed.
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy public assets first. Must be owned by the runtime user: the upload API
-# writes to public/uploads/ (mount a persistent volume there in production so
-# uploads survive redeploys).
 COPY --from=builder --chown=nextjs:nodejs /app/public ./public
-RUN mkdir -p public/uploads/images public/uploads/videos && \
-    chown -R nextjs:nodejs public/uploads
 
 # Copy the standalone server (this includes its own node_modules)
 COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
@@ -63,9 +57,7 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY start.sh ./start.sh
 RUN chmod +x ./start.sh
 
-# No USER directive: the container starts as root so start.sh can chown the
-# volume mounted at public/uploads, then it immediately drops to nextjs via
-# su-exec. The app itself never runs as root.
+USER nextjs
 
 EXPOSE 3000
 

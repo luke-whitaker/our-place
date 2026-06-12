@@ -11,6 +11,7 @@ Tech stack:
 - **Tailwind CSS** for styling
 - **JWT** auth with httpOnly cookies, bcrypt (12 rounds)
 - **Zod** for validation, **Vitest** for unit tests, **Playwright** for UI tests
+- **Cloudflare R2** for media uploads — signed PUTs via aws4fetch in `src/lib/storage.ts`
 
 Core features built: auth (admin-managed accounts, login, password reset), communities, posts, comments, reactions, events, file uploads, user profiles, rich content editor, feed, admin dashboard, "My Place" personal space, avatar builder, and a procedural world generator.
 

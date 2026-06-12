@@ -193,6 +193,26 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.4.1 — Media Moves to Cloudflare R2 (June 2026)
+
+**Why:** Uploads were written to a persistent volume on the host, which tied media to a single
+deploy environment, required the container to start as root to fix mount ownership, and left
+bandwidth egress as the looming cost driver. Object storage with zero egress fees is the right
+long-term home for media.
+
+**What changed:**
+
+- **Uploads go to Cloudflare R2** — the upload API now does a signed PUT to R2
+  (`src/lib/storage.ts`, via the dependency-free `aws4fetch`) and returns the absolute public
+  URL. Object keys mirror the old `/uploads/<type>/<uuid>.<ext>` layout.
+- **CSP follows the media** — the R2 public host is added to `img-src`/`media-src` in
+  `src/proxy.ts`, derived from `R2_PUBLIC_BASE_URL` at runtime.
+- **Volume teardown** — with no runtime writes to `public/`, the Dockerfile now runs as the
+  `nextjs` user from the start (`USER` directive); the root-start + `su-exec` privilege drop
+  and the `start.sh` ownership fixups are gone, along with the volume itself.
+
+**What didn't change:** API response shapes, accepted file types, and size limits are identical.
+
 ### v0.4.0 — The World Goes Live: Ports v1 (June 2026)
 
 **Why:** The generated frontier had been sitting on disk since April. This cycle made it the
