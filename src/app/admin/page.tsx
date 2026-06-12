@@ -92,7 +92,7 @@ export default function AdminPage() {
   if (loading || !user || user.role !== "admin") {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent-500 border-t-transparent" />
       </div>
     );
   }
@@ -100,8 +100,8 @@ export default function AdminPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="mt-1 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-ink">Admin Dashboard</h1>
+        <p className="mt-1 text-sm text-ink-muted">
           Create accounts for people you&apos;ve met in person.
         </p>
       </div>
@@ -109,10 +109,10 @@ export default function AdminPage() {
       <div className="grid gap-8 lg:grid-cols-2">
         {/* Create User Form */}
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Create Account</h2>
+          <h2 className="text-lg font-semibold text-ink mb-4">Create Account</h2>
           <form
             onSubmit={handleSubmit}
-            className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
+            className="rounded-2xl border border-line bg-surface p-6 shadow-sm"
           >
             {error && (
               <div className="mb-4 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
@@ -127,21 +127,25 @@ export default function AdminPage() {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Full Name</label>
+                <label className="block text-sm font-medium text-ink-secondary mb-1.5">
+                  Full Name
+                </label>
                 <input
                   type="text"
                   value={form.display_name}
                   onChange={(e) => updateField("display_name", e.target.value)}
                   placeholder="Their full name"
                   required
-                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                  className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Username</label>
+                <label className="block text-sm font-medium text-ink-secondary mb-1.5">
+                  Username
+                </label>
                 <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-gray-400">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-sm text-ink-faint">
                     @
                   </span>
                   <input
@@ -156,25 +160,25 @@ export default function AdminPage() {
                     placeholder="username"
                     maxLength={24}
                     required
-                    className="w-full rounded-xl border border-gray-200 pl-8 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                    className="w-full rounded-xl border border-line pl-8 pr-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+                <label className="block text-sm font-medium text-ink-secondary mb-1.5">Email</label>
                 <input
                   type="email"
                   value={form.email}
                   onChange={(e) => updateField("email", e.target.value)}
                   placeholder="their@email.com"
                   required
-                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                  className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-ink-secondary mb-1.5">
                   Phone Number
                 </label>
                 <input
@@ -183,12 +187,12 @@ export default function AdminPage() {
                   onChange={(e) => updateField("phone", e.target.value)}
                   placeholder="(555) 123-4567"
                   required
-                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                  className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-ink-secondary mb-1.5">
                   Temporary Password
                 </label>
                 <input
@@ -198,16 +202,16 @@ export default function AdminPage() {
                   placeholder="They can change this later"
                   minLength={8}
                   required
-                  className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                  className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
                 />
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs text-ink-faint">
                   Share this with them in person. They&apos;ll use it to log in.
                 </p>
               </div>
             </div>
 
-            <div className="mt-5 rounded-xl bg-indigo-50 border border-indigo-100 px-4 py-3">
-              <p className="text-xs text-indigo-700 leading-relaxed">
+            <div className="mt-5 rounded-xl bg-accent-50 border border-accent-100 px-4 py-3">
+              <p className="text-xs text-accent-700 leading-relaxed">
                 <strong>In-Person Accounts Only:</strong> Only create accounts for people
                 you&apos;ve met face-to-face. This is how Our Place builds real community.
               </p>
@@ -216,7 +220,7 @@ export default function AdminPage() {
             <button
               type="submit"
               disabled={submitting}
-              className="mt-6 w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="mt-6 w-full rounded-xl bg-gradient-to-r from-accent-500 to-purple-600 px-4 py-3 text-sm font-semibold text-ink-inverse shadow-lg shadow-accent-500/25 transition-all hover:shadow-xl hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {submitting ? "Creating Account..." : "Create Account"}
             </button>
@@ -225,29 +229,29 @@ export default function AdminPage() {
 
         {/* User List */}
         <div>
-          <h2 className="text-lg font-semibold text-gray-900 mb-4">Members ({users.length})</h2>
-          <div className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+          <h2 className="text-lg font-semibold text-ink mb-4">Members ({users.length})</h2>
+          <div className="rounded-2xl border border-line bg-surface shadow-sm">
             {loadingUsers ? (
               <div className="flex items-center justify-center py-12">
-                <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent-500 border-t-transparent" />
               </div>
             ) : users.length === 0 ? (
-              <div className="px-6 py-12 text-center text-sm text-gray-400">
+              <div className="px-6 py-12 text-center text-sm text-ink-faint">
                 No users yet. Create the first account!
               </div>
             ) : (
-              <ul className="divide-y divide-gray-100">
+              <ul className="divide-y divide-line-soft">
                 {users.map((u) => (
                   <li key={u.id} className="flex items-center justify-between px-5 py-3.5">
                     <div>
-                      <p className="text-sm font-medium text-gray-900">{u.displayName}</p>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-sm font-medium text-ink">{u.displayName}</p>
+                      <p className="text-xs text-ink-muted">
                         @{u.username} &middot; {u.email}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
                       {u.role === "admin" && (
-                        <span className="rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-700">
+                        <span className="rounded-full bg-accent-100 px-2.5 py-0.5 text-xs font-medium text-accent-700">
                           Admin
                         </span>
                       )}

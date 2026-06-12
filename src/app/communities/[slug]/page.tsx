@@ -119,7 +119,7 @@ export default function CommunityDetailPage() {
   if (loading || loadingPage) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-3 border-indigo-500 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-3 border-accent-500 border-t-transparent" />
       </div>
     );
   }
@@ -127,7 +127,7 @@ export default function CommunityDetailPage() {
   if (!community) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <p className="text-gray-500">{pageError || "Community not found."}</p>
+        <p className="text-ink-muted">{pageError || "Community not found."}</p>
       </div>
     );
   }
@@ -139,19 +139,21 @@ export default function CommunityDetailPage() {
         <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
         <div className="absolute bottom-0 left-0 right-0 mx-auto max-w-6xl px-4 pb-5 sm:px-6">
           <div className="flex items-end gap-4">
-            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-white/90 text-3xl shadow-lg backdrop-blur-sm">
+            <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-surface/90 text-3xl shadow-lg backdrop-blur-sm">
               {community.icon}
             </div>
             <div className="min-w-0 flex-1 pb-0.5">
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-white drop-shadow-sm">{community.name}</h1>
+                <h1 className="text-2xl font-bold text-ink-inverse drop-shadow-sm">
+                  {community.name}
+                </h1>
                 {community.is_official ? (
-                  <span className="rounded-full bg-white/80 px-2 py-0.5 text-xs font-medium text-indigo-600 backdrop-blur-sm">
+                  <span className="rounded-full bg-surface/80 px-2 py-0.5 text-xs font-medium text-accent-600 backdrop-blur-sm">
                     Official
                   </span>
                 ) : null}
               </div>
-              <p className="text-sm text-white/80 mt-0.5">
+              <p className="text-sm text-ink-inverse/80 mt-0.5">
                 {community.member_count} {community.member_count === 1 ? "member" : "members"} ·{" "}
                 {community.category}
               </p>
@@ -159,7 +161,7 @@ export default function CommunityDetailPage() {
             <Link
               href={`/world?at=${community.slug}`}
               title="Port into the 8-bit world at this community's building"
-              className="mb-0.5 flex items-center gap-1.5 rounded-xl bg-white/90 px-3 py-2 text-sm font-medium text-indigo-600 shadow-lg backdrop-blur-sm transition-colors hover:bg-white"
+              className="mb-0.5 flex items-center gap-1.5 rounded-xl bg-surface/90 px-3 py-2 text-sm font-medium text-accent-600 shadow-lg backdrop-blur-sm transition-colors hover:bg-surface"
             >
               <span aria-hidden>🍄</span> Portal
             </Link>
@@ -181,18 +183,18 @@ export default function CommunityDetailPage() {
 
             {/* Join/Leave Bar */}
             {!membership ? (
-              <div className="mb-6 rounded-2xl border border-indigo-100 bg-indigo-50 p-5">
+              <div className="mb-6 rounded-2xl border border-accent-100 bg-accent-50 p-5">
                 <div className="flex flex-col sm:flex-row sm:items-center gap-4">
                   <div className="flex-1">
-                    <h3 className="text-sm font-semibold text-gray-900">Join this community</h3>
-                    <p className="text-sm text-gray-500 mt-0.5">
+                    <h3 className="text-sm font-semibold text-ink">Join this community</h3>
+                    <p className="text-sm text-ink-muted mt-0.5">
                       Become a member to post and interact with others.
                     </p>
                   </div>
                   <button
                     onClick={handleJoin}
                     disabled={joining}
-                    className="rounded-xl bg-indigo-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-600 disabled:opacity-50 transition-colors"
+                    className="rounded-xl bg-accent-500 px-6 py-2.5 text-sm font-medium text-ink-inverse hover:bg-accent-600 disabled:opacity-50 transition-colors"
                   >
                     {joining ? "Joining..." : "Join Community"}
                   </button>
@@ -215,9 +217,9 @@ export default function CommunityDetailPage() {
                 ))}
               </div>
             ) : (
-              <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white p-10 text-center">
-                <h3 className="text-base font-semibold text-gray-900">No posts yet</h3>
-                <p className="mt-1 text-sm text-gray-500">
+              <div className="rounded-2xl border-2 border-dashed border-line bg-surface p-10 text-center">
+                <h3 className="text-base font-semibold text-ink">No posts yet</h3>
+                <p className="mt-1 text-sm text-ink-muted">
                   {membership
                     ? "Be the first to share something!"
                     : "Join this community to start the conversation."}
@@ -230,16 +232,16 @@ export default function CommunityDetailPage() {
           <aside className="hidden lg:block w-72 shrink-0">
             <div className="sticky top-24 space-y-6">
               {/* About */}
-              <div className="rounded-2xl border border-gray-200 bg-white p-5">
-                <h2 className="text-sm font-semibold text-gray-900 mb-3">About</h2>
-                <p className="text-sm text-gray-600 leading-relaxed">{community.description}</p>
+              <div className="rounded-2xl border border-line bg-surface p-5">
+                <h2 className="text-sm font-semibold text-ink mb-3">About</h2>
+                <p className="text-sm text-ink-tertiary leading-relaxed">{community.description}</p>
 
                 {community.guidelines && (
-                  <div className="mt-4 pt-4 border-t border-gray-100">
-                    <h3 className="text-xs font-semibold text-gray-700 uppercase tracking-wider mb-2">
+                  <div className="mt-4 pt-4 border-t border-line-soft">
+                    <h3 className="text-xs font-semibold text-ink-secondary uppercase tracking-wider mb-2">
                       Guidelines
                     </h3>
-                    <p className="text-xs text-gray-500 leading-relaxed">{community.guidelines}</p>
+                    <p className="text-xs text-ink-muted leading-relaxed">{community.guidelines}</p>
                   </div>
                 )}
 
@@ -248,7 +250,7 @@ export default function CommunityDetailPage() {
                   <button
                     onClick={handleLeave}
                     disabled={leaving}
-                    className="mt-4 w-full rounded-xl border border-gray-200 py-2 text-xs font-medium text-gray-500 hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
+                    className="mt-4 w-full rounded-xl border border-line py-2 text-xs font-medium text-ink-muted hover:bg-red-50 hover:text-red-600 hover:border-red-200 transition-colors"
                   >
                     {leaving ? "Leaving..." : "Leave Community"}
                   </button>
@@ -256,27 +258,27 @@ export default function CommunityDetailPage() {
               </div>
 
               {/* Members */}
-              <div className="rounded-2xl border border-gray-200 bg-white p-5">
-                <h2 className="text-sm font-semibold text-gray-900 mb-3">
+              <div className="rounded-2xl border border-line bg-surface p-5">
+                <h2 className="text-sm font-semibold text-ink mb-3">
                   Members ({community.member_count})
                 </h2>
                 <div className="space-y-2">
                   {members.map((member) => (
                     <div key={member.id} className="flex items-center gap-2.5">
                       <div
-                        className="flex h-7 w-7 items-center justify-center rounded-full text-white text-xs font-bold"
+                        className="flex h-7 w-7 items-center justify-center rounded-full text-ink-inverse text-xs font-bold"
                         style={{ backgroundColor: member.avatar_color || "#6366f1" }}
                       >
                         {member.display_name?.charAt(0).toUpperCase() || "?"}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-gray-700 truncate">
+                        <p className="text-xs font-medium text-ink-secondary truncate">
                           {member.display_name}
                         </p>
-                        <p className="text-xs text-gray-400">@{member.username}</p>
+                        <p className="text-xs text-ink-faint">@{member.username}</p>
                       </div>
                       {member.role === "admin" && (
-                        <span className="ml-auto text-xs text-indigo-500 font-medium">Admin</span>
+                        <span className="ml-auto text-xs text-accent-500 font-medium">Admin</span>
                       )}
                     </div>
                   ))}
@@ -286,7 +288,7 @@ export default function CommunityDetailPage() {
               {/* Back link */}
               <Link
                 href="/communities"
-                className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                className="flex items-center gap-2 text-sm text-ink-muted hover:text-ink-secondary transition-colors"
               >
                 <svg
                   className="h-4 w-4"

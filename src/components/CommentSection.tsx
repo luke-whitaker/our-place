@@ -68,7 +68,7 @@ export default function CommentSection({
   }
 
   return (
-    <div className="border-t border-gray-100 bg-gray-50 px-5 py-4">
+    <div className="border-t border-line-soft bg-surface-muted px-5 py-4">
       {error && (
         <div
           role="alert"
@@ -79,7 +79,7 @@ export default function CommentSection({
       )}
       {loading ? (
         <div className="flex justify-center py-4">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent-500 border-t-transparent" />
         </div>
       ) : (
         <>
@@ -88,25 +88,23 @@ export default function CommentSection({
               {comments.map((comment) => (
                 <div key={comment.id} className="flex gap-2.5">
                   <div
-                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-white text-xs font-bold"
+                    className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-ink-inverse text-xs font-bold"
                     style={{ backgroundColor: comment.author_avatar_color || "#6366f1" }}
                   >
                     {comment.author_name?.charAt(0).toUpperCase() || "?"}
                   </div>
-                  <div className="min-w-0 flex-1 rounded-xl bg-white px-3 py-2 border border-gray-100">
+                  <div className="min-w-0 flex-1 rounded-xl bg-surface px-3 py-2 border border-line-soft">
                     <div className="flex items-center gap-2">
-                      <span className="text-xs font-semibold text-gray-900">
-                        {comment.author_name}
-                      </span>
-                      <span className="text-xs text-gray-400">{timeAgo(comment.created_at)}</span>
+                      <span className="text-xs font-semibold text-ink">{comment.author_name}</span>
+                      <span className="text-xs text-ink-faint">{timeAgo(comment.created_at)}</span>
                     </div>
-                    <p className="mt-0.5 text-sm text-gray-600">{comment.content}</p>
+                    <p className="mt-0.5 text-sm text-ink-tertiary">{comment.content}</p>
                   </div>
                 </div>
               ))}
             </div>
           ) : (
-            <p className="mb-4 text-center text-sm text-gray-400">
+            <p className="mb-4 text-center text-sm text-ink-faint">
               No comments yet. Start the conversation!
             </p>
           )}
@@ -118,12 +116,12 @@ export default function CommentSection({
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 placeholder="Write a comment..."
-                className="flex-1 rounded-xl border border-gray-200 bg-white px-3.5 py-2 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+                className="flex-1 rounded-xl border border-line bg-surface px-3.5 py-2 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
               />
               <button
                 type="submit"
                 disabled={!commentText.trim() || submitting}
-                className="rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-600 disabled:opacity-50"
+                className="rounded-xl bg-accent-500 px-4 py-2 text-sm font-medium text-ink-inverse transition-colors hover:bg-accent-600 disabled:opacity-50"
               >
                 {submitting ? "..." : "Post"}
               </button>

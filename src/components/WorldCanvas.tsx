@@ -199,15 +199,17 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
           ref={canvasRef}
           width={CANVAS_W}
           height={CANVAS_H}
-          className="block border-2 border-gray-800 rounded-lg"
+          className="block border-2 border-line-inverse rounded-lg"
           style={{ imageRendering: "pixelated" }}
         />
         {!map && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-gray-900">
+          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-surface-inverse">
             {loadError ? (
               <p className="px-6 text-center font-mono text-sm text-red-400">{loadError}</p>
             ) : (
-              <p className="animate-pulse font-mono text-sm text-gray-400">Entering the world...</p>
+              <p className="animate-pulse font-mono text-sm text-ink-faint">
+                Entering the world...
+              </p>
             )}
           </div>
         )}
@@ -219,7 +221,7 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
           {/* D-pad */}
           <div className="flex flex-col items-center gap-1 pointer-events-auto">
             <button
-              className="w-14 h-14 rounded-lg bg-white/10 border border-white/20 text-white text-xl active:bg-white/25 select-none"
+              className="w-14 h-14 rounded-lg bg-surface/10 border border-white/20 text-ink-inverse text-xl active:bg-surface/25 select-none"
               onTouchStart={dpadDown("ArrowUp")}
               onTouchEnd={dpadUp("ArrowUp")}
               onTouchCancel={dpadUp("ArrowUp")}
@@ -228,7 +230,7 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
             </button>
             <div className="flex gap-1">
               <button
-                className="w-14 h-14 rounded-lg bg-white/10 border border-white/20 text-white text-xl active:bg-white/25 select-none"
+                className="w-14 h-14 rounded-lg bg-surface/10 border border-white/20 text-ink-inverse text-xl active:bg-surface/25 select-none"
                 onTouchStart={dpadDown("ArrowLeft")}
                 onTouchEnd={dpadUp("ArrowLeft")}
                 onTouchCancel={dpadUp("ArrowLeft")}
@@ -236,7 +238,7 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
                 ◄
               </button>
               <button
-                className="w-14 h-14 rounded-lg bg-white/10 border border-white/20 text-white text-xl active:bg-white/25 select-none"
+                className="w-14 h-14 rounded-lg bg-surface/10 border border-white/20 text-ink-inverse text-xl active:bg-surface/25 select-none"
                 onTouchStart={dpadDown("ArrowRight")}
                 onTouchEnd={dpadUp("ArrowRight")}
                 onTouchCancel={dpadUp("ArrowRight")}
@@ -245,7 +247,7 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
               </button>
             </div>
             <button
-              className="w-14 h-14 rounded-lg bg-white/10 border border-white/20 text-white text-xl active:bg-white/25 select-none"
+              className="w-14 h-14 rounded-lg bg-surface/10 border border-white/20 text-ink-inverse text-xl active:bg-surface/25 select-none"
               onTouchStart={dpadDown("ArrowDown")}
               onTouchEnd={dpadUp("ArrowDown")}
               onTouchCancel={dpadUp("ArrowDown")}
@@ -256,7 +258,7 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
 
           {/* Interact button */}
           <button
-            className="w-16 h-16 rounded-full bg-white/10 border-2 border-white/25 text-white text-lg font-bold active:bg-white/25 pointer-events-auto select-none"
+            className="w-16 h-16 rounded-full bg-surface/10 border-2 border-white/25 text-ink-inverse text-lg font-bold active:bg-surface/25 pointer-events-auto select-none"
             onTouchStart={dpadDown("Enter")}
             onTouchEnd={dpadUp("Enter")}
             onTouchCancel={dpadUp("Enter")}

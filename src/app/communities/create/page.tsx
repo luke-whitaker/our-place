@@ -85,7 +85,7 @@ export default function CreateCommunityPage() {
   if (loading) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-3 border-indigo-500 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-3 border-accent-500 border-t-transparent" />
       </div>
     );
   }
@@ -95,7 +95,7 @@ export default function CreateCommunityPage() {
       {/* Back link */}
       <Link
         href="/communities"
-        className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-700 mb-6"
+        className="inline-flex items-center gap-2 text-sm text-ink-muted hover:text-ink-secondary mb-6"
       >
         <svg
           className="h-4 w-4"
@@ -115,18 +115,15 @@ export default function CreateCommunityPage() {
 
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Create a Community</h1>
-        <p className="mt-2 text-sm text-gray-500">
+        <h1 className="text-2xl font-bold text-ink">Create a Community</h1>
+        <p className="mt-2 text-sm text-ink-muted">
           Build a new space around a topic, interest, or cause that doesn&apos;t already exist on
           Our Place.
         </p>
       </div>
 
       {/* Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="rounded-2xl border border-gray-200 bg-white shadow-sm"
-      >
+      <form onSubmit={handleSubmit} className="rounded-2xl border border-line bg-surface shadow-sm">
         <div className="p-6 space-y-6">
           {error && (
             <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
@@ -136,7 +133,9 @@ export default function CreateCommunityPage() {
 
           {/* Icon Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Community Icon</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-2">
+              Community Icon
+            </label>
             <div className="flex flex-wrap gap-2">
               {COMMUNITY_ICONS.map((icon) => (
                 <button
@@ -145,8 +144,8 @@ export default function CreateCommunityPage() {
                   onClick={() => updateField("icon", icon)}
                   className={`flex h-10 w-10 items-center justify-center rounded-xl text-lg transition-all ${
                     form.icon === icon
-                      ? "bg-indigo-100 ring-2 ring-indigo-500 scale-110"
-                      : "bg-gray-50 hover:bg-gray-100"
+                      ? "bg-accent-100 ring-2 ring-accent-500 scale-110"
+                      : "bg-surface-muted hover:bg-surface-emphasis"
                   }`}
                 >
                   {icon}
@@ -157,7 +156,9 @@ export default function CreateCommunityPage() {
 
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Community Name</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1.5">
+              Community Name
+            </label>
             <input
               type="text"
               value={form.name}
@@ -165,21 +166,21 @@ export default function CreateCommunityPage() {
               placeholder="e.g., Photography Enthusiasts"
               maxLength={50}
               required
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             />
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-1 text-xs text-ink-faint">
               {form.name.length}/50 characters · Must be unique
             </p>
           </div>
 
           {/* Category */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Category</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1.5">Category</label>
             <select
               value={form.category}
               onChange={(e) => updateField("category", e.target.value)}
               required
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink-secondary focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             >
               <option value="">Select a category</option>
               {COMMUNITY_CATEGORIES.map((cat) => (
@@ -192,48 +193,50 @@ export default function CreateCommunityPage() {
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Description</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1.5">
+              Description
+            </label>
             <textarea
               value={form.description}
               onChange={(e) => updateField("description", e.target.value)}
               placeholder="What is this community about? What can members expect?"
               rows={4}
               required
-              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="w-full resize-none rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             />
-            <p className="mt-1 text-xs text-gray-400">
+            <p className="mt-1 text-xs text-ink-faint">
               At least 20 characters. Help people understand what this community is for.
             </p>
           </div>
 
           {/* Guidelines */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">
+            <label className="block text-sm font-medium text-ink-secondary mb-1.5">
               Community Guidelines
-              <span className="text-gray-400 font-normal"> (optional)</span>
+              <span className="text-ink-faint font-normal"> (optional)</span>
             </label>
             <textarea
               value={form.guidelines}
               onChange={(e) => updateField("guidelines", e.target.value)}
               placeholder="Set expectations for how members should interact..."
               rows={3}
-              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="w-full resize-none rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             />
           </div>
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end gap-3 border-t border-gray-100 bg-gray-50 px-6 py-4 rounded-b-2xl">
+        <div className="flex justify-end gap-3 border-t border-line-soft bg-surface-muted px-6 py-4 rounded-b-2xl">
           <Link
             href="/communities"
-            className="rounded-xl px-5 py-2.5 text-sm font-medium text-gray-600 hover:bg-gray-200 transition-colors"
+            className="rounded-xl px-5 py-2.5 text-sm font-medium text-ink-tertiary hover:bg-surface-inset transition-colors"
           >
             Cancel
           </Link>
           <button
             type="submit"
             disabled={submitting}
-            className="rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-2.5 text-sm font-medium text-white shadow-md hover:shadow-lg transition-all disabled:opacity-50"
+            className="rounded-xl bg-gradient-to-r from-accent-500 to-purple-600 px-6 py-2.5 text-sm font-medium text-ink-inverse shadow-md hover:shadow-lg transition-all disabled:opacity-50"
           >
             {submitting ? "Creating..." : "Create Community"}
           </button>

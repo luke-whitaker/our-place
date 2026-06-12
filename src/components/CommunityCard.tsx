@@ -7,7 +7,7 @@ export default function CommunityCard({ community }: { community: CommunityWithM
   return (
     <Link
       href={`/communities/${community.slug}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white transition-all hover:shadow-lg hover:-translate-y-0.5"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-surface transition-all hover:shadow-lg hover:-translate-y-0.5"
     >
       {/* Banner */}
       <div
@@ -17,7 +17,7 @@ export default function CommunityCard({ community }: { community: CommunityWithM
         <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
         <span className="relative text-3xl drop-shadow-lg">{community.icon}</span>
         {community.is_official ? (
-          <span className="absolute top-3 right-3 rounded-full bg-white/90 px-2 py-0.5 text-xs font-medium text-indigo-600 shadow-sm">
+          <span className="absolute top-3 right-3 rounded-full bg-surface/90 px-2 py-0.5 text-xs font-medium text-accent-600 shadow-sm">
             Official
           </span>
         ) : null}
@@ -25,14 +25,14 @@ export default function CommunityCard({ community }: { community: CommunityWithM
 
       {/* Content */}
       <div className="flex flex-1 flex-col p-4">
-        <h3 className="text-base font-semibold text-gray-900 group-hover:text-indigo-600 transition-colors">
+        <h3 className="text-base font-semibold text-ink group-hover:text-accent-600 transition-colors">
           {community.name}
         </h3>
-        <p className="mt-1 flex-1 text-sm text-gray-500 line-clamp-2 leading-relaxed">
+        <p className="mt-1 flex-1 text-sm text-ink-muted line-clamp-2 leading-relaxed">
           {community.description}
         </p>
         <div className="mt-3 flex items-center justify-between">
-          <div className="flex items-center gap-1.5 text-xs text-gray-400">
+          <div className="flex items-center gap-1.5 text-xs text-ink-faint">
             <svg
               className="h-3.5 w-3.5"
               fill="none"
@@ -55,7 +55,7 @@ export default function CommunityCard({ community }: { community: CommunityWithM
               Joined
             </span>
           ) : (
-            <span className="rounded-full bg-gray-100 px-2.5 py-0.5 text-xs font-medium text-gray-500 group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+            <span className="rounded-full bg-surface-emphasis px-2.5 py-0.5 text-xs font-medium text-ink-muted group-hover:bg-accent-50 group-hover:text-accent-600 transition-colors">
               View
             </span>
           )}

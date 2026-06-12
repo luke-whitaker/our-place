@@ -7,10 +7,10 @@ import { useAuth } from "@/components/AuthProvider";
 type EditableField = "email" | "phone" | "password";
 
 const inputClass =
-  "w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400";
+  "w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400";
 
 const editButtonClass =
-  "rounded-lg bg-indigo-50 px-3 py-1.5 text-sm font-medium text-indigo-600 hover:bg-indigo-100 transition-colors";
+  "rounded-lg bg-accent-50 px-3 py-1.5 text-sm font-medium text-accent-600 hover:bg-accent-100 transition-colors";
 
 export default function AccountSettings() {
   const { user, refresh, logout } = useAuth();
@@ -160,14 +160,14 @@ export default function AccountSettings() {
           <button
             type="submit"
             disabled={saving}
-            className="rounded-lg bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-600 disabled:opacity-50"
+            className="rounded-lg bg-accent-500 px-4 py-2 text-sm font-medium text-ink-inverse transition-colors hover:bg-accent-600 disabled:opacity-50"
           >
             {saving ? "Saving..." : "Save"}
           </button>
           <button
             type="button"
             onClick={cancelEditing}
-            className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-100"
+            className="rounded-lg px-4 py-2 text-sm font-medium text-ink-tertiary hover:bg-surface-emphasis"
           >
             Cancel
           </button>
@@ -177,8 +177,8 @@ export default function AccountSettings() {
   }
 
   return (
-    <div className="mt-6 rounded-2xl border border-gray-200 bg-white p-6">
-      <h2 className="text-lg font-semibold text-gray-900 mb-4">Account</h2>
+    <div className="mt-6 rounded-2xl border border-line bg-surface p-6">
+      <h2 className="text-lg font-semibold text-ink mb-4">Account</h2>
 
       {success && (
         <div
@@ -194,8 +194,8 @@ export default function AccountSettings() {
         <div className="py-2">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-700">Email</p>
-              <p className="text-sm text-gray-400">{user.email}</p>
+              <p className="text-sm font-medium text-ink-secondary">Email</p>
+              <p className="text-sm text-ink-faint">{user.email}</p>
             </div>
             {editing !== "email" && (
               <button onClick={() => startEditing("email")} className={editButtonClass}>
@@ -205,14 +205,14 @@ export default function AccountSettings() {
           </div>
           {editing === "email" && renderEditForm("email")}
         </div>
-        <div className="border-t border-gray-100" />
+        <div className="border-t border-line-soft" />
 
         {/* Phone */}
         <div className="py-2">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-700">Phone</p>
-              <p className="text-sm text-gray-400">{user.phone || "—"}</p>
+              <p className="text-sm font-medium text-ink-secondary">Phone</p>
+              <p className="text-sm text-ink-faint">{user.phone || "—"}</p>
             </div>
             {editing !== "phone" && (
               <button onClick={() => startEditing("phone")} className={editButtonClass}>
@@ -222,14 +222,14 @@ export default function AccountSettings() {
           </div>
           {editing === "phone" && renderEditForm("phone")}
         </div>
-        <div className="border-t border-gray-100" />
+        <div className="border-t border-line-soft" />
 
         {/* Password */}
         <div className="py-2">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-700">Password</p>
-              <p className="text-sm text-gray-400">••••••••</p>
+              <p className="text-sm font-medium text-ink-secondary">Password</p>
+              <p className="text-sm text-ink-faint">••••••••</p>
             </div>
             {editing !== "password" && (
               <button onClick={() => startEditing("password")} className={editButtonClass}>
@@ -239,28 +239,28 @@ export default function AccountSettings() {
           </div>
           {editing === "password" && renderEditForm("password")}
         </div>
-        <div className="border-t border-gray-100" />
+        <div className="border-t border-line-soft" />
 
         {/* Username (read-only) */}
         <div className="flex items-center justify-between py-2">
           <div>
-            <p className="text-sm font-medium text-gray-700">Username</p>
-            <p className="text-sm text-gray-400">@{user.username}</p>
+            <p className="text-sm font-medium text-ink-secondary">Username</p>
+            <p className="text-sm text-ink-faint">@{user.username}</p>
           </div>
         </div>
-        <div className="border-t border-gray-100" />
+        <div className="border-t border-line-soft" />
 
         {/* Avatar */}
         <div className="flex items-center justify-between py-2">
           <div>
-            <p className="text-sm font-medium text-gray-700">Avatar</p>
-            <p className="text-sm text-gray-400">Your 8-bit character</p>
+            <p className="text-sm font-medium text-ink-secondary">Avatar</p>
+            <p className="text-sm text-ink-faint">Your 8-bit character</p>
           </div>
           <Link href="/avatar-builder" className={editButtonClass}>
             Edit
           </Link>
         </div>
-        <div className="border-t border-gray-100" />
+        <div className="border-t border-line-soft" />
 
         {/* Sign out */}
         <button

@@ -9,15 +9,15 @@ export default function Navbar() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
-    <nav className="sticky top-0 z-50 border-b border-gray-200 bg-white/80 backdrop-blur-lg">
+    <nav className="sticky top-0 z-50 border-b border-line bg-surface/80 backdrop-blur-lg">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
           <Link href={user?.is_verified ? "/feed" : "/"} className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-sm font-bold shadow-md">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent-500 to-purple-600 text-ink-inverse text-sm font-bold shadow-md">
               OP
             </div>
-            <span className="text-lg font-bold text-gray-900 tracking-tight">Our Place</span>
+            <span className="text-lg font-bold text-ink tracking-tight">Our Place</span>
           </Link>
 
           {/* Desktop Navigation */}
@@ -25,19 +25,19 @@ export default function Navbar() {
             <div className="hidden sm:flex items-center gap-1">
               <Link
                 href="/feed"
-                className="rounded-lg px-3.5 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                className="rounded-lg px-3.5 py-2 text-sm font-medium text-ink-tertiary transition-colors hover:bg-surface-emphasis hover:text-ink"
               >
                 Feed
               </Link>
               <Link
                 href="/communities"
-                className="rounded-lg px-3.5 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                className="rounded-lg px-3.5 py-2 text-sm font-medium text-ink-tertiary transition-colors hover:bg-surface-emphasis hover:text-ink"
               >
                 Communities
               </Link>
               <Link
                 href="/communities/create"
-                className="rounded-lg px-3.5 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-gray-100 hover:text-gray-900"
+                className="rounded-lg px-3.5 py-2 text-sm font-medium text-ink-tertiary transition-colors hover:bg-surface-emphasis hover:text-ink"
               >
                 Create
               </Link>
@@ -47,26 +47,26 @@ export default function Navbar() {
           {/* Right Side */}
           <div className="flex items-center gap-3">
             {loading ? (
-              <div className="h-8 w-20 animate-pulse rounded-lg bg-gray-100" />
+              <div className="h-8 w-20 animate-pulse rounded-lg bg-surface-emphasis" />
             ) : user ? (
               <div className="relative">
                 <button
                   onClick={() => setMenuOpen(!menuOpen)}
                   aria-label="User menu"
                   aria-expanded={menuOpen}
-                  className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 transition-colors hover:bg-gray-100"
+                  className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 transition-colors hover:bg-surface-emphasis"
                 >
                   <div
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-white text-xs font-bold"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-ink-inverse text-xs font-bold"
                     style={{ backgroundColor: user.avatar_color }}
                   >
                     {user.display_name.charAt(0).toUpperCase()}
                   </div>
-                  <span className="hidden sm:block text-sm font-medium text-gray-700">
+                  <span className="hidden sm:block text-sm font-medium text-ink-secondary">
                     {user.display_name.split(" ")[0]}
                   </span>
                   <svg
-                    className="h-4 w-4 text-gray-400"
+                    className="h-4 w-4 text-ink-faint"
                     fill="none"
                     viewBox="0 0 24 24"
                     strokeWidth={2}
@@ -89,17 +89,17 @@ export default function Navbar() {
                     />
                     <div
                       role="menu"
-                      className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-gray-200 bg-white shadow-lg"
+                      className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-line bg-surface shadow-lg"
                     >
-                      <div className="border-b border-gray-100 px-4 py-3">
-                        <p className="text-sm font-semibold text-gray-900">{user.display_name}</p>
-                        <p className="text-xs text-gray-500">@{user.username}</p>
+                      <div className="border-b border-line-soft px-4 py-3">
+                        <p className="text-sm font-semibold text-ink">{user.display_name}</p>
+                        <p className="text-xs text-ink-muted">@{user.username}</p>
                       </div>
                       <div className="py-1">
                         <Link
                           href="/profile"
                           onClick={() => setMenuOpen(false)}
-                          className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50"
+                          className="block px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted"
                         >
                           Profile
                         </Link>
@@ -107,7 +107,7 @@ export default function Navbar() {
                           <Link
                             href="/admin"
                             onClick={() => setMenuOpen(false)}
-                            className="block px-4 py-2.5 text-sm text-indigo-600 hover:bg-indigo-50"
+                            className="block px-4 py-2.5 text-sm text-accent-600 hover:bg-accent-50"
                           >
                             Admin
                           </Link>
@@ -115,14 +115,14 @@ export default function Navbar() {
                         <Link
                           href="/feed"
                           onClick={() => setMenuOpen(false)}
-                          className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 sm:hidden"
+                          className="block px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted sm:hidden"
                         >
                           Feed
                         </Link>
                         <Link
                           href="/communities"
                           onClick={() => setMenuOpen(false)}
-                          className="block px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 sm:hidden"
+                          className="block px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted sm:hidden"
                         >
                           Communities
                         </Link>
@@ -143,7 +143,7 @@ export default function Navbar() {
             ) : (
               <Link
                 href="/auth/login"
-                className="rounded-lg bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-2 text-sm font-medium text-white shadow-md transition-all hover:shadow-lg hover:brightness-110"
+                className="rounded-lg bg-gradient-to-r from-accent-500 to-purple-600 px-4 py-2 text-sm font-medium text-ink-inverse shadow-md transition-all hover:shadow-lg hover:brightness-110"
               >
                 Sign In
               </Link>

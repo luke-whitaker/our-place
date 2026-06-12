@@ -39,29 +39,29 @@ export default function PostCard({
   }
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-gray-200 bg-white transition-shadow hover:shadow-md">
+    <article className="overflow-hidden rounded-2xl border border-line bg-surface transition-shadow hover:shadow-md">
       <div className="p-5">
         {/* Header */}
         <div className="flex items-start gap-3">
           <div
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white text-sm font-bold"
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-inverse text-sm font-bold"
             style={{ backgroundColor: post.author_avatar_color || "#6366f1" }}
           >
             {post.author_name?.charAt(0).toUpperCase() || "?"}
           </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold text-gray-900">{post.author_name}</span>
-              <span className="text-xs text-gray-400">@{post.author_username}</span>
-              <span className="text-xs text-gray-300">&middot;</span>
-              <span className="text-xs text-gray-400">{timeAgo(post.created_at)}</span>
+              <span className="text-sm font-semibold text-ink">{post.author_name}</span>
+              <span className="text-xs text-ink-faint">@{post.author_username}</span>
+              <span className="text-xs text-ink-disabled">&middot;</span>
+              <span className="text-xs text-ink-faint">{timeAgo(post.created_at)}</span>
               <PostTypeBadge postType={postType} />
             </div>
             <div className="flex items-center gap-2 flex-wrap mt-0.5">
               {showCommunity && post.community_name && post.community_slug && (
                 <Link
                   href={`/communities/${post.community_slug}`}
-                  className="inline-flex items-center gap-1 text-xs text-indigo-600 hover:text-indigo-700"
+                  className="inline-flex items-center gap-1 text-xs text-accent-600 hover:text-accent-700"
                 >
                   <span>{post.community_icon}</span>
                   <span>{post.community_name}</span>
@@ -110,11 +110,11 @@ export default function PostCard({
         {/* Content */}
         <div className="mt-3">
           {post.title && (
-            <h3 className="text-base font-semibold text-gray-900 leading-snug">{post.title}</h3>
+            <h3 className="text-base font-semibold text-ink leading-snug">{post.title}</h3>
           )}
 
           {postType === "text" && post.content && (
-            <p className="mt-1.5 text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+            <p className="mt-1.5 text-sm text-ink-tertiary leading-relaxed whitespace-pre-wrap">
               {post.content}
             </p>
           )}
@@ -123,7 +123,7 @@ export default function PostCard({
             <>
               <PhotoGallery media={media} />
               {post.content && (
-                <p className="mt-2 text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                <p className="mt-2 text-sm text-ink-tertiary leading-relaxed whitespace-pre-wrap">
                   {post.content}
                 </p>
               )}
@@ -134,7 +134,7 @@ export default function PostCard({
             <>
               {media.length > 0 && <VideoPlayer media={media[0]} />}
               {post.content && (
-                <p className="mt-2 text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                <p className="mt-2 text-sm text-ink-tertiary leading-relaxed whitespace-pre-wrap">
                   {post.content}
                 </p>
               )}
@@ -145,14 +145,14 @@ export default function PostCard({
         </div>
 
         {/* Actions */}
-        <div className="mt-4 flex items-center gap-1 border-t border-gray-100 pt-3">
+        <div className="mt-4 flex items-center gap-1 border-t border-line-soft pt-3">
           <button
             onClick={toggleReaction}
             aria-label={reacted ? "Remove reaction" : "Like post"}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
               reacted
                 ? "bg-red-50 text-red-600"
-                : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                : "text-ink-muted hover:bg-surface-emphasis hover:text-ink-secondary"
             }`}
           >
             <svg
@@ -177,8 +177,8 @@ export default function PostCard({
             aria-expanded={showComments}
             className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm transition-colors ${
               showComments
-                ? "bg-indigo-50 text-indigo-600"
-                : "text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                ? "bg-accent-50 text-accent-600"
+                : "text-ink-muted hover:bg-surface-emphasis hover:text-ink-secondary"
             }`}
           >
             <svg

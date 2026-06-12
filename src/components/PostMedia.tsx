@@ -116,7 +116,7 @@ export function PhotoGallery({ media }: { media: PostMediaType[] }) {
                 />
                 {i === 3 && count > 4 && (
                   <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-                    <span className="text-2xl font-bold text-white">+{count - 4}</span>
+                    <span className="text-2xl font-bold text-ink-inverse">+{count - 4}</span>
                   </div>
                 )}
               </button>
@@ -147,10 +147,10 @@ export function PhotoGallery({ media }: { media: PostMediaType[] }) {
               type="button"
               onClick={() => setLightboxIdx(null)}
               aria-label="Close image viewer"
-              className="absolute -right-2 -top-2 rounded-full bg-white p-1.5 shadow-lg hover:bg-gray-100"
+              className="absolute -right-2 -top-2 rounded-full bg-surface p-1.5 shadow-lg hover:bg-surface-emphasis"
             >
               <svg
-                className="h-5 w-5 text-gray-700"
+                className="h-5 w-5 text-ink-secondary"
                 fill="none"
                 viewBox="0 0 24 24"
                 strokeWidth={2}
@@ -168,10 +168,10 @@ export function PhotoGallery({ media }: { media: PostMediaType[] }) {
                     type="button"
                     onClick={() => setLightboxIdx(lightboxIdx - 1)}
                     aria-label="Previous image"
-                    className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-2 shadow hover:bg-white"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-surface/80 p-2 shadow hover:bg-surface"
                   >
                     <svg
-                      className="h-5 w-5 text-gray-700"
+                      className="h-5 w-5 text-ink-secondary"
                       fill="none"
                       viewBox="0 0 24 24"
                       strokeWidth={2}
@@ -190,10 +190,10 @@ export function PhotoGallery({ media }: { media: PostMediaType[] }) {
                     type="button"
                     onClick={() => setLightboxIdx(lightboxIdx + 1)}
                     aria-label="Next image"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-white/80 p-2 shadow hover:bg-white"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 rounded-full bg-surface/80 p-2 shadow hover:bg-surface"
                   >
                     <svg
-                      className="h-5 w-5 text-gray-700"
+                      className="h-5 w-5 text-ink-secondary"
                       fill="none"
                       viewBox="0 0 24 24"
                       strokeWidth={2}
@@ -212,7 +212,7 @@ export function PhotoGallery({ media }: { media: PostMediaType[] }) {
 
             {/* Counter */}
             {images.length > 1 && (
-              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-white">
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 rounded-full bg-black/60 px-3 py-1 text-xs text-ink-inverse">
                 {lightboxIdx + 1} / {images.length}
               </div>
             )}
@@ -262,7 +262,9 @@ export function RichContentRenderer({ content }: { content: string }) {
 
   if (!blocks) {
     return (
-      <p className="mt-1.5 text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">{content}</p>
+      <p className="mt-1.5 text-sm text-ink-tertiary leading-relaxed whitespace-pre-wrap">
+        {content}
+      </p>
     );
   }
 
@@ -271,7 +273,7 @@ export function RichContentRenderer({ content }: { content: string }) {
       {blocks.map((block, idx) => {
         if (block.type === "text" && block.content) {
           return (
-            <p key={idx} className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+            <p key={idx} className="text-sm text-ink-tertiary leading-relaxed whitespace-pre-wrap">
               {block.content}
             </p>
           );
@@ -286,7 +288,7 @@ export function RichContentRenderer({ content }: { content: string }) {
                 className="w-full object-cover"
                 style={{ maxHeight: "400px" }}
               />
-              {block.alt && <p className="mt-1 text-xs text-gray-400 italic">{block.alt}</p>}
+              {block.alt && <p className="mt-1 text-xs text-ink-faint italic">{block.alt}</p>}
             </div>
           );
         }

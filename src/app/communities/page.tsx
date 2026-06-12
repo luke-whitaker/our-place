@@ -60,7 +60,7 @@ export default function CommunitiesPage() {
   if (loading) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-3 border-indigo-500 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-3 border-accent-500 border-t-transparent" />
       </div>
     );
   }
@@ -70,12 +70,12 @@ export default function CommunitiesPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Communities</h1>
-          <p className="text-sm text-gray-500 mt-1">Discover spaces that match your interests</p>
+          <h1 className="text-2xl font-bold text-ink">Communities</h1>
+          <p className="text-sm text-ink-muted mt-1">Discover spaces that match your interests</p>
         </div>
         <Link
           href="/communities/create"
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-5 py-2.5 text-sm font-medium text-white shadow-md hover:shadow-lg transition-shadow"
+          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-accent-500 to-purple-600 px-5 py-2.5 text-sm font-medium text-ink-inverse shadow-md hover:shadow-lg transition-shadow"
         >
           <svg
             className="h-4 w-4"
@@ -94,7 +94,7 @@ export default function CommunitiesPage() {
       <div className="flex flex-col sm:flex-row gap-3 mb-8">
         <div className="relative flex-1">
           <svg
-            className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400"
+            className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-ink-faint"
             fill="none"
             viewBox="0 0 24 24"
             strokeWidth={1.5}
@@ -111,13 +111,13 @@ export default function CommunitiesPage() {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search communities..."
-            className="w-full rounded-xl border border-gray-200 bg-white pl-10 pr-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+            className="w-full rounded-xl border border-line bg-surface pl-10 pr-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
           />
         </div>
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+          className="rounded-xl border border-line bg-surface px-4 py-2.5 text-sm text-ink-secondary focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
         >
           <option value="">All Categories</option>
           {COMMUNITY_CATEGORIES.map((cat) => (
@@ -134,13 +134,13 @@ export default function CommunitiesPage() {
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="animate-pulse rounded-2xl border border-gray-200 bg-white overflow-hidden"
+              className="animate-pulse rounded-2xl border border-line bg-surface overflow-hidden"
             >
-              <div className="h-24 bg-gray-100" />
+              <div className="h-24 bg-surface-emphasis" />
               <div className="p-4 space-y-3">
-                <div className="h-4 w-3/4 rounded bg-gray-100" />
-                <div className="h-3 w-full rounded bg-gray-100" />
-                <div className="h-3 w-2/3 rounded bg-gray-100" />
+                <div className="h-4 w-3/4 rounded bg-surface-emphasis" />
+                <div className="h-3 w-full rounded bg-surface-emphasis" />
+                <div className="h-3 w-2/3 rounded bg-surface-emphasis" />
               </div>
             </div>
           ))}
@@ -152,16 +152,16 @@ export default function CommunitiesPage() {
           ))}
         </div>
       ) : (
-        <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white p-12 text-center">
-          <h3 className="text-lg font-semibold text-gray-900">No communities found</h3>
-          <p className="mt-2 text-sm text-gray-500">
+        <div className="rounded-2xl border-2 border-dashed border-line bg-surface p-12 text-center">
+          <h3 className="text-lg font-semibold text-ink">No communities found</h3>
+          <p className="mt-2 text-sm text-ink-muted">
             {search || category
               ? "Try adjusting your search or filters."
               : "Be the first to create a community!"}
           </p>
           <Link
             href="/communities/create"
-            className="mt-4 inline-flex rounded-xl bg-indigo-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-600"
+            className="mt-4 inline-flex rounded-xl bg-accent-500 px-6 py-2.5 text-sm font-medium text-ink-inverse hover:bg-accent-600"
           >
             Create One
           </Link>

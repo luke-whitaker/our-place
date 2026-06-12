@@ -47,7 +47,7 @@ export default function ForgotPasswordPage() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white mb-4">
+          <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-accent-500 to-purple-600 text-ink-inverse mb-4">
             <svg
               className="h-7 w-7"
               fill="none"
@@ -62,8 +62,8 @@ export default function ForgotPasswordPage() {
               />
             </svg>
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Forgot Your Password?</h1>
-          <p className="mt-2 text-sm text-gray-500 max-w-sm mx-auto">
+          <h1 className="text-2xl font-bold text-ink">Forgot Your Password?</h1>
+          <p className="mt-2 text-sm text-ink-muted max-w-sm mx-auto">
             Enter the email address associated with your account and we&apos;ll send you a code to
             reset your password.
           </p>
@@ -72,7 +72,7 @@ export default function ForgotPasswordPage() {
         {/* Form */}
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm"
+          className="rounded-2xl border border-line bg-surface p-6 shadow-sm"
         >
           {error && (
             <div className="mb-5 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
@@ -81,7 +81,9 @@ export default function ForgotPasswordPage() {
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+            <label className="block text-sm font-medium text-ink-secondary mb-1.5">
+              Email Address
+            </label>
             <input
               type="email"
               value={email}
@@ -91,21 +93,21 @@ export default function ForgotPasswordPage() {
               }}
               placeholder="you@example.com"
               required
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             />
           </div>
 
           <button
             type="submit"
             disabled={loading}
-            className="mt-6 w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-4 py-3 text-sm font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="mt-6 w-full rounded-xl bg-gradient-to-r from-accent-500 to-purple-600 px-4 py-3 text-sm font-semibold text-ink-inverse shadow-lg shadow-accent-500/25 transition-all hover:shadow-xl hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? "Sending Code..." : "Send Reset Code"}
           </button>
 
-          <p className="mt-5 text-center text-sm text-gray-500">
+          <p className="mt-5 text-center text-sm text-ink-muted">
             Remember your password?{" "}
-            <Link href="/auth/login" className="font-medium text-indigo-600 hover:text-indigo-500">
+            <Link href="/auth/login" className="font-medium text-accent-600 hover:text-accent-500">
               Sign in
             </Link>
           </p>

@@ -12,6 +12,49 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/*
+ * Semantic design tokens — the single place to retheme the forum.
+ *
+ * Components reference ONLY these (surface/ink/line/accent); raw gray-* and
+ * indigo-* utilities are banned in src. Current values reproduce the original
+ * Tailwind gray/indigo palette exactly (zero visual change at introduction);
+ * the retro UI pass swaps these values, not component classes.
+ */
+@theme {
+  /* Surfaces (backgrounds), lightest to darkest */
+  --color-surface: #fff; /* cards, panels, inputs (was white) */
+  --color-surface-muted: oklch(98.5% 0.002 247.839); /* subtle wells (was gray-50) */
+  --color-surface-emphasis: oklch(96.7% 0.003 264.542); /* chips, hovers (was gray-100) */
+  --color-surface-inset: oklch(92.8% 0.006 264.531); /* pressed, tracks (was gray-200) */
+  --color-surface-inverse-soft: oklch(27.8% 0.033 256.848); /* dark panels (was gray-800) */
+  --color-surface-inverse: oklch(21% 0.034 264.665); /* darkest panels (was gray-900) */
+
+  /* Ink (text), strongest to faintest */
+  --color-ink: oklch(21% 0.034 264.665); /* headings, primary copy (was gray-900) */
+  --color-ink-secondary: oklch(37.3% 0.034 259.733); /* body copy (was gray-700) */
+  --color-ink-tertiary: oklch(44.6% 0.03 256.802); /* supporting copy (was gray-600) */
+  --color-ink-muted: oklch(55.1% 0.027 264.364); /* metadata, captions (was gray-500) */
+  --color-ink-faint: oklch(70.7% 0.022 261.325); /* placeholders, icons (was gray-400) */
+  --color-ink-disabled: oklch(87.2% 0.01 258.338); /* disabled text (was gray-300) */
+  --color-ink-inverse: #fff; /* text on accent/inverse surfaces (was white) */
+
+  /* Lines (borders, dividers, rings) */
+  --color-line-soft: oklch(96.7% 0.003 264.542); /* hairlines (was gray-100) */
+  --color-line: oklch(92.8% 0.006 264.531); /* default borders (was gray-200) */
+  --color-line-strong: oklch(87.2% 0.01 258.338); /* emphasized borders (was gray-300) */
+  --color-line-inverse: oklch(27.8% 0.033 256.848); /* borders on dark (was gray-800) */
+
+  /* Accent ramp — the brand color (was indigo) */
+  --color-accent-50: oklch(96.2% 0.018 272.314);
+  --color-accent-100: oklch(93% 0.034 272.788);
+  --color-accent-200: oklch(87% 0.065 274.039);
+  --color-accent-300: oklch(78.5% 0.115 274.713);
+  --color-accent-400: oklch(67.3% 0.182 276.935);
+  --color-accent-500: oklch(58.5% 0.233 277.117);
+  --color-accent-600: oklch(51.1% 0.262 276.966);
+  --color-accent-700: oklch(45.7% 0.24 277.023);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);

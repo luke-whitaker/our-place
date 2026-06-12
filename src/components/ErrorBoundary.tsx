@@ -51,8 +51,8 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
                 />
               </svg>
             </div>
-            <h2 className="text-lg font-semibold text-gray-900">Something went wrong</h2>
-            <p className="mt-2 text-sm text-gray-500">
+            <h2 className="text-lg font-semibold text-ink">Something went wrong</h2>
+            <p className="mt-2 text-sm text-ink-muted">
               An unexpected error occurred. Please try refreshing the page.
             </p>
             {process.env.NODE_ENV !== "production" && this.state.error && (
@@ -72,7 +72,7 @@ export default class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBo
                 this.setState({ hasError: false, error: null });
                 window.location.reload();
               }}
-              className="mt-6 inline-flex rounded-xl bg-indigo-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-600 transition-colors"
+              className="mt-6 inline-flex rounded-xl bg-accent-500 px-6 py-2.5 text-sm font-medium text-ink-inverse hover:bg-accent-600 transition-colors"
             >
               Refresh Page
             </button>

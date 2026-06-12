@@ -132,7 +132,7 @@ export default function ProfilePage() {
   if (loading || loadingProfile) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-3 border-indigo-500 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-3 border-accent-500 border-t-transparent" />
       </div>
     );
   }
@@ -142,7 +142,7 @@ export default function ProfilePage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       {/* Profile Card */}
-      <div className="rounded-2xl border border-gray-200 bg-white overflow-hidden shadow-sm">
+      <div className="rounded-2xl border border-line bg-surface overflow-hidden shadow-sm">
         {/* Banner */}
         <div
           className="h-32"
@@ -154,7 +154,7 @@ export default function ProfilePage() {
         {/* Profile Info */}
         <div className="relative px-6 pb-6">
           <div
-            className="-mt-12 flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-white text-white text-3xl font-bold shadow-lg"
+            className="-mt-12 flex h-24 w-24 items-center justify-center rounded-2xl border-4 border-white text-ink-inverse text-3xl font-bold shadow-lg"
             style={{ backgroundColor: user.avatar_color }}
           >
             {user.display_name.charAt(0).toUpperCase()}
@@ -162,7 +162,7 @@ export default function ProfilePage() {
 
           <div className="mt-4">
             <div className="flex items-center gap-3">
-              <h1 className="text-2xl font-bold text-gray-900">{user.display_name}</h1>
+              <h1 className="text-2xl font-bold text-ink">{user.display_name}</h1>
               {user.is_verified ? (
                 <span className="flex items-center gap-1 rounded-full bg-green-50 px-2.5 py-0.5 text-xs font-medium text-green-600">
                   <svg
@@ -178,21 +178,21 @@ export default function ProfilePage() {
                 </span>
               ) : null}
             </div>
-            <p className="text-sm text-gray-500 mt-0.5">@{user.username}</p>
+            <p className="text-sm text-ink-muted mt-0.5">@{user.username}</p>
           </div>
 
           {/* Stats */}
           <div className="mt-6 flex gap-8">
             <div>
-              <p className="text-2xl font-bold text-gray-900">{myPlacePosts.length}</p>
-              <p className="text-xs text-gray-500">My Place Posts</p>
+              <p className="text-2xl font-bold text-ink">{myPlacePosts.length}</p>
+              <p className="text-xs text-ink-muted">My Place Posts</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">{communities.length}</p>
-              <p className="text-xs text-gray-500">Communities</p>
+              <p className="text-2xl font-bold text-ink">{communities.length}</p>
+              <p className="text-xs text-ink-muted">Communities</p>
             </div>
             <div>
-              <p className="text-2xl font-bold text-gray-900">
+              <p className="text-2xl font-bold text-ink">
                 {user.created_at
                   ? new Date(user.created_at).toLocaleDateString("en-US", {
                       month: "short",
@@ -200,22 +200,22 @@ export default function ProfilePage() {
                     })
                   : "—"}
               </p>
-              <p className="text-xs text-gray-500">Member Since</p>
+              <p className="text-xs text-ink-muted">Member Since</p>
             </div>
           </div>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="mt-6 flex gap-1 rounded-xl bg-gray-100 p-1">
+      <div className="mt-6 flex gap-1 rounded-xl bg-surface-emphasis p-1">
         {TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`flex flex-1 items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-medium transition-all ${
               activeTab === tab.id
-                ? "bg-white text-indigo-600 shadow-sm"
-                : "text-gray-500 hover:text-gray-700"
+                ? "bg-surface text-accent-600 shadow-sm"
+                : "text-ink-muted hover:text-ink-secondary"
             }`}
           >
             {tab.icon}
@@ -228,7 +228,7 @@ export default function ProfilePage() {
       {activeTab === "my-place" && (
         <div className="mt-6 space-y-6">
           {/* Description */}
-          <div className="rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50 to-indigo-50 p-5">
+          <div className="rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50 to-accent-50 p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
                 <svg
@@ -246,8 +246,8 @@ export default function ProfilePage() {
                 </svg>
               </div>
               <div className="min-w-0 flex-1">
-                <h2 className="text-sm font-semibold text-gray-900">Welcome to My Place</h2>
-                <p className="text-xs text-gray-500 mt-0.5">
+                <h2 className="text-sm font-semibold text-ink">Welcome to My Place</h2>
+                <p className="text-xs text-ink-muted mt-0.5">
                   Your personal space to share thoughts, photos, and more. Posts here and
                   cross-posts from communities all live here.
                 </p>
@@ -255,7 +255,7 @@ export default function ProfilePage() {
               <Link
                 href="/world?at=my-place"
                 title="Port into the 8-bit world at your home"
-                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-white px-3 py-2 text-sm font-medium text-violet-600 shadow-sm transition-colors hover:bg-violet-100"
+                className="flex shrink-0 items-center gap-1.5 rounded-xl bg-surface px-3 py-2 text-sm font-medium text-violet-600 shadow-sm transition-colors hover:bg-violet-100"
               >
                 <span aria-hidden>🍄</span> Portal
               </Link>
@@ -268,7 +268,7 @@ export default function ProfilePage() {
           {/* Posts */}
           {loadingPosts ? (
             <div className="flex justify-center py-8">
-              <div className="h-6 w-6 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+              <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent-500 border-t-transparent" />
             </div>
           ) : myPlacePosts.length > 0 ? (
             <div className="space-y-4">
@@ -277,9 +277,9 @@ export default function ProfilePage() {
               ))}
             </div>
           ) : (
-            <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white p-10 text-center">
+            <div className="rounded-2xl border-2 border-dashed border-line bg-surface p-10 text-center">
               <svg
-                className="mx-auto h-10 w-10 text-gray-300"
+                className="mx-auto h-10 w-10 text-ink-disabled"
                 fill="none"
                 viewBox="0 0 24 24"
                 strokeWidth={1}
@@ -291,8 +291,8 @@ export default function ProfilePage() {
                   d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"
                 />
               </svg>
-              <h3 className="mt-3 text-base font-semibold text-gray-900">No posts yet</h3>
-              <p className="mt-1 text-sm text-gray-500">
+              <h3 className="mt-3 text-base font-semibold text-ink">No posts yet</h3>
+              <p className="mt-1 text-sm text-ink-muted">
                 Share your first post, or use &quot;Also post to My Place&quot; when posting in a
                 community.
               </p>
@@ -305,8 +305,8 @@ export default function ProfilePage() {
       {activeTab === "communities" && (
         <div className="mt-6">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-gray-900">My Communities</h2>
-            <Link href="/communities" className="text-sm text-indigo-600 hover:text-indigo-500">
+            <h2 className="text-lg font-semibold text-ink">My Communities</h2>
+            <Link href="/communities" className="text-sm text-accent-600 hover:text-accent-500">
               Discover more
             </Link>
           </div>
@@ -317,7 +317,7 @@ export default function ProfilePage() {
                 <Link
                   key={community.id}
                   href={`/communities/${community.slug}`}
-                  className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-4 transition-all hover:shadow-md hover:-translate-y-0.5"
+                  className="flex items-center gap-3 rounded-xl border border-line bg-surface p-4 transition-all hover:shadow-md hover:-translate-y-0.5"
                 >
                   <div
                     className="flex h-10 w-10 items-center justify-center rounded-xl text-lg"
@@ -326,21 +326,21 @@ export default function ProfilePage() {
                     {community.icon}
                   </div>
                   <div className="min-w-0 flex-1">
-                    <p className="text-sm font-medium text-gray-900 truncate">{community.name}</p>
-                    <p className="text-xs text-gray-400">{community.member_count} members</p>
+                    <p className="text-sm font-medium text-ink truncate">{community.name}</p>
+                    <p className="text-xs text-ink-faint">{community.member_count} members</p>
                   </div>
                   {community.role === "admin" && (
-                    <span className="text-xs text-indigo-500 font-medium">Admin</span>
+                    <span className="text-xs text-accent-500 font-medium">Admin</span>
                   )}
                 </Link>
               ))}
             </div>
           ) : (
-            <div className="rounded-xl border-2 border-dashed border-gray-200 bg-white p-8 text-center">
-              <p className="text-sm text-gray-500">You haven&apos;t joined any communities yet.</p>
+            <div className="rounded-xl border-2 border-dashed border-line bg-surface p-8 text-center">
+              <p className="text-sm text-ink-muted">You haven&apos;t joined any communities yet.</p>
               <Link
                 href="/communities"
-                className="mt-3 inline-flex rounded-lg bg-indigo-500 px-5 py-2 text-sm font-medium text-white hover:bg-indigo-600"
+                className="mt-3 inline-flex rounded-lg bg-accent-500 px-5 py-2 text-sm font-medium text-ink-inverse hover:bg-accent-600"
               >
                 Browse Communities
               </Link>

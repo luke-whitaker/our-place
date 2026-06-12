@@ -240,7 +240,7 @@ export default function FeedPage() {
   if (loading || loadingFeed) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-3 border-indigo-500 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-3 border-accent-500 border-t-transparent" />
       </div>
     );
   }
@@ -269,7 +269,7 @@ export default function FeedPage() {
     if (loadingTab) {
       return (
         <div className="flex justify-center py-16">
-          <div className="h-8 w-8 animate-spin rounded-full border-3 border-indigo-500 border-t-transparent" />
+          <div className="h-8 w-8 animate-spin rounded-full border-3 border-accent-500 border-t-transparent" />
         </div>
       );
     }
@@ -285,12 +285,12 @@ export default function FeedPage() {
     }
 
     return (
-      <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white p-12 text-center">
-        <h3 className="text-lg font-semibold text-gray-900">{emptyMessage}</h3>
+      <div className="rounded-2xl border-2 border-dashed border-line bg-surface p-12 text-center">
+        <h3 className="text-lg font-semibold text-ink">{emptyMessage}</h3>
         {emptyAction && (
           <Link
             href={emptyAction.href}
-            className="mt-5 inline-flex rounded-xl bg-indigo-500 px-6 py-2.5 text-sm font-medium text-white hover:bg-indigo-600"
+            className="mt-5 inline-flex rounded-xl bg-accent-500 px-6 py-2.5 text-sm font-medium text-ink-inverse hover:bg-accent-600"
           >
             {emptyAction.label}
           </Link>
@@ -326,12 +326,12 @@ export default function FeedPage() {
           <div className="space-y-6">
             {loadingTab ? (
               <div className="flex justify-center py-16">
-                <div className="h-8 w-8 animate-spin rounded-full border-3 border-indigo-500 border-t-transparent" />
+                <div className="h-8 w-8 animate-spin rounded-full border-3 border-accent-500 border-t-transparent" />
               </div>
             ) : (
               <>
                 {/* Mini Calendar */}
-                <div className="rounded-2xl border border-gray-200 bg-white p-5">
+                <div className="rounded-2xl border border-line bg-surface p-5">
                   <div className="flex items-center justify-between mb-4">
                     <button
                       onClick={() => {
@@ -340,7 +340,7 @@ export default function FeedPage() {
                           setCalYear(calYear - 1);
                         } else setCalMonth(calMonth - 1);
                       }}
-                      className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+                      className="rounded-lg p-1.5 text-ink-muted hover:bg-surface-emphasis"
                     >
                       <svg
                         className="h-4 w-4"
@@ -356,7 +356,7 @@ export default function FeedPage() {
                         />
                       </svg>
                     </button>
-                    <h3 className="text-sm font-semibold text-gray-900">{monthName}</h3>
+                    <h3 className="text-sm font-semibold text-ink">{monthName}</h3>
                     <button
                       onClick={() => {
                         if (calMonth === 11) {
@@ -364,7 +364,7 @@ export default function FeedPage() {
                           setCalYear(calYear + 1);
                         } else setCalMonth(calMonth + 1);
                       }}
-                      className="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100"
+                      className="rounded-lg p-1.5 text-ink-muted hover:bg-surface-emphasis"
                     >
                       <svg
                         className="h-4 w-4"
@@ -384,7 +384,7 @@ export default function FeedPage() {
 
                   <div className="grid grid-cols-7 gap-1 text-center">
                     {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((d) => (
-                      <div key={d} className="text-xs font-medium text-gray-400 py-1">
+                      <div key={d} className="text-xs font-medium text-ink-faint py-1">
                         {d}
                       </div>
                     ))}
@@ -403,14 +403,14 @@ export default function FeedPage() {
                             !day
                               ? ""
                               : isToday
-                                ? "bg-indigo-500 text-white font-bold"
-                                : "text-gray-700 hover:bg-gray-100"
+                                ? "bg-accent-500 text-ink-inverse font-bold"
+                                : "text-ink-secondary hover:bg-surface-emphasis"
                           }`}
                         >
                           {day || ""}
                           {hasEvent && (
                             <span
-                              className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full ${isToday ? "bg-white" : "bg-indigo-500"}`}
+                              className={`absolute bottom-0.5 left-1/2 -translate-x-1/2 h-1 w-1 rounded-full ${isToday ? "bg-surface" : "bg-accent-500"}`}
                             />
                           )}
                         </div>
@@ -421,32 +421,32 @@ export default function FeedPage() {
 
                 {/* Upcoming Events */}
                 <div>
-                  <h3 className="text-base font-semibold text-gray-900 mb-3">Upcoming Events</h3>
+                  <h3 className="text-base font-semibold text-ink mb-3">Upcoming Events</h3>
                   {events.length > 0 ? (
                     <div className="space-y-3">
                       {events.map((event) => (
                         <div
                           key={event.id}
-                          className="rounded-2xl border border-gray-200 bg-white p-5 transition-shadow hover:shadow-md"
+                          className="rounded-2xl border border-line bg-surface p-5 transition-shadow hover:shadow-md"
                         >
                           <div className="flex items-start gap-4">
-                            <div className="flex flex-col items-center justify-center rounded-xl bg-indigo-50 px-3 py-2 text-center shrink-0">
-                              <span className="text-xs font-medium text-indigo-600">
+                            <div className="flex flex-col items-center justify-center rounded-xl bg-accent-50 px-3 py-2 text-center shrink-0">
+                              <span className="text-xs font-medium text-accent-600">
                                 {new Date(event.event_date).toLocaleDateString("en-US", {
                                   month: "short",
                                 })}
                               </span>
-                              <span className="text-xl font-bold text-indigo-700">
+                              <span className="text-xl font-bold text-accent-700">
                                 {new Date(event.event_date).getDate()}
                               </span>
                             </div>
                             <div className="min-w-0 flex-1">
-                              <h4 className="text-sm font-semibold text-gray-900">{event.title}</h4>
-                              <p className="mt-0.5 text-xs text-gray-500">
+                              <h4 className="text-sm font-semibold text-ink">{event.title}</h4>
+                              <p className="mt-0.5 text-xs text-ink-muted">
                                 {formatEventDate(event.event_date)}
                               </p>
                               {event.location && (
-                                <p className="mt-0.5 text-xs text-gray-400 flex items-center gap-1">
+                                <p className="mt-0.5 text-xs text-ink-faint flex items-center gap-1">
                                   <svg
                                     className="h-3 w-3"
                                     fill="none"
@@ -469,15 +469,15 @@ export default function FeedPage() {
                                 </p>
                               )}
                               {event.community_name && (
-                                <p className="mt-1 text-xs text-indigo-600">
+                                <p className="mt-1 text-xs text-accent-600">
                                   {event.community_icon} {event.community_name}
                                 </p>
                               )}
-                              <p className="mt-2 text-sm text-gray-600 line-clamp-2">
+                              <p className="mt-2 text-sm text-ink-tertiary line-clamp-2">
                                 {event.description}
                               </p>
                               {event.rsvp_count !== undefined && event.rsvp_count > 0 && (
-                                <p className="mt-2 text-xs text-gray-400">
+                                <p className="mt-2 text-xs text-ink-faint">
                                   {event.rsvp_count} going
                                 </p>
                               )}
@@ -487,9 +487,9 @@ export default function FeedPage() {
                       ))}
                     </div>
                   ) : (
-                    <div className="rounded-2xl border-2 border-dashed border-gray-200 bg-white p-12 text-center">
-                      <h3 className="text-lg font-semibold text-gray-900">No upcoming events</h3>
-                      <p className="mt-2 text-sm text-gray-500">
+                    <div className="rounded-2xl border-2 border-dashed border-line bg-surface p-12 text-center">
+                      <h3 className="text-lg font-semibold text-ink">No upcoming events</h3>
+                      <p className="mt-2 text-sm text-ink-muted">
                         Events from your communities will appear here.
                       </p>
                     </div>
@@ -511,8 +511,8 @@ export default function FeedPage() {
         <div className="flex-1 min-w-0">
           {/* Dynamic Header */}
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-gray-900">{TAB_CONFIG[activeTab].heading}</h1>
-            <p className="text-sm text-gray-500 mt-1">{TAB_CONFIG[activeTab].subtitle}</p>
+            <h1 className="text-2xl font-bold text-ink">{TAB_CONFIG[activeTab].heading}</h1>
+            <p className="text-sm text-ink-muted mt-1">{TAB_CONFIG[activeTab].subtitle}</p>
           </div>
 
           {/* Tab Content */}
@@ -523,10 +523,10 @@ export default function FeedPage() {
         <aside className="hidden lg:block w-72 shrink-0">
           <div className="sticky top-24 space-y-6">
             {/* My Communities */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-5">
+            <div className="rounded-2xl border border-line bg-surface p-5">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-sm font-semibold text-gray-900">My Communities</h2>
-                <Link href="/communities" className="text-xs text-indigo-600 hover:text-indigo-500">
+                <h2 className="text-sm font-semibold text-ink">My Communities</h2>
+                <Link href="/communities" className="text-xs text-accent-600 hover:text-accent-500">
                   View all
                 </Link>
               </div>
@@ -536,33 +536,33 @@ export default function FeedPage() {
                     <Link
                       key={community.id}
                       href={`/communities/${community.slug}`}
-                      className="flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-gray-50"
+                      className="flex items-center gap-3 rounded-xl px-3 py-2 transition-colors hover:bg-surface-muted"
                     >
                       <span className="text-lg">{community.icon}</span>
-                      <span className="text-sm font-medium text-gray-700 truncate">
+                      <span className="text-sm font-medium text-ink-secondary truncate">
                         {community.name}
                       </span>
                     </Link>
                   ))}
                 </div>
               ) : (
-                <p className="text-xs text-gray-400">No communities joined yet.</p>
+                <p className="text-xs text-ink-faint">No communities joined yet.</p>
               )}
               <Link
                 href="/communities"
-                className="mt-3 block rounded-xl bg-gray-50 py-2 text-center text-xs font-medium text-gray-600 hover:bg-gray-100"
+                className="mt-3 block rounded-xl bg-surface-muted py-2 text-center text-xs font-medium text-ink-tertiary hover:bg-surface-emphasis"
               >
                 Discover More
               </Link>
             </div>
 
             {/* Quick Create */}
-            <div className="rounded-2xl border border-gray-200 bg-gradient-to-br from-indigo-50 to-purple-50 p-5">
-              <h2 className="text-sm font-semibold text-gray-900">Start Something New</h2>
-              <p className="mt-1 text-xs text-gray-500">Can&apos;t find your community?</p>
+            <div className="rounded-2xl border border-line bg-gradient-to-br from-accent-50 to-purple-50 p-5">
+              <h2 className="text-sm font-semibold text-ink">Start Something New</h2>
+              <p className="mt-1 text-xs text-ink-muted">Can&apos;t find your community?</p>
               <Link
                 href="/communities/create"
-                className="mt-3 block rounded-xl bg-white px-4 py-2 text-center text-sm font-medium text-indigo-600 shadow-sm hover:shadow-md transition-shadow"
+                className="mt-3 block rounded-xl bg-surface px-4 py-2 text-center text-sm font-medium text-accent-600 shadow-sm hover:shadow-md transition-shadow"
               >
                 Create a Community
               </Link>
@@ -574,7 +574,7 @@ export default function FeedPage() {
       {/* ── Bottom Dashboard Navigation (fixed on mobile, inline on desktop) ── */}
       <nav
         aria-label="Feed navigation"
-        className="fixed bottom-0 inset-x-0 z-40 border-t border-gray-200 bg-white/95 backdrop-blur-lg sm:static sm:mt-8 sm:rounded-2xl sm:border sm:bg-white sm:shadow-sm"
+        className="fixed bottom-0 inset-x-0 z-40 border-t border-line bg-surface/95 backdrop-blur-lg sm:static sm:mt-8 sm:rounded-2xl sm:border sm:bg-surface sm:shadow-sm"
       >
         <div className="mx-auto max-w-lg flex">
           {[
@@ -591,17 +591,17 @@ export default function FeedPage() {
                 aria-label={TAB_CONFIG[key].label}
                 aria-current={active ? "page" : undefined}
                 className={`flex-1 flex flex-col items-center gap-1 py-3 sm:py-4 transition-colors ${
-                  active ? "text-indigo-600" : "text-gray-400 hover:text-gray-600"
+                  active ? "text-accent-600" : "text-ink-faint hover:text-ink-tertiary"
                 }`}
               >
                 <Icon active={active} />
                 <span
-                  className={`text-[10px] sm:text-xs font-medium ${active ? "text-indigo-600" : "text-gray-400"}`}
+                  className={`text-[10px] sm:text-xs font-medium ${active ? "text-accent-600" : "text-ink-faint"}`}
                 >
                   {TAB_CONFIG[key].label}
                 </span>
                 {active && (
-                  <span className="absolute bottom-0 h-0.5 w-10 rounded-full bg-indigo-500 sm:hidden" />
+                  <span className="absolute bottom-0 h-0.5 w-10 rounded-full bg-accent-500 sm:hidden" />
                 )}
               </button>
             );

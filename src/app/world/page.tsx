@@ -21,10 +21,10 @@ function WorldView() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-gray-900 p-2">
-      <h1 className="mb-4 text-lg font-bold text-white">The World</h1>
+    <div className="flex min-h-screen flex-col items-center justify-center bg-surface-inverse p-2">
+      <h1 className="mb-4 text-lg font-bold text-ink-inverse">The World</h1>
       <WorldCanvas onDoorInteract={handleDoorInteract} spawnAt={spawnAt} />
-      <p className="mt-4 text-center text-sm text-gray-400">
+      <p className="mt-4 text-center text-sm text-ink-faint">
         WASD or arrow keys to move — Enter to use doors and mushroom shrines
       </p>
     </div>
@@ -34,7 +34,9 @@ function WorldView() {
 export default function WorldPage() {
   return (
     <Suspense
-      fallback={<div className="flex min-h-screen items-center justify-center bg-gray-900" />}
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-surface-inverse" />
+      }
     >
       <WorldView />
     </Suspense>

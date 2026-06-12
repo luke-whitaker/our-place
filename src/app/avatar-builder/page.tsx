@@ -89,8 +89,8 @@ export default function AvatarBuilderPage() {
 
   if (loading) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gray-50">
-        <div className="h-8 w-8 animate-spin rounded-full border-3 border-indigo-500 border-t-transparent" />
+      <div className="flex min-h-screen items-center justify-center bg-surface-muted">
+        <div className="h-8 w-8 animate-spin rounded-full border-3 border-accent-500 border-t-transparent" />
       </div>
     );
   }
@@ -100,14 +100,14 @@ export default function AvatarBuilderPage() {
   const isFirstTime = !user.avatar;
 
   return (
-    <div className="min-h-screen bg-gray-50 px-4 py-8 sm:py-12">
+    <div className="min-h-screen bg-surface-muted px-4 py-8 sm:py-12">
       <div className="mx-auto max-w-lg">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-gray-900 sm:text-3xl">
+          <h1 className="text-2xl font-bold text-ink sm:text-3xl">
             {isFirstTime ? "Create Your Avatar" : "Edit Your Avatar"}
           </h1>
-          <p className="mt-2 text-sm text-gray-500">
+          <p className="mt-2 text-sm text-ink-muted">
             {isFirstTime
               ? "Welcome to Our Place! Customize your character before entering the world."
               : "Update how you look in the world."}
@@ -116,7 +116,7 @@ export default function AvatarBuilderPage() {
 
         {/* Preview */}
         <div className="flex justify-center mb-8">
-          <div className="rounded-2xl border-2 border-gray-200 bg-gray-800 p-6 shadow-lg">
+          <div className="rounded-2xl border-2 border-line bg-surface-inverse-soft p-6 shadow-lg">
             <canvas
               ref={canvasRef}
               width={PREVIEW_SIZE}
@@ -127,10 +127,12 @@ export default function AvatarBuilderPage() {
         </div>
 
         {/* Options */}
-        <div className="space-y-6 rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <div className="space-y-6 rounded-2xl border border-line bg-surface p-6 shadow-sm">
           {/* Hair Style */}
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-3">Hair Style</label>
+            <label className="block text-sm font-semibold text-ink-secondary mb-3">
+              Hair Style
+            </label>
             <div className="flex gap-3">
               {(["short", "long"] as const).map((style) => (
                 <button
@@ -138,8 +140,8 @@ export default function AvatarBuilderPage() {
                   onClick={() => update("hairStyle", style)}
                   className={`flex-1 rounded-xl border-2 px-4 py-3 text-sm font-medium capitalize transition-all ${
                     config.hairStyle === style
-                      ? "border-indigo-500 bg-indigo-50 text-indigo-700"
-                      : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+                      ? "border-accent-500 bg-accent-50 text-accent-700"
+                      : "border-line bg-surface text-ink-tertiary hover:border-line-strong"
                   }`}
                 >
                   {style}
@@ -196,7 +198,7 @@ export default function AvatarBuilderPage() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="mt-6 w-full rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-6 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="mt-6 w-full rounded-xl bg-gradient-to-r from-accent-500 to-purple-600 px-6 py-3.5 text-base font-semibold text-ink-inverse shadow-lg shadow-accent-500/25 transition-all hover:shadow-xl hover:brightness-110 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {saving ? "Saving..." : isFirstTime ? "Enter the World" : "Save Changes"}
         </button>
@@ -205,7 +207,7 @@ export default function AvatarBuilderPage() {
         {isFirstTime && (
           <button
             onClick={() => router.push("/feed")}
-            className="mt-3 w-full rounded-xl px-6 py-3 text-sm font-medium text-gray-500 hover:text-gray-700 transition-colors"
+            className="mt-3 w-full rounded-xl px-6 py-3 text-sm font-medium text-ink-muted hover:text-ink-secondary transition-colors"
           >
             Skip for now
           </button>
@@ -232,7 +234,7 @@ function ColorPicker({
 
   return (
     <div>
-      <label className="block text-sm font-semibold text-gray-700 mb-3">{label}</label>
+      <label className="block text-sm font-semibold text-ink-secondary mb-3">{label}</label>
       <div className="flex flex-wrap gap-3">
         {colors.map((color) => (
           <button
@@ -240,8 +242,8 @@ function ColorPicker({
             onClick={() => onChange(color)}
             className={`${size} rounded-xl border-2 transition-all ${
               value === color
-                ? "border-indigo-500 ring-2 ring-indigo-200 scale-110"
-                : "border-gray-200 hover:border-gray-300"
+                ? "border-accent-500 ring-2 ring-accent-200 scale-110"
+                : "border-line hover:border-line-strong"
             }`}
             style={{ backgroundColor: color }}
             aria-label={`Select ${label.toLowerCase()} ${color}`}

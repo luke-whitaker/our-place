@@ -18,7 +18,7 @@ export default function Home() {
   if (loading) {
     return (
       <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-3 border-indigo-500 border-t-transparent" />
+        <div className="h-8 w-8 animate-spin rounded-full border-3 border-accent-500 border-t-transparent" />
       </div>
     );
   }
@@ -29,26 +29,26 @@ export default function Home() {
       <section className="relative px-4 pt-20 pb-32 sm:px-6 lg:pt-32 lg:pb-40">
         {/* Background decoration */}
         <div className="absolute inset-0 -z-10">
-          <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-gradient-to-br from-indigo-100 via-purple-50 to-pink-50 opacity-60 blur-3xl" />
-          <div className="absolute top-40 right-0 h-64 w-64 rounded-full bg-indigo-100 opacity-40 blur-3xl" />
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 h-[600px] w-[900px] rounded-full bg-gradient-to-br from-accent-100 via-purple-50 to-pink-50 opacity-60 blur-3xl" />
+          <div className="absolute top-40 right-0 h-64 w-64 rounded-full bg-accent-100 opacity-40 blur-3xl" />
           <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-purple-100 opacity-40 blur-3xl" />
         </div>
 
         <div className="mx-auto max-w-4xl text-center">
           {/* Badge */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-indigo-200 bg-indigo-50 px-4 py-1.5 text-sm font-medium text-indigo-700 mb-8">
-            <span className="h-2 w-2 rounded-full bg-indigo-500 animate-pulse" />
+          <div className="inline-flex items-center gap-2 rounded-full border border-accent-200 bg-accent-50 px-4 py-1.5 text-sm font-medium text-accent-700 mb-8">
+            <span className="h-2 w-2 rounded-full bg-accent-500 animate-pulse" />
             Reimagining social media for real humans
           </div>
 
-          <h1 className="text-5xl font-bold tracking-tight text-gray-900 sm:text-6xl lg:text-7xl">
+          <h1 className="text-5xl font-bold tracking-tight text-ink sm:text-6xl lg:text-7xl">
             Welcome to{" "}
-            <span className="bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-accent-600 via-purple-600 to-pink-500 bg-clip-text text-transparent">
               Our Place
             </span>
           </h1>
 
-          <p className="mt-6 text-lg text-gray-600 leading-relaxed max-w-2xl mx-auto sm:text-xl">
+          <p className="mt-6 text-lg text-ink-tertiary leading-relaxed max-w-2xl mx-auto sm:text-xl">
             A social platform built on trust, belonging, and genuine connection. One human, one
             account — because real communities are built by real people.
           </p>
@@ -56,7 +56,7 @@ export default function Home() {
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link
               href="/auth/login"
-              className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-indigo-500 to-purple-600 px-8 py-3.5 text-base font-semibold text-white shadow-lg shadow-indigo-500/25 transition-all hover:shadow-xl hover:shadow-indigo-500/30 hover:brightness-110"
+              className="w-full sm:w-auto rounded-xl bg-gradient-to-r from-accent-500 to-purple-600 px-8 py-3.5 text-base font-semibold text-ink-inverse shadow-lg shadow-accent-500/25 transition-all hover:shadow-xl hover:shadow-accent-500/30 hover:brightness-110"
             >
               Sign In
             </Link>
@@ -65,13 +65,11 @@ export default function Home() {
       </section>
 
       {/* Values Section */}
-      <section className="border-t border-gray-200 bg-white px-4 py-24 sm:px-6">
+      <section className="border-t border-line bg-surface px-4 py-24 sm:px-6">
         <div className="mx-auto max-w-6xl">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">
-              Social media, reimagined
-            </h2>
-            <p className="mt-4 text-lg text-gray-500 max-w-2xl mx-auto">
+            <h2 className="text-3xl font-bold text-ink sm:text-4xl">Social media, reimagined</h2>
+            <p className="mt-4 text-lg text-ink-muted max-w-2xl mx-auto">
               We designed Our Place from the ground up to prioritize what matters most — you and
               your community.
             </p>
@@ -79,8 +77,8 @@ export default function Home() {
 
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {/* Value 1 */}
-            <div className="rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-gray-50/50 p-8 transition-shadow hover:shadow-lg">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-indigo-100 text-indigo-600 mb-5">
+            <div className="rounded-2xl border border-line-soft bg-gradient-to-b from-surface to-surface-muted/50 p-8 transition-shadow hover:shadow-lg">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent-100 text-accent-600 mb-5">
                 <svg
                   className="h-6 w-6"
                   fill="none"
@@ -95,8 +93,8 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">In-Person First</h3>
-              <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+              <h3 className="text-lg font-semibold text-ink">In-Person First</h3>
+              <p className="mt-2 text-sm text-ink-muted leading-relaxed">
                 Every account starts with a real-life connection. You can only join if someone who
                 knows you creates your account in person. No strangers, no bots — just people who
                 have actually met.
@@ -104,7 +102,7 @@ export default function Home() {
             </div>
 
             {/* Value 2 */}
-            <div className="rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-gray-50/50 p-8 transition-shadow hover:shadow-lg">
+            <div className="rounded-2xl border border-line-soft bg-gradient-to-b from-surface to-surface-muted/50 p-8 transition-shadow hover:shadow-lg">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-600 mb-5">
                 <svg
                   className="h-6 w-6"
@@ -120,15 +118,15 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Community-First Design</h3>
-              <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+              <h3 className="text-lg font-semibold text-ink">Community-First Design</h3>
+              <p className="mt-2 text-sm text-ink-muted leading-relaxed">
                 Everything revolves around communities — spaces built around shared interests,
                 goals, and values. Join ones that resonate or create your own.
               </p>
             </div>
 
             {/* Value 3 */}
-            <div className="rounded-2xl border border-gray-100 bg-gradient-to-b from-white to-gray-50/50 p-8 transition-shadow hover:shadow-lg">
+            <div className="rounded-2xl border border-line-soft bg-gradient-to-b from-surface to-surface-muted/50 p-8 transition-shadow hover:shadow-lg">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 mb-5">
                 <svg
                   className="h-6 w-6"
@@ -144,8 +142,8 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-gray-900">Safe & Collaborative</h3>
-              <p className="mt-2 text-sm text-gray-500 leading-relaxed">
+              <h3 className="text-lg font-semibold text-ink">Safe & Collaborative</h3>
+              <p className="mt-2 text-sm text-ink-muted leading-relaxed">
                 Built with safety at its core. Community guidelines, member accountability, and
                 collaborative moderation create a space where everyone can thrive.
               </p>
@@ -158,38 +156,36 @@ export default function Home() {
       <section className="px-4 py-24 sm:px-6">
         <div className="mx-auto max-w-4xl">
           <div className="text-center mb-16">
-            <h2 className="text-3xl font-bold text-gray-900 sm:text-4xl">How it works</h2>
-            <p className="mt-4 text-lg text-gray-500">Getting started takes just a few minutes.</p>
+            <h2 className="text-3xl font-bold text-ink sm:text-4xl">How it works</h2>
+            <p className="mt-4 text-lg text-ink-muted">Getting started takes just a few minutes.</p>
           </div>
 
           <div className="grid gap-8 sm:grid-cols-3">
             <div className="text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-indigo-500 text-white text-xl font-bold shadow-lg shadow-indigo-500/25">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-500 text-ink-inverse text-xl font-bold shadow-lg shadow-accent-500/25">
                 1
               </div>
-              <h3 className="mt-5 text-base font-semibold text-gray-900">Meet Someone</h3>
-              <p className="mt-2 text-sm text-gray-500">
+              <h3 className="mt-5 text-base font-semibold text-ink">Meet Someone</h3>
+              <p className="mt-2 text-sm text-ink-muted">
                 Our Place starts in real life. Meet a member in person and they&apos;ll create your
                 account on the spot.
               </p>
             </div>
             <div className="text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500 text-white text-xl font-bold shadow-lg shadow-purple-500/25">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-purple-500 text-ink-inverse text-xl font-bold shadow-lg shadow-purple-500/25">
                 2
               </div>
-              <h3 className="mt-5 text-base font-semibold text-gray-900">Join Communities</h3>
-              <p className="mt-2 text-sm text-gray-500">
+              <h3 className="mt-5 text-base font-semibold text-ink">Join Communities</h3>
+              <p className="mt-2 text-sm text-ink-muted">
                 Browse and join communities that match your interests, or create a brand new one.
               </p>
             </div>
             <div className="text-center">
-              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500 text-white text-xl font-bold shadow-lg shadow-pink-500/25">
+              <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-pink-500 text-ink-inverse text-xl font-bold shadow-lg shadow-pink-500/25">
                 3
               </div>
-              <h3 className="mt-5 text-base font-semibold text-gray-900">
-                Connect Online & Offline
-              </h3>
-              <p className="mt-2 text-sm text-gray-500">
+              <h3 className="mt-5 text-base font-semibold text-ink">Connect Online & Offline</h3>
+              <p className="mt-2 text-sm text-ink-muted">
                 Post, comment, organize events, and build genuine connections — then take them into
                 the real world.
               </p>
@@ -199,15 +195,17 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-gray-200 bg-white px-4 py-12 sm:px-6">
+      <footer className="border-t border-line bg-surface px-4 py-12 sm:px-6">
         <div className="mx-auto max-w-6xl text-center">
           <div className="flex items-center justify-center gap-2.5 mb-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 text-white text-xs font-bold">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent-500 to-purple-600 text-ink-inverse text-xs font-bold">
               OP
             </div>
-            <span className="text-base font-bold text-gray-900">Our Place</span>
+            <span className="text-base font-bold text-ink">Our Place</span>
           </div>
-          <p className="text-sm text-gray-400">Built for real people. Powered by real community.</p>
+          <p className="text-sm text-ink-faint">
+            Built for real people. Powered by real community.
+          </p>
         </div>
       </footer>
     </div>

@@ -89,7 +89,7 @@ export default function VideoUploader({
             style={{ maxHeight: "300px" }}
           />
         ) : (
-          <div className="aspect-video overflow-hidden rounded-xl border border-gray-200">
+          <div className="aspect-video overflow-hidden rounded-xl border border-line">
             <iframe
               src={parseVideoUrl(video.url)?.embedUrl || video.url}
               className="h-full w-full"
@@ -105,7 +105,7 @@ export default function VideoUploader({
             setVideoUrl("");
           }}
           aria-label="Remove video"
-          className="absolute right-2 top-2 rounded-full bg-black/50 p-1.5 text-white hover:bg-black/70"
+          className="absolute right-2 top-2 rounded-full bg-black/50 p-1.5 text-ink-inverse hover:bg-black/70"
         >
           <svg
             className="h-4 w-4"
@@ -124,12 +124,12 @@ export default function VideoUploader({
   return (
     <>
       {/* Upload / Embed toggle */}
-      <div className="flex gap-1 rounded-lg bg-gray-100 p-0.5">
+      <div className="flex gap-1 rounded-lg bg-surface-emphasis p-0.5">
         <button
           type="button"
           onClick={() => setVideoMode("upload")}
           className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-            videoMode === "upload" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
+            videoMode === "upload" ? "bg-surface text-ink shadow-sm" : "text-ink-muted"
           }`}
         >
           Upload File
@@ -138,7 +138,7 @@ export default function VideoUploader({
           type="button"
           onClick={() => setVideoMode("embed")}
           className={`flex-1 rounded-md px-3 py-1.5 text-xs font-medium transition-all ${
-            videoMode === "embed" ? "bg-white text-gray-900 shadow-sm" : "text-gray-500"
+            videoMode === "embed" ? "bg-surface text-ink shadow-sm" : "text-ink-muted"
           }`}
         >
           Embed URL
@@ -162,28 +162,28 @@ export default function VideoUploader({
             onClick={() => videoInputRef.current?.click()}
             onDragOver={(e) => {
               e.preventDefault();
-              e.currentTarget.classList.add("border-indigo-400", "bg-indigo-50/50");
+              e.currentTarget.classList.add("border-accent-400", "bg-accent-50/50");
             }}
             onDragLeave={(e) => {
               e.preventDefault();
-              e.currentTarget.classList.remove("border-indigo-400", "bg-indigo-50/50");
+              e.currentTarget.classList.remove("border-accent-400", "bg-accent-50/50");
             }}
             onDrop={(e) => {
               e.preventDefault();
-              e.currentTarget.classList.remove("border-indigo-400", "bg-indigo-50/50");
+              e.currentTarget.classList.remove("border-accent-400", "bg-accent-50/50");
               handleVideoFileSelect(e.dataTransfer.files);
             }}
-            className="flex w-full items-center justify-center rounded-xl border-2 border-dashed border-gray-200 bg-gray-50/50 py-8 transition-colors hover:border-indigo-300 hover:bg-indigo-50/30"
+            className="flex w-full items-center justify-center rounded-xl border-2 border-dashed border-line bg-surface-muted/50 py-8 transition-colors hover:border-accent-300 hover:bg-accent-50/30"
           >
             {uploading ? (
-              <div className="flex items-center gap-2 text-sm text-gray-500">
-                <div className="h-5 w-5 animate-spin rounded-full border-2 border-indigo-500 border-t-transparent" />
+              <div className="flex items-center gap-2 text-sm text-ink-muted">
+                <div className="h-5 w-5 animate-spin rounded-full border-2 border-accent-500 border-t-transparent" />
                 Uploading video...
               </div>
             ) : (
               <div className="text-center">
                 <svg
-                  className="mx-auto h-10 w-10 text-gray-300"
+                  className="mx-auto h-10 w-10 text-ink-disabled"
                   fill="none"
                   viewBox="0 0 24 24"
                   strokeWidth={1}
@@ -195,10 +195,10 @@ export default function VideoUploader({
                     d="m15.75 10.5 4.72-4.72a.75.75 0 0 1 1.28.53v11.38a.75.75 0 0 1-1.28.53l-4.72-4.72M4.5 18.75h9a2.25 2.25 0 0 0 2.25-2.25v-9a2.25 2.25 0 0 0-2.25-2.25h-9A2.25 2.25 0 0 0 2.25 7.5v9a2.25 2.25 0 0 0 2.25 2.25Z"
                   />
                 </svg>
-                <p className="mt-2 text-sm font-medium text-gray-500">
+                <p className="mt-2 text-sm font-medium text-ink-muted">
                   Drag & drop a video or click to browse
                 </p>
-                <p className="mt-1 text-xs text-gray-400">
+                <p className="mt-1 text-xs text-ink-faint">
                   MP4, WebM, MOV · Max {formatFileSize(MAX_VIDEO_SIZE)}
                 </p>
               </div>
@@ -213,19 +213,19 @@ export default function VideoUploader({
               value={videoUrl}
               onChange={(e) => setVideoUrl(e.target.value)}
               placeholder="Paste a YouTube or Vimeo URL"
-              className="flex-1 rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="flex-1 rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             />
             <button
               type="button"
               onClick={handleVideoEmbed}
               disabled={!videoUrl.trim()}
-              className="rounded-xl bg-indigo-500 px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-600 disabled:opacity-50"
+              className="rounded-xl bg-accent-500 px-4 py-2 text-sm font-medium text-ink-inverse transition-colors hover:bg-accent-600 disabled:opacity-50"
             >
               Embed
             </button>
           </div>
           {videoUrl && parseVideoUrl(videoUrl) && (
-            <div className="aspect-video overflow-hidden rounded-lg border border-gray-200">
+            <div className="aspect-video overflow-hidden rounded-lg border border-line">
               <iframe
                 src={parseVideoUrl(videoUrl)!.embedUrl}
                 className="h-full w-full"

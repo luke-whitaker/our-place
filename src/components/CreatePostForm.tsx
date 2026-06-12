@@ -252,10 +252,10 @@ export default function CreatePostForm({
     return (
       <button
         onClick={() => setOpen(true)}
-        className="w-full rounded-2xl border-2 border-dashed border-gray-200 bg-white p-5 text-left transition-colors hover:border-indigo-300 hover:bg-indigo-50/30"
+        className="w-full rounded-2xl border-2 border-dashed border-line bg-surface p-5 text-left transition-colors hover:border-accent-300 hover:bg-accent-50/30"
       >
         <div className="flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-accent-100 text-accent-600">
             <svg
               className="h-5 w-5"
               fill="none"
@@ -266,7 +266,7 @@ export default function CreatePostForm({
               <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
             </svg>
           </div>
-          <span className="text-sm font-medium text-gray-500">
+          <span className="text-sm font-medium text-ink-muted">
             {isProfileMode
               ? "Share something to My Place..."
               : "Share something with the community..."}
@@ -279,12 +279,12 @@ export default function CreatePostForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-sm"
+      className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
     >
       <div className="p-5">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-base font-semibold text-gray-900">
+          <h3 className="text-base font-semibold text-ink">
             {isProfileMode ? "Post to My Place" : "Create a Post"}
           </h3>
           <button
@@ -294,7 +294,7 @@ export default function CreatePostForm({
               setOpen(false);
             }}
             aria-label="Close post form"
-            className="rounded-lg p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+            className="rounded-lg p-1 text-ink-faint hover:bg-surface-emphasis hover:text-ink-tertiary"
           >
             <svg
               className="h-5 w-5"
@@ -309,7 +309,7 @@ export default function CreatePostForm({
         </div>
 
         {/* Post Type Tabs */}
-        <div className="mb-4 flex gap-1 rounded-xl bg-gray-100 p-1">
+        <div className="mb-4 flex gap-1 rounded-xl bg-surface-emphasis p-1">
           {POST_TYPE_TABS.map((tab) => (
             <button
               key={tab.type}
@@ -320,8 +320,8 @@ export default function CreatePostForm({
               }}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
                 postType === tab.type
-                  ? "bg-white text-indigo-600 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-surface text-accent-600 shadow-sm"
+                  : "text-ink-muted hover:text-ink-secondary"
               }`}
             >
               {tab.icon}
@@ -345,14 +345,14 @@ export default function CreatePostForm({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Give your post a title"
               maxLength={200}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             />
             <textarea
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="What would you like to share?"
               rows={4}
-              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="w-full resize-none rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             />
           </div>
         )}
@@ -366,7 +366,7 @@ export default function CreatePostForm({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Title (optional)"
               maxLength={200}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             />
             <PhotoUploader
               photos={photos}
@@ -380,7 +380,7 @@ export default function CreatePostForm({
               onChange={(e) => setContent(e.target.value)}
               placeholder="Add a caption (optional)"
               rows={2}
-              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="w-full resize-none rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             />
           </div>
         )}
@@ -394,7 +394,7 @@ export default function CreatePostForm({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Title (optional)"
               maxLength={200}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             />
             <VideoUploader video={video} onVideoChange={setVideo} onError={setError} />
             <textarea
@@ -402,7 +402,7 @@ export default function CreatePostForm({
               onChange={(e) => setContent(e.target.value)}
               placeholder="Add a caption (optional)"
               rows={2}
-              className="w-full resize-none rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="w-full resize-none rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             />
           </div>
         )}
@@ -416,7 +416,7 @@ export default function CreatePostForm({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Give your post a title"
               maxLength={200}
-              className="w-full rounded-xl border border-gray-200 px-4 py-2.5 text-sm text-gray-900 placeholder-gray-400 focus:border-indigo-400 focus:outline-none focus:ring-1 focus:ring-indigo-400"
+              className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             />
             <RichContentEditor blocks={richBlocks} onChange={setRichBlocks} />
           </div>
@@ -424,28 +424,28 @@ export default function CreatePostForm({
       </div>
 
       {/* Footer */}
-      <div className="border-t border-gray-100 bg-gray-50 px-5 py-3">
+      <div className="border-t border-line-soft bg-surface-muted px-5 py-3">
         {!isProfileMode && (
           <div className="mb-3 flex items-center gap-2.5">
             <button
               type="button"
               onClick={() => setPostToMyPlace(!postToMyPlace)}
               className={`relative inline-flex h-5 w-9 shrink-0 items-center rounded-full transition-colors ${
-                postToMyPlace ? "bg-indigo-500" : "bg-gray-200"
+                postToMyPlace ? "bg-accent-500" : "bg-surface-inset"
               }`}
             >
               <span
-                className={`inline-block h-3.5 w-3.5 rounded-full bg-white transition-transform shadow-sm ${
+                className={`inline-block h-3.5 w-3.5 rounded-full bg-surface transition-transform shadow-sm ${
                   postToMyPlace ? "translate-x-4" : "translate-x-0.5"
                 }`}
               />
             </button>
-            <span className="text-xs font-medium text-gray-600">Also post to My Place</span>
+            <span className="text-xs font-medium text-ink-tertiary">Also post to My Place</span>
           </div>
         )}
 
         <div className="flex items-center justify-between">
-          <div className="text-xs text-gray-400">
+          <div className="text-xs text-ink-faint">
             {postType === "photo" && photos.length > 0 && `${photos.length}/10 images`}
             {postType === "video" &&
               video &&
@@ -459,14 +459,14 @@ export default function CreatePostForm({
                 resetForm();
                 setOpen(false);
               }}
-              className="rounded-lg px-4 py-2 text-sm font-medium text-gray-600 hover:bg-gray-200"
+              className="rounded-lg px-4 py-2 text-sm font-medium text-ink-tertiary hover:bg-surface-inset"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={!canSubmit()}
-              className="rounded-lg bg-indigo-500 px-5 py-2 text-sm font-medium text-white transition-colors hover:bg-indigo-600 disabled:opacity-50"
+              className="rounded-lg bg-accent-500 px-5 py-2 text-sm font-medium text-ink-inverse transition-colors hover:bg-accent-600 disabled:opacity-50"
             >
               {loading ? "Posting..." : "Post"}
             </button>
