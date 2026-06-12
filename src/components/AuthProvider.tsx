@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from "react";
+import { applyTheme, isTheme } from "@/lib/theme";
 
 interface User {
   id: string;
@@ -11,6 +12,7 @@ interface User {
   bio?: string;
   avatar_color: string;
   avatar: Record<string, string> | null;
+  theme?: string;
   is_verified: number;
   role: string;
   community_count?: number;
@@ -40,6 +42,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const res = await fetch("/api/auth/me");
       const data = await res.json();
       setUser(data.user);
+      // The account's saved theme wins over this device's localStorage echo.
+      if (data.user && isTheme(data.user.theme)) {
+        applyTheme(data.user.theme);
+      }
     } catch {
       setUser(null);
     } finally {

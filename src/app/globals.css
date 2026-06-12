@@ -55,14 +55,135 @@
   --color-accent-700: oklch(45.7% 0.24 277.023);
 }
 
+/*
+ * ── Themes ──────────────────────────────────────────────────────────────
+ * Decided June 11, 2026: all three retro directions ship as user-selectable
+ * themes (profile → Account → Appearance). "auto" (the default) resolves to
+ * platinum by day / terminal by night in the pre-paint script in layout.tsx —
+ * only concrete theme names ever appear in data-theme.
+ *
+ * Each block ONLY re-values the semantic tokens above (plus fonts via
+ * --app-font/--app-display). html[data-theme] out-specifies :root, so these
+ * win over the @theme defaults. Per-theme chrome (window title bars, prompt
+ * headings, square corners, hard shadows) layers on in a later pass.
+ */
+
+/* A · Platinum — System 7 / messenger chrome. Light, 1-bit, friendly. */
+[data-theme="platinum"] {
+  --background: #d8dee3;
+  --foreground: #111111;
+  --color-surface: #fff;
+  --color-surface-muted: #f1f3f5;
+  --color-surface-emphasis: #e3e7ea;
+  --color-surface-inset: #cfd6db;
+  --color-surface-inverse-soft: #333;
+  --color-surface-inverse: #111;
+  --color-ink: #111;
+  --color-ink-secondary: #333;
+  --color-ink-tertiary: #444;
+  --color-ink-muted: #555;
+  --color-ink-faint: #777;
+  --color-ink-disabled: #aaa;
+  --color-ink-inverse: #fff;
+  --color-line-soft: #bbb;
+  --color-line: #111;
+  --color-line-strong: #000;
+  --color-line-inverse: #333;
+  --color-accent-50: #ececf8;
+  --color-accent-100: #d6d6f0;
+  --color-accent-200: #b3b3e3;
+  --color-accent-300: #8a8ad1;
+  --color-accent-400: #5c5cbb;
+  --color-accent-500: #3d3dac;
+  --color-accent-600: #30309c;
+  --color-accent-700: #26267d;
+  --app-display: var(--font-pixel);
+}
+
+/* B · Terminal — dark phosphor session. Accent ramp flips light-for-dark. */
+[data-theme="terminal"] {
+  --background: #0e1310;
+  --foreground: #cfe3d3;
+  --color-surface: #121915;
+  --color-surface-muted: #0c1410;
+  --color-surface-emphasis: #1a241d;
+  --color-surface-inset: #233329;
+  --color-surface-inverse-soft: #b7d0bd;
+  --color-surface-inverse: #cfe3d3;
+  --color-ink: #cfe3d3;
+  --color-ink-secondary: #b7d0bd;
+  --color-ink-tertiary: #9ab5a1;
+  --color-ink-muted: #6f8a77;
+  --color-ink-faint: #587a62;
+  --color-ink-disabled: #2f4537;
+  --color-ink-inverse: #0e1310;
+  --color-line-soft: #1a2620;
+  --color-line: #233329;
+  --color-line-strong: #2e4436;
+  --color-line-inverse: #cfe3d3;
+  --color-accent-50: #12241a;
+  --color-accent-100: #16301f;
+  --color-accent-200: #1d4029;
+  --color-accent-300: #2a5c3a;
+  --color-accent-400: #3fae57;
+  --color-accent-500: #4fd66b;
+  --color-accent-600: #5fe07b;
+  --color-accent-700: #8aeb9e;
+  --app-font: var(--font-plex-mono);
+  --app-display: var(--font-vt);
+}
+
+/* C · Pixel Dusk — warm paper + plum ink + dusk-purple accents. */
+[data-theme="dusk"] {
+  --background: #efe7da;
+  --foreground: #2e2435;
+  --color-surface: #fdf9f1;
+  --color-surface-muted: #f4ecdf;
+  --color-surface-emphasis: #ece1d2;
+  --color-surface-inset: #ddcfbc;
+  --color-surface-inverse-soft: #43364e;
+  --color-surface-inverse: #2e2435;
+  --color-ink: #2e2435;
+  --color-ink-secondary: #4a3d55;
+  --color-ink-tertiary: #5d4f68;
+  --color-ink-muted: #7d6f86;
+  --color-ink-faint: #a195aa;
+  --color-ink-disabled: #cfc6d4;
+  --color-ink-inverse: #fdf9f1;
+  --color-line-soft: #e0d4c4;
+  --color-line: #2e2435;
+  --color-line-strong: #1f1826;
+  --color-line-inverse: #43364e;
+  --color-accent-50: #f3edf9;
+  --color-accent-100: #e6dbf2;
+  --color-accent-200: #cdbce4;
+  --color-accent-300: #b298d6;
+  --color-accent-400: #9678c9;
+  --color-accent-500: #7c5cbf;
+  --color-accent-600: #6a4caa;
+  --color-accent-700: #573e8c;
+  --app-display: var(--font-pixel);
+}
+
 body {
   background: var(--background);
   color: var(--foreground);
+  /* --app-font lets a theme swap the body face (terminal → mono) */
   font-family:
-    var(--font-sans),
+    var(--app-font, var(--font-sans)),
     system-ui,
     -apple-system,
     sans-serif;
+}
+
+/* Themes with --app-display get display-face headings (Pixelify / VT323) */
+[data-theme] h1,
+[data-theme] h2,
+[data-theme] h3 {
+  font-family: var(--app-display, var(--app-font, var(--font-sans))), sans-serif;
+}
+[data-theme="terminal"] h1 {
+  text-shadow: 0 0 12px color-mix(in oklab, var(--color-accent-500) 35%, transparent);
 }
 
 /* Smooth scrolling */

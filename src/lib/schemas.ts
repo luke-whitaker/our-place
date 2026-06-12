@@ -31,10 +31,11 @@ export const updateAccountSchema = z
   .object({
     email: z.string().email("Please enter a valid email address.").optional(),
     phone: z.string().min(1, "Phone number cannot be empty.").optional(),
+    theme: z.enum(["auto", "platinum", "terminal", "dusk"]).optional(),
     current_password: z.string().optional(),
     new_password: z.string().min(8, "Password must be at least 8 characters.").optional(),
   })
-  .refine((d) => d.email || d.phone || d.new_password, {
+  .refine((d) => d.email || d.phone || d.theme || d.new_password, {
     message: "Nothing to update.",
   })
   .refine((d) => !d.new_password || (d.current_password && d.current_password.length > 0), {

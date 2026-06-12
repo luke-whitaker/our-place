@@ -1,10 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
+import { THEMES, THEME_LABELS, applyTheme, isTheme, type Theme } from "@/lib/theme";
 import { useAuth } from "@/components/AuthProvider";
 
 type EditableField = "email" | "phone" | "password";
+
+// Swatch backgrounds previewing each theme: [card surface, accent dot].
+// Hardcoded so every option shows its own colors regardless of the active theme.
+const THEME_SWATCHES: Record<Theme, [string, string]> = {
+  auto: ["linear-gradient(135deg, #fff 50%, #0e1310 50%)", "#30309c"],
+  platinum: ["#fff", "#30309c"],
+  terminal: ["#0e1310", "#4fd66b"],
+  dusk: ["#fdf9f1", "#7c5cbf"],
+};
 
 const inputClass =
   "w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400";
@@ -25,7 +35,36 @@ export default function AccountSettings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
+  const [theme, setTheme] = useState<Theme>("auto");
+  useEffect(() => {
+    if (user && isTheme(user.theme)) setTheme(user.theme);
+  }, [user]);
+
   if (!user) return null;
+
+  async function selectTheme(next: Theme) {
+    if (next === theme) return;
+    setTheme(next);
+    applyTheme(next); // instant — saving happens in the background
+    setError("");
+    setSuccess("");
+    try {
+      const res = await fetch("/api/auth/account", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ theme: next }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setError(data.error || "Failed to save appearance.");
+        return;
+      }
+      setSuccess("Appearance updated.");
+      await refresh();
+    } catch {
+      setError("Something went wrong saving your appearance.");
+    }
+  }
 
   function startEditing(field: EditableField) {
     setEditing(field);
@@ -259,6 +298,48 @@ export default function AccountSettings() {
           <Link href="/avatar-builder" className={editButtonClass}>
             Edit
           </Link>
+        </div>
+        <div className="border-t border-line-soft" />
+
+        {/* Appearance */}
+        <div className="py-2">
+          <p className="text-sm font-medium text-ink-secondary">Appearance</p>
+          <p className="text-sm text-ink-faint">How Our Place looks, on all your devices</p>
+          <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+            {THEMES.map((t) => {
+              const selected = theme === t;
+              const [swatchBg, swatchAccent] = THEME_SWATCHES[t];
+              return (
+                <button
+                  key={t}
+                  type="button"
+                  onClick={() => selectTheme(t)}
+                  aria-pressed={selected}
+                  className={`rounded-xl border p-3 text-left transition-colors ${
+                    selected
+                      ? "border-accent-400 ring-1 ring-accent-400 bg-accent-50"
+                      : "border-line hover:border-line-strong"
+                  }`}
+                >
+                  <span
+                    className="relative block h-8 w-full rounded-lg border border-line"
+                    style={{ background: swatchBg }}
+                  >
+                    <span
+                      className="absolute bottom-1 right-1 h-3 w-3 rounded-full"
+                      style={{ background: swatchAccent }}
+                    />
+                  </span>
+                  <span className="mt-2 block text-sm font-medium text-ink">
+                    {THEME_LABELS[t].name}
+                  </span>
+                  <span className="mt-0.5 block text-xs text-ink-muted">
+                    {THEME_LABELS[t].blurb}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         </div>
         <div className="border-t border-line-soft" />
 

@@ -25,7 +25,7 @@ export async function PATCH(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
-    const { email, phone, current_password, new_password } = parsed.data;
+    const { email, phone, theme, current_password, new_password } = parsed.data;
 
     const user = await prisma.user.findUnique({
       where: { id: auth.user.userId },
@@ -35,7 +35,11 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Account not found." }, { status: 404 });
     }
 
-    const data: { email?: string; phone?: string; passwordHash?: string } = {};
+    const data: { email?: string; phone?: string; theme?: string; passwordHash?: string } = {};
+
+    if (theme) {
+      data.theme = theme;
+    }
 
     if (new_password) {
       const validPassword = await bcrypt.compare(current_password ?? "", user.passwordHash);
