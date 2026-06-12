@@ -112,7 +112,7 @@ export default function AdminPage() {
           <h2 className="text-lg font-semibold text-ink mb-4">Create Account</h2>
           <form
             onSubmit={handleSubmit}
-            className="rounded-2xl border border-line bg-surface p-6 shadow-sm"
+            className="op-card rounded-2xl border border-line bg-surface p-6 shadow-sm"
           >
             {error && (
               <div className="mb-4 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
@@ -230,7 +230,7 @@ export default function AdminPage() {
         {/* User List */}
         <div>
           <h2 className="text-lg font-semibold text-ink mb-4">Members ({users.length})</h2>
-          <div className="rounded-2xl border border-line bg-surface shadow-sm">
+          <div className="op-card rounded-2xl border border-line bg-surface shadow-sm">
             {loadingUsers ? (
               <div className="flex items-center justify-center py-12">
                 <div className="h-6 w-6 animate-spin rounded-full border-2 border-accent-500 border-t-transparent" />

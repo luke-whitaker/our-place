@@ -186,6 +186,132 @@ body {
   text-shadow: 0 0 12px color-mix(in oklab, var(--color-accent-500) 35%, transparent);
 }
 
+/*
+ * ── Theme chrome ────────────────────────────────────────────────────────
+ * The mockup personality (mockups/retro-ui-directions.html), layered over
+ * the token palettes via two hook classes added in components:
+ *   .op-card   — solid-bordered surface cards/panels
+ *   .op-navbar / .op-logo — the top nav and wordmark
+ * Corner radii are themed by re-valuing Tailwind's --radius-* variables
+ * (utilities compile to var(--radius-2xl) etc., so no component changes).
+ */
+
+/* A · Platinum — every card is a System 7 window: pinstriped title strip,
+   1-bit hard shadow, square-ish corners, dithered desktop behind it all. */
+[data-theme="platinum"] {
+  --radius-2xl: 6px;
+  --radius-xl: 6px;
+  --radius-lg: 4px;
+  --background: conic-gradient(#dde2e6 25%, #d4dade 0 50%, #dde2e6 0 75%, #d4dade 0) 0 0 / 4px 4px
+    #d8dee3;
+}
+[data-theme="platinum"] .op-card {
+  border-width: 1.5px;
+  box-shadow: 2px 2px 0 var(--color-line);
+  background-color: var(--color-surface);
+  /* pinstriped "title bar": 12px of stripes + a 1.5px rule, painted into the
+     card's top padding (all .op-card surfaces pad ≥ 20px) */
+  background-image:
+    linear-gradient(var(--color-line), var(--color-line)),
+    repeating-linear-gradient(
+      var(--color-surface) 0 2px,
+      #9aa3ab 2px 3px,
+      var(--color-surface) 3px 4px
+    );
+  background-size:
+    100% 1.5px,
+    100% 12px;
+  background-position:
+    0 12px,
+    0 0;
+  background-repeat: no-repeat;
+}
+[data-theme="platinum"] :is(button, a):is(.bg-accent-500, .bg-accent-600) {
+  border: 1.5px solid var(--color-line);
+  box-shadow:
+    0 0 0 2px var(--color-surface),
+    0 0 0 3.5px var(--color-line);
+}
+[data-theme="platinum"] :is(input, textarea, select) {
+  border-width: 1.5px;
+}
+
+/* B · Terminal — flat panels, prompt headings, faint CRT scanlines. */
+[data-theme="terminal"] {
+  --radius-2xl: 6px;
+  --radius-xl: 4px;
+  --radius-lg: 4px;
+}
+[data-theme="terminal"] .op-card {
+  box-shadow: none;
+}
+[data-theme="terminal"] body::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  pointer-events: none;
+  background: repeating-linear-gradient(rgba(0, 0, 0, 0.1) 0 1px, transparent 1px 3px);
+}
+[data-theme="terminal"] h1 {
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+[data-theme="terminal"] h1::before {
+  content: "$ ";
+  color: var(--color-accent-500);
+  -webkit-text-fill-color: var(--color-accent-500); /* wins over bg-clip-text heroes */
+}
+[data-theme="terminal"] h1::after {
+  content: "";
+  display: inline-block;
+  width: 0.45em;
+  height: 0.85em;
+  margin-left: 0.18em;
+  background: var(--color-accent-500);
+  animation: op-blink 1.1s steps(1) infinite;
+}
+@keyframes op-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+/* C · Pixel Dusk — RPG dialog chrome: square corners, chunky plum borders,
+   hard offset shadows, buttons that press down. */
+[data-theme="dusk"] {
+  --radius-2xl: 0px;
+  --radius-xl: 0px;
+  --radius-lg: 0px;
+}
+[data-theme="dusk"] .op-card {
+  border-width: 3px;
+  border-color: var(--color-line);
+  box-shadow: 5px 5px 0 color-mix(in srgb, var(--color-ink) 85%, transparent);
+}
+[data-theme="dusk"] :is(button, a):is(.bg-accent-500, .bg-accent-600) {
+  border: 2.5px solid var(--color-line);
+  box-shadow: 2.5px 2.5px 0 var(--color-line);
+}
+[data-theme="dusk"] :is(button, a):is(.bg-accent-500, .bg-accent-600):active {
+  box-shadow: none;
+  transform: translate(2.5px, 2.5px);
+}
+[data-theme="dusk"] :is(input, textarea, select) {
+  border-width: 2.5px;
+}
+[data-theme="dusk"] .op-navbar {
+  border-bottom-width: 3px;
+}
+[data-theme="dusk"] .op-logo {
+  color: #e8a33d; /* window-glow amber from the cityscape inspo */
+}
+
+/* Wordmark wears the theme's display face */
+[data-theme] .op-logo {
+  font-family: var(--app-display, var(--app-font, var(--font-sans))), sans-serif;
+}
+
 /* Smooth scrolling */
 html {
   scroll-behavior: smooth;

@@ -331,7 +331,7 @@ export default function FeedPage() {
             ) : (
               <>
                 {/* Mini Calendar */}
-                <div className="rounded-2xl border border-line bg-surface p-5">
+                <div className="op-card rounded-2xl border border-line bg-surface p-5">
                   <div className="flex items-center justify-between mb-4">
                     <button
                       onClick={() => {
@@ -427,7 +427,7 @@ export default function FeedPage() {
                       {events.map((event) => (
                         <div
                           key={event.id}
-                          className="rounded-2xl border border-line bg-surface p-5 transition-shadow hover:shadow-md"
+                          className="op-card rounded-2xl border border-line bg-surface p-5 transition-shadow hover:shadow-md"
                         >
                           <div className="flex items-start gap-4">
                             <div className="flex flex-col items-center justify-center rounded-xl bg-accent-50 px-3 py-2 text-center shrink-0">
@@ -523,7 +523,7 @@ export default function FeedPage() {
         <aside className="hidden lg:block w-72 shrink-0">
           <div className="sticky top-24 space-y-6">
             {/* My Communities */}
-            <div className="rounded-2xl border border-line bg-surface p-5">
+            <div className="op-card rounded-2xl border border-line bg-surface p-5">
               <div className="flex items-center justify-between mb-4">
                 <h2 className="text-sm font-semibold text-ink">My Communities</h2>
                 <Link href="/communities" className="text-xs text-accent-600 hover:text-accent-500">

@@ -123,7 +123,10 @@ export default function CreateCommunityPage() {
       </div>
 
       {/* Form */}
-      <form onSubmit={handleSubmit} className="rounded-2xl border border-line bg-surface shadow-sm">
+      <form
+        onSubmit={handleSubmit}
+        className="op-card rounded-2xl border border-line bg-surface shadow-sm"
+      >
         <div className="p-6 space-y-6">
           {error && (
             <div className="rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">

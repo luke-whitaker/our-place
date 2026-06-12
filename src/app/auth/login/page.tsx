@@ -93,7 +93,7 @@ export default function LoginPage() {
       <div className="w-full max-w-md">
         <form
           onSubmit={handleSubmit}
-          className="rounded-2xl border border-line bg-surface p-6 shadow-sm"
+          className="op-card rounded-2xl border border-line bg-surface p-6 shadow-sm"
         >
           {error && (
             <div className="mb-5 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">

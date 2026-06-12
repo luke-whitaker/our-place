@@ -39,7 +39,7 @@ export default function PostCard({
   }
 
   return (
-    <article className="overflow-hidden rounded-2xl border border-line bg-surface transition-shadow hover:shadow-md">
+    <article className="op-card overflow-hidden rounded-2xl border border-line bg-surface transition-shadow hover:shadow-md">
       <div className="p-5">
         {/* Header */}
         <div className="flex items-start gap-3">

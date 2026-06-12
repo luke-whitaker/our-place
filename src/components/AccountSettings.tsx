@@ -216,7 +216,7 @@ export default function AccountSettings() {
   }
 
   return (
-    <div className="mt-6 rounded-2xl border border-line bg-surface p-6">
+    <div className="op-card mt-6 rounded-2xl border border-line bg-surface p-6">
       <h2 className="text-lg font-semibold text-ink mb-4">Account</h2>
 
       {success && (

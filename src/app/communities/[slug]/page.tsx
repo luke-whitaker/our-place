@@ -232,7 +232,7 @@ export default function CommunityDetailPage() {
           <aside className="hidden lg:block w-72 shrink-0">
             <div className="sticky top-24 space-y-6">
               {/* About */}
-              <div className="rounded-2xl border border-line bg-surface p-5">
+              <div className="op-card rounded-2xl border border-line bg-surface p-5">
                 <h2 className="text-sm font-semibold text-ink mb-3">About</h2>
                 <p className="text-sm text-ink-tertiary leading-relaxed">{community.description}</p>
 
@@ -258,7 +258,7 @@ export default function CommunityDetailPage() {
               </div>
 
               {/* Members */}
-              <div className="rounded-2xl border border-line bg-surface p-5">
+              <div className="op-card rounded-2xl border border-line bg-surface p-5">
                 <h2 className="text-sm font-semibold text-ink mb-3">
                   Members ({community.member_count})
                 </h2>

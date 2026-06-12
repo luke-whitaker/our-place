@@ -193,6 +193,34 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.5.0 — Three Themes: Platinum, Terminal, Pixel Dusk (June 2026)
+
+**Why:** The forum had been deliberately unstyled while the platform went live. This cycle
+gave Our Place its look — and instead of picking one retro direction, all three became
+user-selectable themes. The default, **Auto**, follows the clock: the place looks different
+at night, like a real place does.
+
+**What changed:**
+
+- **Semantic design tokens** — every component now references a single palette
+  (`surface` / `ink` / `line` / `accent`) defined in `globals.css` via Tailwind v4 `@theme`;
+  retheming is a values-edit in one file.
+- **Three themes** —
+  **Platinum** (System 7 chrome: pinstriped window cards, 1-bit hard shadows, dithered
+  desktop, pixel wordmark), **Terminal** (dark phosphor: monospace body, `$`-prompt headings
+  with a blinking cursor, faint CRT scanlines, flat panels), and **Pixel Dusk** (warm paper,
+  chunky plum RPG-dialog borders, hard offset shadows, buttons that press down, amber
+  wordmark).
+- **Auto mode** — Platinum 7am–7pm, Terminal at night; any theme can be pinned in
+  profile → Account → **Appearance** (live preview swatches). The choice is saved to the
+  account (`users.theme`) and follows you across devices, with a localStorage echo and a
+  CSP-nonce'd pre-paint script so the right theme renders with no flash.
+- **Theme typography** — Pixelify Sans display headings (Platinum/Dusk), VT323 + IBM Plex
+  Mono (Terminal), loaded via `next/font`.
+
+**What didn't change:** layout, components, and API shapes. Themes are token values plus a
+thin chrome layer — no component was redesigned.
+
 ### v0.4.1 — Media Moves to Cloudflare R2 (June 2026)
 
 **Why:** Uploads were written to a persistent volume on the host, which tied media to a single

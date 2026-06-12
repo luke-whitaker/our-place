@@ -142,7 +142,7 @@ export default function ProfilePage() {
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       {/* Profile Card */}
-      <div className="rounded-2xl border border-line bg-surface overflow-hidden shadow-sm">
+      <div className="op-card rounded-2xl border border-line bg-surface overflow-hidden shadow-sm">
         {/* Banner */}
         <div
           className="h-32"

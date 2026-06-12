@@ -77,7 +77,7 @@ export default function Home() {
 
           <div className="grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
             {/* Value 1 */}
-            <div className="rounded-2xl border border-line-soft bg-gradient-to-b from-surface to-surface-muted/50 p-8 transition-shadow hover:shadow-lg">
+            <div className="op-card rounded-2xl border border-line-soft bg-gradient-to-b from-surface to-surface-muted/50 p-8 transition-shadow hover:shadow-lg">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-accent-100 text-accent-600 mb-5">
                 <svg
                   className="h-6 w-6"
@@ -102,7 +102,7 @@ export default function Home() {
             </div>
 
             {/* Value 2 */}
-            <div className="rounded-2xl border border-line-soft bg-gradient-to-b from-surface to-surface-muted/50 p-8 transition-shadow hover:shadow-lg">
+            <div className="op-card rounded-2xl border border-line-soft bg-gradient-to-b from-surface to-surface-muted/50 p-8 transition-shadow hover:shadow-lg">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100 text-purple-600 mb-5">
                 <svg
                   className="h-6 w-6"
@@ -126,7 +126,7 @@ export default function Home() {
             </div>
 
             {/* Value 3 */}
-            <div className="rounded-2xl border border-line-soft bg-gradient-to-b from-surface to-surface-muted/50 p-8 transition-shadow hover:shadow-lg">
+            <div className="op-card rounded-2xl border border-line-soft bg-gradient-to-b from-surface to-surface-muted/50 p-8 transition-shadow hover:shadow-lg">
               <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-100 text-emerald-600 mb-5">
                 <svg
                   className="h-6 w-6"

@@ -134,7 +134,7 @@ export default function CommunitiesPage() {
           {[...Array(6)].map((_, i) => (
             <div
               key={i}
-              className="animate-pulse rounded-2xl border border-line bg-surface overflow-hidden"
+              className="op-card animate-pulse rounded-2xl border border-line bg-surface overflow-hidden"
             >
               <div className="h-24 bg-surface-emphasis" />
               <div className="p-4 space-y-3">

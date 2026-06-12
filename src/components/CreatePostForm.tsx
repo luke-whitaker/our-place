@@ -279,7 +279,7 @@ export default function CreatePostForm({
   return (
     <form
       onSubmit={handleSubmit}
-      className="overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
+      className="op-card overflow-hidden rounded-2xl border border-line bg-surface shadow-sm"
     >
       <div className="p-5">
         {/* Header */}

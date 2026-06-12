@@ -7,7 +7,7 @@ export default function CommunityCard({ community }: { community: CommunityWithM
   return (
     <Link
       href={`/communities/${community.slug}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-line bg-surface transition-all hover:shadow-lg hover:-translate-y-0.5"
+      className="op-card group flex flex-col overflow-hidden rounded-2xl border border-line bg-surface transition-all hover:shadow-lg hover:-translate-y-0.5"
     >
       {/* Banner */}
       <div

@@ -127,7 +127,7 @@ export default function AvatarBuilderPage() {
         </div>
 
         {/* Options */}
-        <div className="space-y-6 rounded-2xl border border-line bg-surface p-6 shadow-sm">
+        <div className="op-card space-y-6 rounded-2xl border border-line bg-surface p-6 shadow-sm">
           {/* Hair Style */}
           <div>
             <label className="block text-sm font-semibold text-ink-secondary mb-3">
