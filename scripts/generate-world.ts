@@ -734,6 +734,40 @@ function stampCapital(w: World) {
 }
 
 // ──────────────────────────────────────────────────────────────────────────
+// Stage 5b: capital gateways (open the walled town to the frontier on foot)
+// ──────────────────────────────────────────────────────────────────────────
+
+/**
+ * stampCapital() lays the town down verbatim, tree-walled on all four sides, so
+ * the player spawns sealed in — only building doors are reachable. Punch a gateway
+ * through the north wall that links the town's interior path network to the Flower
+ * Meadow passage and the Capital Gate shrine, giving a walkable route out into the
+ * frontier. (The mushroom warp network handles the longer hops once shrines are
+ * discovered on foot.)
+ *
+ * Geometry: the interior vertical path sits at relative cols 36-37; the Flower
+ * Meadow passage and the Capital Gate shrine are just north of the wall, east of
+ * the Iowa River — so the channel stays clear of buildings and water.
+ */
+function carveGateways(w: World) {
+  const { col: ac, row: ar } = CAPITAL_ANCHOR;
+  const path = (c: number, r: number) => w.force(c, r, Tile.PATH, CLAIM_PASSAGE);
+
+  // Channel up the interior vertical path, through the north wall (rows ar..ar+1),
+  // and out into the Flower Meadow passage interior.
+  for (const c of [ac + 36, ac + 37]) {
+    for (let r = ar - 8; r <= ar + 1; r++) path(c, r);
+  }
+  // Widen the wall opening into a natural gate mouth.
+  for (let c = ac + 34; c <= ac + 39; c++) {
+    path(c, ar);
+    path(c, ar + 1);
+  }
+  // Link west to the Capital Gate shrine (col 250, row ar-5) so it's discoverable on foot.
+  for (let c = 250; c <= ac + 37; c++) path(c, ar - 4);
+}
+
+// ──────────────────────────────────────────────────────────────────────────
 // Stage 6: wilderness fill (everything unclaimed becomes varied forest)
 // ──────────────────────────────────────────────────────────────────────────
 
@@ -997,6 +1031,8 @@ function main() {
   for (const node of NODES) carveNode(w, node);
 
   stampCapital(w);
+
+  carveGateways(w);
 
   fillWilderness(w);
 
