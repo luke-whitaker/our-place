@@ -557,7 +557,7 @@ export default function FeedPage() {
             </div>
 
             {/* Quick Create */}
-            <div className="rounded-2xl border border-line bg-gradient-to-br from-accent-50 to-purple-50 p-5">
+            <div className="op-tint rounded-2xl border border-line bg-gradient-to-br from-accent-50 to-purple-50 p-5">
               <h2 className="text-sm font-semibold text-ink">Start Something New</h2>
               <p className="mt-1 text-xs text-ink-muted">Can&apos;t find your community?</p>
               <Link

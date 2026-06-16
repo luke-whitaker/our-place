@@ -228,7 +228,7 @@ export default function ProfilePage() {
       {activeTab === "my-place" && (
         <div className="mt-6 space-y-6">
           {/* Description */}
-          <div className="rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50 to-accent-50 p-5">
+          <div className="op-tint rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50 to-accent-50 p-5">
             <div className="flex items-center gap-3">
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-violet-100 text-violet-600">
                 <svg

@@ -13,10 +13,7 @@ export default function Navbar() {
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href={user?.is_verified ? "/feed" : "/"} className="flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-br from-accent-500 to-purple-600 text-ink-inverse text-sm font-bold shadow-md">
-              OP
-            </div>
+          <Link href={user?.is_verified ? "/feed" : "/"} className="flex items-center">
             <span className="op-logo text-lg font-bold text-ink tracking-tight">Our Place</span>
           </Link>
 

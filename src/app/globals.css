@@ -245,6 +245,14 @@ body {
 [data-theme="terminal"] .op-card {
   box-shadow: none;
 }
+/* Accent-tinted info panels (the My Place welcome banner, the "Start Something New"
+   card) ship a light gradient for the day themes; in Terminal that washes out to an
+   unreadable white band. Flatten them to one uniform translucent veil so the phosphor
+   background reads through evenly. */
+[data-theme="terminal"] .op-tint {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.12);
+}
 [data-theme="terminal"] body::after {
   content: "";
   position: fixed;
