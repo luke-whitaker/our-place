@@ -57,25 +57,28 @@ export default function LoginPage() {
         <div className="mt-10 space-y-6 text-base sm:text-lg leading-relaxed text-ink-tertiary text-left sm:text-center">
           <p>
             Our Place is being built on a simple belief: social media should serve <em>you</em>, not
-            the other way around. We&apos;re developing a platform that optimizes for genuine
-            human-to-human interaction — real conversations, real connections, and real community.
-            Here, you customize your own algorithm so your feed is tailored to what <em>you</em>{" "}
-            want to see, when you want to see it. Enjoy an endless scroll with more control — set a
-            default session length or enable self-imposed check-ins that remind you when it&apos;s
-            time to step away. Just people connecting with people, on their own terms.
+            the other way around. Our Place is a social media community that optimizes for genuine
+            human-to-human interaction with real conversations, real connections, and real
+            community.
           </p>
           <p>
             Here, you can dive deep into the things that matter to you — your interests, passions,
-            hobbies, and profession — surrounded by others who share that same curiosity. And you
-            can do it without being fed ads, without having your attention sold to the highest
-            bidder, and without ever compromising your personal data. Your information belongs to
-            you. Full stop.
+            hobbies, art, culture, and ideas — surrounded by others who share that same curiosity
+            and <em>joie-de-vivre</em>, without being fed ads, without having your attention sold to
+            the highest bidder, and without ever compromising your personal data. This social media
+            site focuses more on building community than exploiting it. Our Place aims to
+            democratize online social media platforms and the information you consume. While also
+            providing everyone who participates in building the community with the opportunity to
+            foster an online connection that will lead to an in-person community. That&apos;s why
+            Our Place is only accepting users that have internally been approved to have an account.
+            Anyone can view the site to see what it&apos;s all about, but in order to participate in
+            the creation of Our Place (online), you must be given access by the admin.
           </p>
           <p>
-            We believe people deserve better options than what social media has offered so far. Our
-            Place is built to give you those options — the ones you didn&apos;t realize you could
-            have. A space where you feel empowered, not exploited. Where the platform works{" "}
-            <em>for</em> its community, not against it. Welcome to how social media is meant to be.
+            We believe people deserve more options of social media platforms that they can choose
+            from. Our Place is built to give you another optional space for building community where
+            you feel empowered, not exploited. Where the platform fosters community, and never aims
+            to divide it for revenue&apos;s sake. Welcome to how social media was meant to be.
           </p>
         </div>
       </div>
