@@ -2,7 +2,7 @@
 
 An invite-only community platform built on trust, belonging, and genuine human connection. Every account represents someone you've met face-to-face.
 
-![Landing Page](screenshots/01-landing-page.png)
+![The Our Place feed](screenshots/feed.png)
 
 ## What is Our Place?
 
@@ -47,6 +47,17 @@ The forum is fully functional today. The world is actively in development.
 - Rate limiting on all auth and content creation routes
 - Zod schema validation on all API request bodies
 - Role-based access control (admin/user roles)
+- **Account settings** — update your email, phone, and password (current password required)
+
+### Three Themes
+
+Three hand-built retro themes, switchable any time in **profile → Account → Appearance**:
+
+- **Platinum** — System 7 / classic-Mac chrome: pinstriped window cards, 1-bit hard shadows, a dithered desktop, and a pixel wordmark.
+- **Terminal** — dark phosphor: monospace body text, `$`-prompt headings with a blinking cursor, and faint CRT scanlines.
+- **Pixel Dusk** — warm paper, chunky plum RPG-dialog borders, hard offset shadows, and buttons that press down when you click them.
+
+The default, **Auto**, follows the clock — Platinum by day, Terminal at night — so the place looks different depending on when you visit. Your choice saves to your account and follows you across devices.
 
 ### 8-Bit World (In Progress)
 
@@ -57,6 +68,35 @@ The forum is fully functional today. The world is actively in development.
 - Responsive canvas scaling for mobile
 - **Avatar builder** — gender-neutral character customization (hair, skin, shirt, pants) on first login
 - **Procedural frontier generator** — deterministic 500×500 tile world with 6 themed biomes (flower meadow, beach, mountain valley, island, misty grove, ancient ruins), the capital city stamped at its center, passages, a river system, and a mushroom warp network between shrines
+
+## Screenshots
+
+### Three themes, one place
+
+The same My Place profile rendered in each built-in theme. **Auto** mode switches between Platinum and Terminal with the time of day.
+
+<table>
+  <tr>
+    <td align="center"><strong>Platinum</strong><br><sub>System 7 · day</sub></td>
+    <td align="center"><strong>Terminal</strong><br><sub>phosphor · night</sub></td>
+    <td align="center"><strong>Pixel Dusk</strong><br><sub>warm paper · opt-in</sub></td>
+  </tr>
+  <tr>
+    <td><img src="screenshots/profile-platinum.png" alt="My Place in the Platinum theme" width="270"></td>
+    <td><img src="screenshots/profile-terminal.png" alt="My Place in the Terminal theme" width="270"></td>
+    <td><img src="screenshots/profile-pixel-dusk.png" alt="My Place in the Pixel Dusk theme" width="270"></td>
+  </tr>
+</table>
+
+### Around the platform
+
+**Communities** — discover and join spaces organized by category.
+
+![Browsing communities](screenshots/communities.png)
+
+**Inside a community** — posts, threaded comments, and emoji reactions.
+
+![A community page with a post](screenshots/community.png)
 
 ## Tech Stack
 
