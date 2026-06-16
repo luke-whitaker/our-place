@@ -2,9 +2,18 @@
 
 export const TILE = 32;
 
-// Viewport: 30 tiles wide × 20 tiles tall
+// Canvas (native resolution): 30 tiles wide × 20 tiles tall
 export const CANVAS_W = 960;
 export const CANVAS_H = 640;
+
+// ── Camera zoom ──
+// The world layer renders scaled by ZOOM so the character reads at a comfortable
+// size; the HUD (prompts, toasts, menus, fade) stays at native CANVAS_W×CANVAS_H.
+// VIEW_W/VIEW_H is the span of the world (in world px) actually visible through the
+// zoomed viewport — used for camera centering, clamping, and frustum culling.
+export const ZOOM = 1.5;
+export const VIEW_W = CANVAS_W / ZOOM;
+export const VIEW_H = CANVAS_H / ZOOM;
 
 // ── Player ──
 

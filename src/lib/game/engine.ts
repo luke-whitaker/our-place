@@ -2,6 +2,9 @@ import {
   TILE,
   CANVAS_W,
   CANVAS_H,
+  ZOOM,
+  VIEW_W,
+  VIEW_H,
   PLAYER_SPEED,
   PLAYER_W,
   PLAYER_H,
@@ -273,12 +276,13 @@ export function update(
 }
 
 function updateCamera(cam: Camera, px: number, py: number, map: GameMap): void {
-  cam.x = Math.round(px + TILE / 2 - CANVAS_W / 2);
-  cam.y = Math.round(py + TILE / 2 - CANVAS_H / 2);
+  // Center on the player within the zoomed viewport (VIEW_* = world span on screen)
+  cam.x = Math.round(px + TILE / 2 - VIEW_W / 2);
+  cam.y = Math.round(py + TILE / 2 - VIEW_H / 2);
 
   // Clamp to map edges
-  cam.x = Math.max(0, Math.min(cam.x, map.cols * TILE - CANVAS_W));
-  cam.y = Math.max(0, Math.min(cam.y, map.rows * TILE - CANVAS_H));
+  cam.x = Math.max(0, Math.min(cam.x, map.cols * TILE - VIEW_W));
+  cam.y = Math.max(0, Math.min(cam.y, map.rows * TILE - VIEW_H));
 }
 
 // ── Render ──
@@ -292,15 +296,20 @@ export function render(
 ): void {
   const { camera, player, frameTick, fade, nearbyDoor } = state;
 
-  // Clear
+  // Clear (native resolution)
   ctx.fillStyle = PAL.darkest;
   ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
 
-  // ── Tiles (frustum-culled) ──
+  // The world layer (tiles + player) is drawn scaled by ZOOM; the HUD below it is
+  // drawn at native resolution so text and menus stay crisp.
+  ctx.save();
+  ctx.scale(ZOOM, ZOOM);
+
+  // ── Tiles (frustum-culled to the visible world span) ──
   const startCol = Math.max(0, Math.floor(camera.x / TILE));
-  const endCol = Math.min(map.cols - 1, Math.floor((camera.x + CANVAS_W) / TILE));
+  const endCol = Math.min(map.cols - 1, Math.floor((camera.x + VIEW_W) / TILE));
   const startRow = Math.max(0, Math.floor(camera.y / TILE));
-  const endRow = Math.min(map.rows - 1, Math.floor((camera.y + CANVAS_H) / TILE));
+  const endRow = Math.min(map.rows - 1, Math.floor((camera.y + VIEW_H) / TILE));
 
   for (let r = startRow; r <= endRow; r++) {
     for (let c = startCol; c <= endCol; c++) {
@@ -329,6 +338,9 @@ export function render(
       Math.round(player.y - camera.y),
     );
   }
+
+  // End of the zoomed world layer — everything below draws at native resolution.
+  ctx.restore();
 
   // ── Interaction prompt (doors take priority over shrines) ──
   if (fade === 0 && state.mode === "overworld") {
