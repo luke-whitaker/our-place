@@ -139,6 +139,7 @@ const hexColorRegex = /^#[0-9a-fA-F]{6}$/;
 
 export const updateAvatarSchema = z.object({
   hairStyle: z.enum(["short", "long"]),
+  hairColor: z.string().regex(hexColorRegex, "Invalid hair color."),
   skinTone: z.string().regex(hexColorRegex, "Invalid skin tone color."),
   shirtColor: z.string().regex(hexColorRegex, "Invalid shirt color."),
   pantsColor: z.string().regex(hexColorRegex, "Invalid pants color."),

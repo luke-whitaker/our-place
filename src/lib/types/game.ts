@@ -1,5 +1,6 @@
 export interface AvatarConfig {
   hairStyle: "short" | "long";
+  hairColor: string;
   skinTone: string;
   shirtColor: string;
   pantsColor: string;
@@ -13,6 +14,17 @@ export const SKIN_TONES = [
   "#8D5524",
   "#5C3836",
   "#3B2219",
+] as const;
+
+export const HAIR_COLORS = [
+  "#1c1c22", // black
+  "#3b2219", // dark brown
+  "#6f4e37", // brown
+  "#a0673a", // chestnut
+  "#e6be8a", // blonde
+  "#922724", // auburn
+  "#c75d33", // ginger
+  "#9a9a9a", // gray
 ] as const;
 
 export const SHIRT_COLORS = [
@@ -32,6 +44,7 @@ export const SHOES_COLORS = ["#4d3f38", "#353540", "#ca5954", "#ede4da", "#1e3a5
 
 export const DEFAULT_AVATAR: AvatarConfig = {
   hairStyle: "short",
+  hairColor: "#3b2219",
   skinTone: "#C68642",
   shirtColor: "#5c699f",
   pantsColor: "#353540",

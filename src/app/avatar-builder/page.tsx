@@ -6,7 +6,14 @@ import { useAuth } from "@/components/AuthProvider";
 import { generatePlayerSprites } from "@/lib/game/sprites";
 import { DIR } from "@/lib/game/constants";
 import type { AvatarConfig } from "@/lib/types";
-import { SKIN_TONES, SHIRT_COLORS, PANTS_COLORS, SHOES_COLORS, DEFAULT_AVATAR } from "@/lib/types";
+import {
+  SKIN_TONES,
+  HAIR_COLORS,
+  SHIRT_COLORS,
+  PANTS_COLORS,
+  SHOES_COLORS,
+  DEFAULT_AVATAR,
+} from "@/lib/types";
 
 const PREVIEW_SCALE = 8;
 const PREVIEW_SIZE = 32 * PREVIEW_SCALE;
@@ -150,6 +157,14 @@ export default function AvatarBuilderPage() {
             </div>
           </div>
 
+          {/* Hair Color */}
+          <ColorPicker
+            label="Hair Color"
+            colors={HAIR_COLORS}
+            value={config.hairColor}
+            onChange={(c) => update("hairColor", c)}
+          />
+
           {/* Skin Tone */}
           <ColorPicker
             label="Skin Tone"
@@ -231,6 +246,7 @@ function ColorPicker({
   large?: boolean;
 }) {
   const size = large ? "w-12 h-12" : "w-10 h-10";
+  const isCustom = !colors.includes(value);
 
   return (
     <div>
@@ -239,6 +255,7 @@ function ColorPicker({
         {colors.map((color) => (
           <button
             key={color}
+            type="button"
             onClick={() => onChange(color)}
             className={`${size} rounded-xl border-2 transition-all ${
               value === color
@@ -249,6 +266,36 @@ function ColorPicker({
             aria-label={`Select ${label.toLowerCase()} ${color}`}
           />
         ))}
+
+        {/* Custom color wheel — pick any exact color */}
+        <label
+          className={`${size} relative cursor-pointer overflow-hidden rounded-xl border-2 transition-all ${
+            isCustom
+              ? "border-accent-500 ring-2 ring-accent-200 scale-110"
+              : "border-line hover:border-line-strong"
+          }`}
+          style={
+            isCustom
+              ? { backgroundColor: value }
+              : {
+                  background: "conic-gradient(red, orange, yellow, lime, aqua, blue, magenta, red)",
+                }
+          }
+          title={`Pick a custom ${label.toLowerCase()}`}
+        >
+          {!isCustom && (
+            <span className="absolute inset-0 flex items-center justify-center text-lg font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]">
+              +
+            </span>
+          )}
+          <input
+            type="color"
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+            aria-label={`Pick a custom ${label.toLowerCase()}`}
+          />
+        </label>
       </div>
     </div>
   );

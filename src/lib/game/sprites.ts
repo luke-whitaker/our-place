@@ -20,7 +20,9 @@ export function generatePlayerSprites(
   // avatar config so per-user customization is preserved.
   function drawBody(ctx: CanvasRenderingContext2D, dir: Direction, frame: 0 | 1) {
     const { hairStyle, skinTone, shirtColor, pantsColor, shoesColor } = config;
-    const hairColor = darkenColor(skinTone, 0.35);
+    // Hair color is a direct avatar choice; avatars saved before hairColor existed
+    // fall back to the old skin-derived shade so they render unchanged.
+    const hairColor = config.hairColor || darkenColor(skinTone, 0.35);
     const step = frame === 1 ? 1 : 0;
 
     // ── Legs + shoes (behind the torso) ──
