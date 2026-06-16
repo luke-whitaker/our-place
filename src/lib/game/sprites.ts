@@ -15,63 +15,58 @@ export function generatePlayerSprites(
     return c;
   }
 
+  // Drawn at ~28px tall, centered in the 32px cell with the feet near the bottom —
+  // big enough to read clearly at the world's zoom. Colors still come from the
+  // avatar config so per-user customization is preserved.
   function drawBody(ctx: CanvasRenderingContext2D, dir: Direction, frame: 0 | 1) {
     const { hairStyle, skinTone, shirtColor, pantsColor, shoesColor } = config;
     const hairColor = darkenColor(skinTone, 0.35);
+    const step = frame === 1 ? 1 : 0;
 
-    // Head / hair
-    ctx.fillStyle = hairColor;
-    ctx.fillRect(4, 0, 8, 4);
-
-    if (hairStyle === "long") {
-      ctx.fillRect(3, 3, 2, 5);
-      ctx.fillRect(11, 3, 2, 5);
-    }
-
-    // Face
-    ctx.fillStyle = skinTone;
-    if (dir === DIR.DOWN) {
-      ctx.fillRect(5, 3, 6, 4);
-      ctx.fillStyle = PAL.darkest;
-      ctx.fillRect(6, 4, 1, 1);
-      ctx.fillRect(9, 4, 1, 1);
-    } else if (dir === DIR.UP) {
-      ctx.fillRect(5, 3, 6, 3);
-      ctx.fillStyle = hairColor;
-      ctx.fillRect(5, 3, 6, 1);
-    } else if (dir === DIR.LEFT) {
-      ctx.fillRect(4, 3, 5, 4);
-      ctx.fillStyle = PAL.darkest;
-      ctx.fillRect(5, 4, 1, 1);
-    } else {
-      ctx.fillRect(7, 3, 5, 4);
-      ctx.fillStyle = PAL.darkest;
-      ctx.fillRect(10, 4, 1, 1);
-    }
-
-    // Shirt
-    ctx.fillStyle = shirtColor;
-    ctx.fillRect(4, 7, 8, 4);
-
-    // Arms
-    const armShift = frame === 1 ? 1 : 0;
-    ctx.fillStyle = skinTone;
-    ctx.fillRect(3, 7 + armShift, 1, 3);
-    ctx.fillRect(12, 8 - armShift, 1, 3);
-
-    // Pants
+    // ── Legs + shoes (behind the torso) ──
     ctx.fillStyle = pantsColor;
-    ctx.fillRect(5, 11, 3, 3);
-    ctx.fillRect(8, 11, 3, 3);
-
-    // Shoes
+    ctx.fillRect(11, 21, 4, 7 + step);
+    ctx.fillRect(17, 21, 4, 7 - step);
     ctx.fillStyle = shoesColor;
-    if (frame === 0) {
-      ctx.fillRect(5, 14, 3, 2);
-      ctx.fillRect(8, 14, 3, 2);
+    ctx.fillRect(10, 28 + step, 5, 3);
+    ctx.fillRect(17, 28 - step, 5, 3);
+
+    // ── Torso + arms (arms swing with the step) ──
+    ctx.fillStyle = shirtColor;
+    ctx.fillRect(10, 13, 12, 9);
+    ctx.fillStyle = skinTone;
+    ctx.fillRect(7, 14 + step, 3, 6);
+    ctx.fillRect(22, 14 - step, 3, 6);
+
+    // ── Head + hair ──
+    ctx.fillStyle = skinTone;
+    ctx.fillRect(10, 5, 12, 9);
+    ctx.fillStyle = hairColor;
+    ctx.fillRect(9, 2, 14, 4);
+    if (hairStyle === "long") {
+      ctx.fillRect(8, 4, 2, 9);
+      ctx.fillRect(22, 4, 2, 9);
+    }
+
+    // ── Face (per direction) ──
+    if (dir === DIR.DOWN) {
+      ctx.fillStyle = PAL.darkest;
+      ctx.fillRect(13, 9, 2, 2);
+      ctx.fillRect(18, 9, 2, 2);
+    } else if (dir === DIR.UP) {
+      // Back of the head — hair covers the face
+      ctx.fillStyle = hairColor;
+      ctx.fillRect(10, 5, 12, 5);
+    } else if (dir === DIR.LEFT) {
+      ctx.fillStyle = hairColor;
+      ctx.fillRect(19, 5, 4, 8);
+      ctx.fillStyle = PAL.darkest;
+      ctx.fillRect(12, 9, 2, 2);
     } else {
-      ctx.fillRect(4, 14, 3, 2);
-      ctx.fillRect(9, 14, 3, 2);
+      ctx.fillStyle = hairColor;
+      ctx.fillRect(9, 5, 4, 8);
+      ctx.fillStyle = PAL.darkest;
+      ctx.fillRect(18, 9, 2, 2);
     }
   }
 

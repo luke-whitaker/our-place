@@ -85,11 +85,13 @@ export function generateTileset(): Map<Tile, HTMLCanvasElement> {
       ctx.fillStyle = PAL.water1;
       ctx.fillRect(0, 0, TILE, TILE);
       ctx.fillStyle = PAL.water2;
-      ctx.fillRect(2, 4, 4, 1);
-      ctx.fillRect(9, 9, 5, 1);
+      ctx.fillRect(4, 6, 10, 2);
+      ctx.fillRect(18, 16, 11, 2);
+      ctx.fillRect(2, 24, 9, 2);
       ctx.fillStyle = PAL.waterLight;
-      ctx.fillRect(3, 5, 2, 1);
-      ctx.fillRect(10, 10, 3, 1);
+      ctx.fillRect(6, 7, 5, 1);
+      ctx.fillRect(20, 17, 6, 1);
+      ctx.fillRect(4, 25, 4, 1);
     }),
   );
 
@@ -99,11 +101,13 @@ export function generateTileset(): Map<Tile, HTMLCanvasElement> {
       ctx.fillStyle = PAL.water1;
       ctx.fillRect(0, 0, TILE, TILE);
       ctx.fillStyle = PAL.water2;
-      ctx.fillRect(5, 3, 5, 1);
-      ctx.fillRect(1, 11, 4, 1);
+      ctx.fillRect(10, 10, 11, 2);
+      ctx.fillRect(2, 20, 10, 2);
+      ctx.fillRect(20, 4, 9, 2);
       ctx.fillStyle = PAL.waterLight;
-      ctx.fillRect(6, 4, 3, 1);
-      ctx.fillRect(2, 12, 2, 1);
+      ctx.fillRect(12, 11, 6, 1);
+      ctx.fillRect(4, 21, 4, 1);
+      ctx.fillRect(22, 5, 5, 1);
     }),
   );
 
@@ -114,14 +118,22 @@ export function generateTileset(): Map<Tile, HTMLCanvasElement> {
     make((ctx) => {
       ctx.fillStyle = PAL.grass1;
       ctx.fillRect(0, 0, TILE, TILE);
-      // Canopy
+      // Canopy — a rounded blob filling most of the tile
       ctx.fillStyle = PAL.treeTop1;
-      ctx.fillRect(2, 2, 12, 10);
+      ctx.fillRect(3, 3, 26, 25);
+      ctx.fillStyle = PAL.grass1; // round the corners back to grass
+      ctx.fillRect(3, 3, 5, 5);
+      ctx.fillRect(24, 3, 5, 5);
+      ctx.fillRect(3, 23, 5, 5);
+      ctx.fillRect(24, 23, 5, 5);
+      // Inner shadow
       ctx.fillStyle = PAL.treeTop2;
-      ctx.fillRect(4, 3, 8, 7);
+      ctx.fillRect(8, 8, 16, 15);
+      // Leaf highlights
       ctx.fillStyle = PAL.treeTop1;
-      ctx.fillRect(5, 4, 2, 2);
-      ctx.fillRect(9, 5, 3, 2);
+      ctx.fillRect(10, 9, 6, 4);
+      ctx.fillRect(18, 13, 6, 5);
+      ctx.fillRect(9, 17, 5, 4);
     }),
   );
 
@@ -130,14 +142,19 @@ export function generateTileset(): Map<Tile, HTMLCanvasElement> {
     make((ctx) => {
       ctx.fillStyle = PAL.grass1;
       ctx.fillRect(0, 0, TILE, TILE);
+      // Canopy overhang from the TREE_TOP tile above (so a 2-tile tree reads as one)
+      ctx.fillStyle = PAL.treeTop1;
+      ctx.fillRect(5, 0, 22, 7);
+      ctx.fillStyle = PAL.treeTop2;
+      ctx.fillRect(8, 0, 16, 4);
       // Trunk
       ctx.fillStyle = PAL.treeTrunk;
-      ctx.fillRect(6, 0, 4, 12);
+      ctx.fillRect(12, 6, 8, 18);
       ctx.fillStyle = PAL.dirt;
-      ctx.fillRect(7, 0, 2, 10);
+      ctx.fillRect(14, 7, 3, 16);
       // Ground roots
       ctx.fillStyle = PAL.treeTrunk;
-      ctx.fillRect(4, 12, 8, 2);
+      ctx.fillRect(9, 23, 14, 3);
     }),
   );
 
@@ -427,21 +444,23 @@ export function generateTileset(): Map<Tile, HTMLCanvasElement> {
       ctx.fillRect(0, 0, TILE, TILE);
       // Stem
       ctx.fillStyle = PAL.mushroomStem;
-      ctx.fillRect(6, 8, 4, 5);
+      ctx.fillRect(12, 16, 8, 13);
       ctx.fillStyle = PAL.sand2;
-      ctx.fillRect(6, 8, 1, 5);
-      // Cap (red dome)
+      ctx.fillRect(12, 16, 2, 13);
+      // Cap (big red dome)
       ctx.fillStyle = PAL.mushroomCap;
-      ctx.fillRect(3, 4, 10, 5);
-      ctx.fillRect(4, 3, 8, 1);
-      // Cap underside shadow
+      ctx.fillRect(4, 9, 24, 8);
+      ctx.fillRect(8, 6, 16, 3);
+      ctx.fillRect(12, 4, 8, 2);
+      // Cap underside
       ctx.fillStyle = PAL.brick1;
-      ctx.fillRect(3, 8, 10, 1);
+      ctx.fillRect(4, 16, 24, 2);
       // White spots
       ctx.fillStyle = PAL.mushroomSpot;
-      ctx.fillRect(5, 5, 1, 1);
-      ctx.fillRect(10, 6, 1, 1);
-      ctx.fillRect(7, 7, 1, 1);
+      ctx.fillRect(9, 10, 3, 3);
+      ctx.fillRect(18, 8, 3, 3);
+      ctx.fillRect(22, 12, 2, 2);
+      ctx.fillRect(14, 13, 2, 2);
     }),
   );
 
