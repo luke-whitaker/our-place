@@ -5,7 +5,7 @@
 // canvas in update); render is the only canvas-aware half. This is what
 // WorldCanvas will run in Phase 3, replacing the top-down engine.
 
-import { tileToScreen } from "./iso";
+import { tileToScreen, HALF_W, HALF_H } from "./iso";
 import { groundCell, type Terrain } from "./forest-autotile";
 import { drawObject, type ObjectSprite } from "./world-object";
 import { pickFrame, type CharacterSprites } from "./character-sheet";
@@ -31,6 +31,12 @@ const SHADOW_RY = 3;
 
 const TOAST_TICKS = 180; // ~3s at 60tps
 const INTERACT_TILES = 1.5; // door/shrine reach, in tiles
+
+// Camera padding (pre-zoom px). Sides/bottom get a half-tile of breathing room;
+// the top gets more so tall sprites (houses, trees) at the north edge aren't
+// clipped. Tunable with the real town's camera feel in Phase 4.
+const CAM_EDGE_PAD = HALF_W;
+const CAM_TOP_PAD = 112;
 
 // ── State ──
 
@@ -139,13 +145,55 @@ export function warpMenuOptions(state: IsoState, world: IsoWorld): MushroomWarp[
   );
 }
 
+/** The world's projected screen extent (tile centres), in pre-zoom pixels. */
+function worldScreenBounds(world: IsoWorld): {
+  left: number;
+  right: number;
+  top: number;
+  bottom: number;
+} {
+  return {
+    left: -(world.rows - 1) * HALF_W,
+    right: (world.cols - 1) * HALF_W,
+    top: 0,
+    bottom: (world.cols - 1 + (world.rows - 1)) * HALF_H,
+  };
+}
+
+/** Clamp a camera axis to [lo, hi]; if the world is smaller than the view on that
+ * axis (hi < lo), centre it instead of pinning to an edge. */
+function clampCamera(value: number, lo: number, hi: number): number {
+  if (hi < lo) return (lo + hi) / 2;
+  return Math.max(lo, Math.min(value, hi));
+}
+
+/** Camera top-left (pre-zoom px) for a local entity at (col,row): centred on the
+ * entity, then clamped so the view stays within the world's padded bounds. Pure,
+ * so it's unit-tested directly. */
+export function cameraFor(world: IsoWorld, col: number, row: number): { x: number; y: number } {
+  const pos = tileToScreen(col, row);
+  const b = worldScreenBounds(world);
+  return {
+    x: Math.round(
+      clampCamera(
+        pos.x - ISO_VIEW_W / 2,
+        b.left - CAM_EDGE_PAD,
+        b.right + CAM_EDGE_PAD - ISO_VIEW_W,
+      ),
+    ),
+    y: Math.round(
+      clampCamera(
+        pos.y - ISO_VIEW_H / 2,
+        b.top - CAM_TOP_PAD,
+        b.bottom + CAM_EDGE_PAD - ISO_VIEW_H,
+      ),
+    ),
+  };
+}
+
 function updateCamera(state: IsoState, world: IsoWorld): void {
-  // Center on the local entity. Bounds-clamping waits for Phase 3, where the real
-  // town's size and camera feel get tuned together.
-  void world;
-  const pos = tileToScreen(getLocalEntity(state).col, getLocalEntity(state).row);
-  state.camera.x = Math.round(pos.x - ISO_VIEW_W / 2);
-  state.camera.y = Math.round(pos.y - ISO_VIEW_H / 2);
+  const player = getLocalEntity(state);
+  state.camera = cameraFor(world, player.col, player.row);
 }
 
 // ── Update ──
