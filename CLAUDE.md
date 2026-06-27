@@ -13,7 +13,7 @@ Tech stack:
 - **Zod** for validation, **Vitest** for unit tests, **Playwright** for UI tests
 - **Cloudflare R2** for media uploads — signed PUTs via aws4fetch in `src/lib/storage.ts`
 
-Core features built: auth (admin-managed accounts, login, password reset), communities, posts, comments, reactions, events, file uploads, user profiles, rich content editor, feed, admin dashboard, "My Place" personal space, avatar builder, and a procedural world generator.
+Core features built: auth (admin-managed accounts, login, password reset), communities, posts, comments, reactions, events, file uploads, user profiles, rich content editor, feed, admin dashboard, "My Place" personal space, avatar builder, and an explorable isometric world.
 
 ---
 
@@ -107,20 +107,19 @@ Game engine types live alongside the engine in `src/lib/game/`.
 
 ### Commands
 
-| Command                  | Purpose                                                   |
-| ------------------------ | --------------------------------------------------------- |
-| `npm run dev`            | Dev server                                                |
-| `npm run build`          | Production build                                          |
-| `npm run lint`           | ESLint                                                    |
-| `npm run format`         | Prettier (auto-fix)                                       |
-| `npm run format:check`   | Prettier (CI check)                                       |
-| `npm run test`           | Vitest (single run)                                       |
-| `npm run test:watch`     | Vitest (watch mode)                                       |
-| `npm run db:migrate`     | Run Prisma migrations                                     |
-| `npm run db:push`        | Push schema without migration                             |
-| `npm run db:seed`        | Seed starter communities                                  |
-| `npm run db:studio`      | Open Prisma Studio (DB viewer)                            |
-| `npm run world:generate` | Regenerate `public/world/*` from the procedural generator |
+| Command                | Purpose                        |
+| ---------------------- | ------------------------------ |
+| `npm run dev`          | Dev server                     |
+| `npm run build`        | Production build               |
+| `npm run lint`         | ESLint                         |
+| `npm run format`       | Prettier (auto-fix)            |
+| `npm run format:check` | Prettier (CI check)            |
+| `npm run test`         | Vitest (single run)            |
+| `npm run test:watch`   | Vitest (watch mode)            |
+| `npm run db:migrate`   | Run Prisma migrations          |
+| `npm run db:push`      | Push schema without migration  |
+| `npm run db:seed`      | Seed starter communities       |
+| `npm run db:studio`    | Open Prisma Studio (DB viewer) |
 
 ---
 
@@ -128,19 +127,20 @@ Game engine types live alongside the engine in `src/lib/game/`.
 
 **Architecture decision (still holds):** the world is the logged-in home / navigation layer (Option B). Entering a building transitions to the existing community pages. Rendering forum content _inside_ the world (Option A) remains a future possibility, not current scope.
 
-**Done:** the game engine (`<WorldCanvas />`, tile renderer, player movement, camera, collision, touch D-pad, responsive scaling, interaction prompts, fade transitions), the 32px tile upgrade + Aseprite pipeline, the gender-neutral avatar builder (first-login), the deterministic procedural frontier generator (`scripts/generate-world.ts`, `npm run world:generate`), and **Ports v1** (v0.4.0): the generated 500×500 world is live at `/world` — loader, mushroom warp menu with discover-to-unlock, region toasts, localStorage position persistence, and two-way porting (Portal buttons on My Place/community pages ↔ doors back to forum view).
+**The world is isometric 2.5D** (migrated from top-down in v0.6.0 — June 2026). `/world` runs the iso engine over a serializable `IsoWorld` document. Engine code lives in `src/lib/game/`:
 
-**Product concept — Ports:** the forum and the world are two views of the same place; users travel between them deliberately. Door ids in `world.meta.json` match community slugs (`/world?at=<slug>` spawns at that building).
+- `world-model.ts` — the `IsoWorld` schema (terrain grid + placed-object list + doors + warp shrines + regions), `OBJECT_CATALOG` (per-kind sprite + collision footprint), Zod validation, source-agnostic loader.
+- `iso.ts` (2:1 projection), `forest-autotile.ts` + `water-autotile.ts` (ground/water 4-edge blob autotilers), `world-object.ts` (depth-sorted free-standing objects), `character-sheet.ts` (8-direction animator), `iso-collision.ts` (pure collision), `iso-actor.ts` (entity + `computeIntent`→`applyMovement`), `iso-engine.ts` (`createIsoState`/`update`/`render` + camera clamp), `hud.ts` (prompt/toast/warp-menu chrome).
+- `worlds/capital.ts` — the authored starter town (`CAPITAL`): one building + Ports door per community, a plaza, streets, a pond, warp shrines. `WorldCanvas` renders whichever world its `WORLD` constant points at (swappable / DB-loadable later).
+- `iso-save.ts` — per-device localStorage save (world-space coords). `/iso-lab` + `worlds/lab-town.ts` are a dev sandbox.
 
-**Next (the canonical roadmap lives in `README.md` → Roadmap):**
+**Built for scale (seams in place, not yet active):** the world is modeled as static map + an entity collection (local player = entity 0); input is split from movement (`computeIntent`→`applyMovement`); positions are world-space; collision is a pure function runnable server-side. These let parallel/real-time **multiplayer** and **Builder/Creator** user-generated spaces slot in without an engine rewrite.
 
-- Ports v2 — building interiors with PC sprites: enter a building, sit at the PC, choose "log on" (exit to that page's forum view) or warp to another PC (PCs join the mushroom warp network)
-- Aseprite pixel-art pass to replace placeholder sprites
-- Dynamic building placement from the DB (community buildings inside the capital)
-- Player identity bound to world position; username rendered above the avatar
-- Real-time multiplayer presence (most infra-heavy — do this last)
+**Product concept — Ports:** the forum and the world are two views of the same place; users travel between them deliberately. Door ids are community slugs (`/world?at=<slug>` spawns at that building; walking into a door ports back to `/communities/<slug>`).
 
-Game engine code lives in `src/lib/game/`.
+**Placeholder art:** community buildings use a single 320×320 `house.png`; runtime art (`public/world/{characters,tiles,objects}/`) is gitignored dev copies (BossNelNel character + Evergrow/PixelHoo tiles — see `CREDITS.md`). Prod must serve these out of git (R2). The avatar builder still customizes a _procedural_ sprite (`sprites.ts`), disconnected from the fixed iso character — an open product question.
+
+**Next (canonical roadmap lives in `README.md` → Roadmap):** distinct per-building art (Evergrow Town_House sprites), Ports v2 (interiors + PC sprites), player identity bound to world position + username above avatar, multiplayer presence.
 
 > Historical note: the engine was adapted from the pixel-art RPG in `~/Desktop/portfolio-site`.
 

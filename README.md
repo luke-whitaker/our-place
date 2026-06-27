@@ -195,17 +195,16 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Other Commands
 
-| Command                  | Purpose                                                          |
-| ------------------------ | ---------------------------------------------------------------- |
-| `npm run build`          | Production build                                                 |
-| `npm run lint`           | ESLint                                                           |
-| `npm run format`         | Prettier auto-fix                                                |
-| `npm run test`           | Run unit tests                                                   |
-| `npm run test:watch`     | Run tests in watch mode                                          |
-| `npm run db:migrate`     | Run Prisma migrations                                            |
-| `npm run db:seed`        | Seed starter communities                                         |
-| `npm run db:studio`      | Open Prisma Studio (DB viewer)                                   |
-| `npm run world:generate` | Regenerate `public/world/*` from the seeded procedural generator |
+| Command              | Purpose                        |
+| -------------------- | ------------------------------ |
+| `npm run build`      | Production build               |
+| `npm run lint`       | ESLint                         |
+| `npm run format`     | Prettier auto-fix              |
+| `npm run test`       | Run unit tests                 |
+| `npm run test:watch` | Run tests in watch mode        |
+| `npm run db:migrate` | Run Prisma migrations          |
+| `npm run db:seed`    | Seed starter communities       |
+| `npm run db:studio`  | Open Prisma Studio (DB viewer) |
 
 ## Roadmap
 
