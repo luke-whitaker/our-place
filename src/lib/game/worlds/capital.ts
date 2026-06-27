@@ -49,6 +49,9 @@ const SOUTH_STREET = SOUTH_ROW + 1; // 31
 const PLAZA = { c0: 22, c1: 34, r0: 19, r1: 24 };
 const ENTRANCE_COL = 28;
 const SPAWN = { col: 28, row: 40 };
+// A diamond pond in the open southern field — south of the building row, so the
+// tall building sprites don't occlude it.
+const POND = { col: 40, row: 40, radius: 3 };
 
 /** Tiles inside a building's 3×2 footprint (for keeping trees/paths off them). */
 function inFootprint(c: number, r: number): boolean {
@@ -81,6 +84,20 @@ function buildTerrain(): { terrain: TerrainKind[][]; isPath: (c: number, r: numb
   // Southern entrance avenue down to the spawn.
   for (let r = SOUTH_STREET; r <= SPAWN.row + 2; r++) path(ENTRANCE_COL, r);
 
+  // A diamond pond in the open grass east of the plaza — stamped only over grass
+  // so it never severs a street (its tile-space diamond keeps the autotiler's
+  // edges convex).
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (
+        terrain[r][c] === "grass" &&
+        Math.abs(c - POND.col) + Math.abs(r - POND.row) <= POND.radius
+      ) {
+        terrain[r][c] = "water";
+      }
+    }
+  }
+
   const isPath = (c: number, r: number) =>
     r >= 0 && r < ROWS && c >= 0 && c < COLS && terrain[r][c] === "path";
   return { terrain, isPath };
@@ -98,7 +115,7 @@ const objects: PlacedObjectData[] = BUILDINGS.map((b) => ({
 
 const TREE_KINDS = ["oak1", "oak2", "pine1", "pine2", "oak_big"];
 function canPlant(c: number, r: number): boolean {
-  return !isPath(c, r) && !inFootprint(c, r);
+  return !isPath(c, r) && !inFootprint(c, r) && terrain[r][c] !== "water";
 }
 function plant(c: number, r: number, i: number): void {
   if (canPlant(c, r)) objects.push({ kind: TREE_KINDS[i % TREE_KINDS.length], col: c, row: r });

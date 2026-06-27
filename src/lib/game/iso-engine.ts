@@ -7,6 +7,7 @@
 
 import { tileToScreen, HALF_W, HALF_H } from "./iso";
 import { groundCell, type Terrain } from "./forest-autotile";
+import { waterCell, WATER_FRAMES, WATER_FRAME_COLS } from "./water-autotile";
 import { drawObject, type ObjectSprite } from "./world-object";
 import { pickFrame, type CharacterSprites } from "./character-sheet";
 import { computeIntent, applyMovement, createEntity, type IsoEntity } from "./iso-actor";
@@ -25,6 +26,7 @@ export const ISO_VIEW_H = CANVAS_H / ISO_ZOOM;
 
 const CELL = 32; // ground tile sprite is 32×32
 const ANIM_TICKS = 7; // ticks per walk frame
+const WATER_ANIM_TICKS = 12; // ticks per water ripple frame
 const FOOT_OFFSET = 4; // nudge the sprite's feet onto the tile centre
 const SHADOW_RX = 7;
 const SHADOW_RY = 3;
@@ -318,15 +320,19 @@ export function update(
 export interface IsoAssets {
   /** The Evergrow ground autotile sheet. */
   forest: HTMLImageElement;
+  /** The Evergrow water autotile sheet (grass-bordered). */
+  water: HTMLImageElement;
   /** Object sprites keyed by catalog kind. */
   objects: Record<string, ObjectSprite>;
   /** Character frames (shared for now; per-entity once players have identity). */
   characters: CharacterSprites;
 }
 
-/** Project a world's terrain to the grass/dirt grid the autotiler reads. */
+/** Project a world's terrain to the grass grid the forest autotiler reads. Water
+ * counts as grass here so land tiles border the pond with grass (the water cells
+ * carry their own grass edge), not a dirt seam. */
 export function terrainToGrass(world: IsoWorld): Terrain {
-  return world.terrain.map((row) => row.map((kind) => kind === "grass"));
+  return world.terrain.map((row) => row.map((kind) => kind === "grass" || kind === "water"));
 }
 
 /** Bake a world's collision once (re-export so harnesses build it the same way). */
@@ -349,7 +355,7 @@ export function render(
   ctx.scale(ISO_ZOOM, ISO_ZOOM);
   const { x: camX, y: camY } = state.camera;
 
-  drawGround(ctx, grass, assets.forest, camX, camY);
+  drawGround(ctx, world, grass, assets, state.frameTick, camX, camY);
 
   // Objects + entities, painter's order by ground-anchor screen-Y.
   type Drawable = { depth: number; draw: () => void };
@@ -400,30 +406,30 @@ export function render(
 
 function drawGround(
   ctx: CanvasRenderingContext2D,
+  world: IsoWorld,
   grass: Terrain,
-  forest: HTMLImageElement,
+  assets: IsoAssets,
+  frameTick: number,
   camX: number,
   camY: number,
 ): void {
-  const rows = grass.length;
-  const cols = grass[0].length;
+  const { cols, rows, terrain } = world;
+  const waterFrame = Math.floor(frameTick / WATER_ANIM_TICKS) % WATER_FRAMES;
   // Back-to-front by (col+row) so each surface covers the dirt skirt behind it.
   for (let sum = 0; sum <= cols + rows - 2; sum++) {
     for (let row = Math.max(0, sum - cols + 1); row <= Math.min(sum, rows - 1); row++) {
       const col = sum - row;
-      const [sc, sr] = groundCell(grass, col, row);
       const s = tileToScreen(col, row);
-      ctx.drawImage(
-        forest,
-        sc * CELL,
-        sr * CELL,
-        CELL,
-        CELL,
-        Math.round(s.x - 16 - camX),
-        Math.round(s.y - 8 - camY),
-        CELL,
-        CELL,
-      );
+      const dx = Math.round(s.x - 16 - camX);
+      const dy = Math.round(s.y - 8 - camY);
+      if (terrain[row][col] === "water") {
+        const [bc, br] = waterCell(terrain, col, row);
+        const sc = bc + waterFrame * WATER_FRAME_COLS;
+        ctx.drawImage(assets.water, sc * CELL, br * CELL, CELL, CELL, dx, dy, CELL, CELL);
+      } else {
+        const [sc, sr] = groundCell(grass, col, row);
+        ctx.drawImage(assets.forest, sc * CELL, sr * CELL, CELL, CELL, dx, dy, CELL, CELL);
+      }
     }
   }
 }

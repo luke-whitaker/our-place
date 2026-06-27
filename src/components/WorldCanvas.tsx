@@ -90,9 +90,10 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
     Promise.all([
       loadCharacterSheet("/world/characters/long.png"),
       loadImage("/world/tiles/forest.png"),
+      loadImage("/world/tiles/water.png"),
       ...kinds.map((k) => loadObjectSprite(OBJECT_CATALOG[k].src)),
     ])
-      .then(([characters, forest, ...objs]) => {
+      .then(([characters, forest, water, ...objs]) => {
         if (cancelled) return;
         const objects = Object.fromEntries(
           kinds.map((k, i) => [k, objs[i] as ObjectSprite]),
@@ -100,6 +101,7 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
         assetsRef.current = {
           characters: characters as CharacterSprites,
           forest: forest as HTMLImageElement,
+          water: water as HTMLImageElement,
           objects,
         };
         setReady(true);
