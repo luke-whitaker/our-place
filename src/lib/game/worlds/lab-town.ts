@@ -38,6 +38,15 @@ const mushrooms: MushroomWarp[] = [
     connections: "all",
     reachableOnFoot: true,
   },
+  {
+    id: "mushroom-lab-ridge",
+    col: 19,
+    row: 4,
+    label: "Ridge Shrine",
+    nodeId: "capital",
+    connections: "all",
+    reachableOnFoot: true,
+  },
 ];
 
 const regions: Region[] = [
@@ -63,6 +72,7 @@ export const LAB_TOWN: IsoWorld = {
     { kind: "bush", col: 10, row: 15 },
     { kind: "rock", col: 15, row: 11 },
     { kind: "mushroom", col: 9, row: 13 },
+    { kind: "mushroom", col: 19, row: 4 },
   ],
   doors,
   mushrooms,
