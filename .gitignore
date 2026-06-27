@@ -67,3 +67,13 @@ next-env.d.ts
 
 # local design-direction mockups (exploratory, pre-decision) — never committed
 /mockups/
+
+# purchased/licensed art source — NEVER committed (public repo = redistribution,
+# which the licenses forbid). See CREDITS.md. Runtime sprites are served out of
+# git (R2 / a gitignored dev copy under public/world/characters/).
+/assets/Evergrow_Forest_v0.5/
+/assets/SpriteSheet*.png
+/assets/world/*.png
+/public/world/characters/
+/public/world/tiles/
+/public/world/objects/
