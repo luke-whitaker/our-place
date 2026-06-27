@@ -1,109 +1,74 @@
-# World Art Pipeline — Aseprite Asset Guide
+# World Art Pipeline — Isometric Asset Guide
 
-This folder is where the hand-drawn pixel art for the 8-bit world lives. Drop your
-exported PNGs here (and your `.aseprite` sources alongside them if you like) and the
-game will load them in place of the current placeholder art — which is drawn as
-colored rectangles in code (`src/lib/game/tileset.ts`, `src/lib/game/sprites.ts`).
+This folder is where the hand-drawn / licensed pixel art for the **isometric**
+8-bit world lives. Drop exported PNGs here (and `.aseprite` sources alongside if
+you like); the game loads runtime copies served out of git (see `CREDITS.md`).
 
-> Drawing is the only manual step. Once the PNGs land here, wiring them into the game
-> is a single code change + commit — no other pieces needed from you.
+> The world is **isometric 2:1** now (it used to be top-down — that pipeline is
+> retired). Ground is a diamond autotile, structures and nature are free-standing
+> objects that depth-sort against the player, and the character is an
+> 8-direction sheet.
+
+## The model in one minute
+
+A place in the world is a plain data document — an `IsoWorld` in
+`src/lib/game/world-model.ts`:
+
+- **`terrain`** — a grid of ground kinds (`grass | dirt | path | water | sand`),
+  rendered by the diamond autotiler.
+- **`objects`** — a list of `{ kind, col, row }`. Each `kind` resolves through the
+  **`OBJECT_CATALOG`** (also in `world-model.ts`) to a sprite, a collision
+  **footprint** (the tiles it blocks), and a `solid` flag.
+- **`doors`**, **`mushrooms`**, **`regions`** — Ports doors (id = community slug),
+  warp shrines, and named regions for entry toasts.
+
+Everything is in **world-space tile coordinates**; the iso projection happens only
+at render. Adding art is wiring a PNG into the catalog — no engine changes.
 
 ## Format rules (read first)
 
-- **PNG, not JPG.** JPG is lossy (it smears pixel edges) and has no transparency.
-  Keep editable `.aseprite` sources too; the game only needs the exported PNGs.
-- **32×32 px per tile, drawn at 1× zoom.** Don't scale up in Aseprite — the game
-  upscales for you. Player frames are also 32×32.
-- **Transparency:**
-  - **Tiles → full, opaque 32×32.** Each tile includes its own ground (e.g. a tree
-    tile paints grass under the leaves). The renderer draws exactly one tile per cell
-    with no layering.
-  - **Player frames → transparent background** (they're drawn on top of tiles).
-- **One consistent palette** across every tile. Use the existing 32-color fantasy
-  palette (`PAL` in `src/lib/game/constants.ts`) or your own — consistency is what
-  makes a tileset read as a single world.
-- **Stay inside the 32×32 single-cell model for this first pass.** No objects that
-  overhang into neighboring tiles. Taller/overlapping art (Stardew-style multi-tile
-  trees) needs engine layering work — a deliberate later step.
+- **PNG, not JPG.** JPG smears pixel edges and has no transparency.
+- **Transparent background** on every object and character sprite — they're drawn
+  on top of the ground and depth-sorted, so their margins must be clear.
+- **Draw at 1× zoom.** The renderer upscales (`ISO_ZOOM`); don't pre-scale.
+- Keep a **consistent palette** across a set so it reads as one world.
 
-## Delivery — pick either, both are one commit
+### Ground tiles — the Evergrow `Forest_Tiles` autotile
 
-- **(a) Individual PNGs** — one file per tile, named from the checklist below
-  (e.g. `00-grass.png`, `05-tree-top.png`). Most forgiving; nothing to align.
-- **(b) Aseprite sprite sheets** — `tileset.png` + `player.png`, each exported via
-  **File → Export Sprite Sheet** with **"JSON Data" checked** (the `.json` is the
-  frame map). Fewer files; matches the existing `scripts/generate-tiles.lua` pipeline.
+- **32×32 px cells**, each a **32×16 (2:1) diamond surface** over a 16 px dirt
+  skirt. The sheet is a 4-edge "blob" autotiler: the engine picks a cell per tile
+  from which of its four diamond-edge neighbours are grass (see
+  `src/lib/game/forest-autotile.ts`). Keep grass regions roughly convex.
+- Water + waterfalls (`Water_Tiles_*`) get the same treatment in a later pass —
+  not wired yet; today non-grass terrain renders as bare ground.
 
-## Tile checklist (30 tiles)
+### Objects — trees, rocks, buildings, the warp shrine
 
-`(solid)` = blocks the player; everything else is walkable.
+Free-standing sprites of any size, **anchored at the bottom-centre of their opaque
+content** (auto-detected by an alpha scan in `src/lib/game/world-object.ts`) so they
+rest on their tile and sort correctly with the player. To add one:
 
-### Ground
-- `00-grass` — base ground; the most common tile, must tile seamlessly with itself.
-- `01-grass2` — grass variant/tuft accent; must blend with grass.
-- `02-path` — dirt/stone walkway.
-- `16-path-edge` — soft transition strip between path and grass.
-- `17-dirt` — bare dirt patch (e.g. a doorstep).
-- `18-brick` — brick/paver for pedestrian areas.
-- `26-sand` — beach/desert sand.
+1. Drop the PNG at `public/world/objects/<name>.png` (served out of git).
+2. Add a catalog entry in `OBJECT_CATALOG`: its `src`, a `footprint` (tile offsets
+   it blocks, relative to its anchor tile), and `solid`.
+3. Reference it as `{ kind: "<name>", col, row }` in a world.
 
-### Water `(solid)` — 2-frame animation
-- `03-water` — frame A.
-- `04-water2` — frame B. The renderer swaps `03 ↔ 04` every ~0.5s; draw them as two
-  slightly different ripple states so the loop reads as motion.
+The placeholder community building is `house.png` (a single 320×320 cottage). The
+6 Evergrow `Town_House` sprites can replace it per-building by adding catalog
+entries and pointing each building's `kind` at them — no layout change needed.
 
-### Trees `(solid)` — two stacked tiles make one tree
-- `05-tree-top` — canopy (full opaque tile, grass beneath the leaves).
-- `06-tree-trunk` — trunk; sits in the cell directly below the canopy.
+### Character — the 8-direction sheet
 
-### Buildings — edge pieces that MUST align seamlessly
-A community building is 4 wide × 3 tall:
-```
-ROOF_LEFT  ROOF    ROOF    ROOF_RIGHT
-WALL_LEFT  WINDOW  WINDOW  WALL_RIGHT
-WALL_LEFT  WALL    DOOR    WALL_RIGHT
-```
-- `08-roof`, `12-roof-left`, `13-roof-right` — roof middle + corners.
-- `07-wall` `(solid)`, `14-wall-left` `(solid)`, `15-wall-right` `(solid)` — wall middle + side edges.
-- `11-window` `(solid)` — building window.
-- `10-door` — community entrance (you walk up and press Enter to enter).
-- `21-house-door` — the player's "My Place" door (kept distinct — currently blue).
-- `09-fence` `(solid)`.
+The player is a BossNelNel 8-direction sheet (`long.png` ships first; see
+`CREDITS.md`). Geometry lives in `src/lib/game/character-sheet.ts`: a 9×9 grid of
+23×36 cells, column 0 idle + columns 1–8 walk, rows = the 8 facings clockwise from
+South. A drop-in alternate (e.g. short hair) just needs the same geometry.
 
-### Bridge
-- `19-bridge` — plank deck.
-- `20-bridge-rail` — deck with a railing edge (used for BOTH the top and bottom rows
-  of a bridge, so keep it readable from both sides).
+## Authoring a town
 
-### Frontier / nature
-- `22-tall-grass` — taller grass blades.
-- `23-flower-red`, `24-flower-yellow`, `25-flower-purple` — a flower on a grass base.
-- `27-mountain` `(solid)` — rock/cliff face.
-- `28-mushroom` `(solid)` — **hero asset:** the giant red-and-white warp shrine; a
-  focal point of the world. Make it pop.
-- `29-stone-ruin` `(solid)` — ancient ruined stone block.
-
-## Player (8 frames, 32×32, transparent background)
-
-Four directions × two walk frames:
-
-- `player-down-0`, `player-down-1`
-- `player-up-0`, `player-up-1`
-- `player-left-0`, `player-left-1`
-- `player-right-0`, `player-right-1`
-
-Frame 0 = neutral/standing, frame 1 = mid-stride (the engine alternates them while
-walking). Draw the character ~28px tall, centered, feet near the bottom of the cell.
-
-### ⚠️ One decision before you draw the player — avatar customization
-Today the player is **generated from each user's avatar** (hair style, skin, shirt,
-pants, shoes colors). A single fixed hand-drawn character would **lose that
-per-user customization** unless we plan for it:
-
-- **(i) Fixed character** — simplest; drop avatar colors for now (revisit later).
-- **(ii) Layered/recolorable** — draw body, hair, and clothes as separate transparent
-  layers that the engine tints per avatar. Preserves customization; ~3–4× the frames.
-- **(iii) Palette-swap** — draw with an indexed palette; the engine swaps colors.
-
-Tiles can proceed regardless — just flag which way you want to go before starting the
-player, and the loader will be built to match.
+Towns are composed in code as `IsoWorld` documents under
+`src/lib/game/worlds/` (see `capital.ts` for the live starter town —
+streets, a plaza, two rows of community buildings, framing trees, and the warp
+network). `WorldCanvas` renders whichever world its `WORLD` constant points at, so
+swapping or DB-loading a world later is a one-line change. Author tests assert the
+schema is valid and that every door + shrine is reachable on foot from spawn.

@@ -1,0 +1,185 @@
+// The Capital — the authored starter town the first invited players explore. A
+// deliberate composition (unlike the lab's test scatter): two rows of community
+// buildings along streets around a central plaza, a southern entrance avenue you
+// spawn on, trees framing the edges, and the mushroom warp network. Each
+// building's door id is the real community slug, so a door ports you into that
+// community's forum view, and a Portal button (`/world?at=<slug>`) drops you at
+// its doorstep.
+//
+// Buildings use the placeholder house sprite (320×320) for now; the layout,
+// doors, and slugs are final. Swapping in distinct per-building art is a one-line
+// OBJECT_CATALOG change (see world-model.ts). The player spawns south of the
+// town and approaches northward, so buildings sit "above" their doors and read
+// cleanly in the 2:1 projection.
+
+import type { IsoWorld, TerrainKind, PlacedObjectData } from "../world-model";
+import type { Door, MushroomWarp, Region } from "../types";
+
+const COLS = 56;
+const ROWS = 48;
+
+interface BuildingSpec {
+  id: string;
+  label: string;
+  col: number;
+  /** Front-anchor tile; the 3×2 footprint sits on rows [row-1, row]. */
+  row: number;
+}
+
+// Two rows of five. Doors open onto the street one tile south of each building.
+const NORTH_ROW = 12;
+const SOUTH_ROW = 30;
+const BUILDING_COLS = [6, 17, 28, 39, 50];
+
+const BUILDINGS: ReadonlyArray<BuildingSpec> = [
+  { id: "my-place", label: "My Place", col: 6, row: NORTH_ROW },
+  { id: "welcome-center", label: "Welcome Center", col: 17, row: NORTH_ROW },
+  { id: "creative", label: "Creative", col: 28, row: NORTH_ROW },
+  { id: "community-support", label: "Community Support", col: 39, row: NORTH_ROW },
+  { id: "technology", label: "Technology", col: 50, row: NORTH_ROW },
+  { id: "health", label: "Health", col: 6, row: SOUTH_ROW },
+  { id: "music", label: "Music", col: 17, row: SOUTH_ROW },
+  { id: "food", label: "Food", col: 28, row: SOUTH_ROW },
+  { id: "gaming", label: "Gaming", col: 39, row: SOUTH_ROW },
+  { id: "sports", label: "Sports", col: 50, row: SOUTH_ROW },
+];
+
+const NORTH_STREET = NORTH_ROW + 1; // 13
+const SOUTH_STREET = SOUTH_ROW + 1; // 31
+const PLAZA = { c0: 22, c1: 34, r0: 19, r1: 24 };
+const ENTRANCE_COL = 28;
+const SPAWN = { col: 28, row: 40 };
+
+/** Tiles inside a building's 3×2 footprint (for keeping trees/paths off them). */
+function inFootprint(c: number, r: number): boolean {
+  return BUILDINGS.some(
+    (b) => c >= b.col - 1 && c <= b.col + 1 && (r === b.row || r === b.row - 1),
+  );
+}
+
+function buildTerrain(): { terrain: TerrainKind[][]; isPath: (c: number, r: number) => boolean } {
+  const terrain: TerrainKind[][] = Array.from({ length: ROWS }, () =>
+    Array.from({ length: COLS }, () => "grass" as TerrainKind),
+  );
+  const path = (c: number, r: number) => {
+    if (r >= 0 && r < ROWS && c >= 0 && c < COLS) terrain[r][c] = "path";
+  };
+
+  // East–west door-streets.
+  for (let c = 4; c <= 51; c++) {
+    path(c, NORTH_STREET);
+    path(c, SOUTH_STREET);
+  }
+  // North–south avenues, one per building column, joining the two streets.
+  for (const c of BUILDING_COLS) {
+    for (let r = NORTH_STREET; r <= SOUTH_STREET; r++) path(c, r);
+  }
+  // Central plaza.
+  for (let r = PLAZA.r0; r <= PLAZA.r1; r++) {
+    for (let c = PLAZA.c0; c <= PLAZA.c1; c++) path(c, r);
+  }
+  // Southern entrance avenue down to the spawn.
+  for (let r = SOUTH_STREET; r <= SPAWN.row + 2; r++) path(ENTRANCE_COL, r);
+
+  const isPath = (c: number, r: number) =>
+    r >= 0 && r < ROWS && c >= 0 && c < COLS && terrain[r][c] === "path";
+  return { terrain, isPath };
+}
+
+const { terrain, isPath } = buildTerrain();
+
+// ── Objects: buildings, then framing trees, then accents ──
+
+const objects: PlacedObjectData[] = BUILDINGS.map((b) => ({
+  kind: "house",
+  col: b.col,
+  row: b.row,
+}));
+
+const TREE_KINDS = ["oak1", "oak2", "pine1", "pine2", "oak_big"];
+function canPlant(c: number, r: number): boolean {
+  return !isPath(c, r) && !inFootprint(c, r);
+}
+function plant(c: number, r: number, i: number): void {
+  if (canPlant(c, r)) objects.push({ kind: TREE_KINDS[i % TREE_KINDS.length], col: c, row: r });
+}
+
+// A loose ring of trees framing the town edges.
+let t = 0;
+for (let c = 2; c < COLS - 2; c += 3) {
+  plant(c, 2, t++);
+  plant(c, ROWS - 3, t++);
+}
+for (let r = 4; r < ROWS - 4; r += 3) {
+  plant(2, r, t++);
+  plant(COLS - 3, r, t++);
+}
+// A small grove flanking the southern entrance.
+for (const [c, r] of [
+  [22, 38],
+  [34, 38],
+  [20, 43],
+  [37, 44],
+  [24, 45],
+] as const) {
+  plant(c, r, t++);
+}
+// Bushes softening the plaza corners.
+for (const [c, r] of [
+  [21, 18],
+  [35, 18],
+  [21, 25],
+  [35, 25],
+] as const) {
+  if (canPlant(c, r)) objects.push({ kind: "bush", col: c, row: r });
+}
+
+// ── Doors (one per community building) ──
+
+const doors: Door[] = BUILDINGS.map((b) => ({
+  id: b.id,
+  label: b.label,
+  col: b.col,
+  row: b.row + 1,
+}));
+
+// ── Mushroom warp network ──
+
+const mushrooms: MushroomWarp[] = [
+  {
+    id: "capital-gate",
+    col: 32,
+    row: 40,
+    label: "Capital Gate",
+    nodeId: "capital",
+    connections: "all",
+    reachableOnFoot: true,
+  },
+  {
+    id: "willow-grove",
+    col: 45,
+    row: 43,
+    label: "Willow Grove",
+    nodeId: "capital",
+    connections: "all",
+    reachableOnFoot: true,
+  },
+];
+for (const m of mushrooms) objects.push({ kind: "mushroom", col: m.col, row: m.row });
+
+// ── Region ──
+
+const regions: Region[] = [
+  { id: "capital", label: "The Capital", bounds: { col: 0, row: 0, w: COLS, h: ROWS } },
+];
+
+export const CAPITAL: IsoWorld = {
+  cols: COLS,
+  rows: ROWS,
+  spawn: SPAWN,
+  terrain,
+  objects,
+  doors,
+  mushrooms,
+  regions,
+};

@@ -61,13 +61,14 @@ The default, **Auto**, follows the clock — Platinum by day, Terminal at night 
 
 ### 8-Bit World (In Progress)
 
-- Tile-based game engine built with React and HTML Canvas (32px tiles)
-- Player movement (WASD/arrows + mobile touch D-pad)
-- Camera system, collision detection, and walk animations
-- Building interaction system with fade transitions
-- Responsive canvas scaling for mobile
-- **Avatar builder** — gender-neutral character customization (hair, skin, shirt, pants) on first login
-- **Procedural frontier generator** — deterministic 500×500 tile world with 6 themed biomes (flower meadow, beach, mountain valley, island, misty grove, ancient ruins), the capital city stamped at its center, passages, a river system, and a mushroom warp network between shrines
+An **isometric 2.5D** overworld you teleport into:
+
+- **Isometric engine** — React + HTML Canvas, a 2:1 diamond projection with an autotiled ground, depth-sorted free-standing objects, and an 8-direction animated character
+- Player movement (WASD/arrows + mobile touch D-pad), a camera that follows and clamps to the map, and per-tile collision
+- **Ports** — walk up to a building's door and step through to its community's forum view; Portal buttons drop you back at its doorstep
+- **Mushroom warp network** — discover shrines to unlock fast travel between them
+- **The Capital** — an authored starter town with a building (and a Ports door) for each community
+- **Avatar builder** — gender-neutral character customization on first login
 
 ## Screenshots
 
@@ -223,15 +224,33 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Wire generated world into `WorldCanvas` (Phase B: loader + renderer)
 - [x] Mushroom warp UI (warp menu, discovery tracking, teleport transition)
 - [x] Ports v1 — two-way travel between forum view and world view (Portal buttons + doors)
+- [x] Isometric world — 2.5D engine (iso projection, autotiled ground, depth-sorted objects, 8-direction character) with collision, doors, warp shrines, region toasts, and Ports
+- [x] Authored capital town — a building with a Ports door for each community, composed as a serializable world document
+- [ ] Distinct building art — swap the placeholder cottage for the Evergrow Town_House sprites
+- [ ] Water autotiling + richer terrain
 - [ ] Ports v2 — building interiors with PC sprites (log on to the forum, or warp PC-to-PC)
-- [ ] Aseprite pixel-art pass to replace placeholder sprites
-- [ ] Dynamic building placement from the DB (community buildings inside the capital)
-- [ ] Player identity bound to world position + username rendered above avatar
-- [ ] Real-time multiplayer presence
+- [ ] DB-backed worlds + Builder/Creator placement (user-built buildings and objects)
+- [ ] Player identity bound to world position + username rendered above the avatar
+- [ ] Real-time multiplayer presence (the engine is built with the seams for it)
 
 ---
 
 ## Version History
+
+### v0.6.0 — The World Goes Isometric (June 2026)
+
+**Why:** The world had been a top-down tile map — functional, but flat. To make it the explorable, characterful place the project is about, it moved to an **isometric 2.5D** view built around a purchased character and the Evergrow Forest art. The migration was also the moment to lay architecture seams for where the world is headed: a shared, multiplayer, player-built space.
+
+**What changed:**
+
+- **Isometric engine** — a 2:1 projection with a diamond-autotiled ground, depth-sorted free-standing objects (trees, rocks, buildings, the warp shrine), and an 8-direction animated character. Movement, collision, doors, warp shrines, region toasts, the warp menu, and fade transitions all carried over from the top-down engine, now in iso. `/world` runs on it; the top-down engine, tileset, sprite generators, and the 500×500 procedural generator were retired.
+- **Serializable world model** — a place is a plain `IsoWorld` document (terrain grid + a list of placed objects + doors + shrines + regions) in world-space tile coordinates, validated with Zod and loaded behind a source-agnostic interface (a file today, a database row later). Collision is a pure function over that data — the same code a server could run.
+- **The Capital** — an authored starter town: streets and a central plaza, a building for each community (whose door ports you into that community's forum view), framing trees, and the mushroom warp network. Buildings use a placeholder cottage for now; swapping in distinct art is a per-building one-liner.
+- **Built for what's next** — the engine models the world as a static map plus an entity collection (the local player is one entity), splits input (`computeIntent`) from movement (`applyMovement`), and keeps positions in world space. Those are the seams that let parallel and real-time multiplayer — and Builder/Creator user-generated spaces — slot in later without a rewrite.
+
+**What didn't change:** the forum, Ports' contract (`/world?at=<slug>` ↔ a door porting back to `/communities/<slug>`), and the avatar builder's procedural preview. The account model and APIs are untouched.
+
+**Not yet done (intentional):** distinct per-building art (the Evergrow Town_House sprites), water autotiling, Ports v2 interiors, and binding player position to identity in the database.
 
 ### v0.5.0 — Three Themes: Platinum, Terminal, Pixel Dusk (June 2026)
 

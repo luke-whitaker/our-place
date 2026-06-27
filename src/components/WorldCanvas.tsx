@@ -17,7 +17,7 @@ import {
   type IsoAssets,
 } from "@/lib/game/iso-engine";
 import { loadIsoSave, persistIsoSave, isValidIsoPosition } from "@/lib/game/iso-save";
-import { LAB_TOWN } from "@/lib/game/worlds/lab-town";
+import { CAPITAL } from "@/lib/game/worlds/capital";
 import type { Door } from "@/lib/game/types";
 
 interface WorldCanvasProps {
@@ -30,9 +30,9 @@ interface WorldCanvasProps {
 /** Persist position + discoveries every few seconds while playing. */
 const SAVE_INTERVAL_MS = 3000;
 
-// The world to render. A placeholder until Phase 4 composes the real starter
-// town; the engine reads it as data, so swapping it is a one-line change.
-const WORLD = LAB_TOWN;
+// The world to render. The engine reads it as data, so swapping it (a different
+// town, a DB-loaded world later) is a one-line change.
+const WORLD = CAPITAL;
 
 /**
  * <WorldCanvas /> — the isometric overworld.
