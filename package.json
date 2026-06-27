@@ -14,7 +14,6 @@
     "db:push": "prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
     "db:studio": "prisma studio",
-    "world:generate": "npx tsx scripts/generate-world.ts",
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write .",
