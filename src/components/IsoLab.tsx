@@ -3,23 +3,17 @@
 // ── Isometric vertical slice (dev harness) ──
 //
 // A throwaway page (/iso-lab) for proving the iso migration before touching the
-// live world. Renders the real Evergrow autotiled ground (forest-autotile.ts)
-// plus real free-standing objects — trees, bushes, rocks, a cottage — that
-// depth-sort against the BossNelNel character (world-object.ts). Walk behind and
-// in front of the trees and the house to see the painter's-order sort. Authoring
-// a real town and wiring into the live engine come next.
+// live world. As of Phase 1 it runs on the real engine seams: an IsoWorld
+// document (worlds/lab-town.ts), a baked solid grid for collision, and the
+// computeIntent → applyMovement movement split — so the player now collides with
+// the cottage, trees, and rocks instead of walking through them. Positions live
+// in world-space tile coords; the iso projection happens only here at render.
 
 import { useEffect, useRef, useState } from "react";
 import { CANVAS_W, CANVAS_H, TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
-import { tileToScreen, screenToTile } from "@/lib/game/iso";
-import {
-  loadCharacterSheet,
-  pickFrame,
-  vectorToDir8,
-  type CharacterSprites,
-  type Dir8,
-} from "@/lib/game/character-sheet";
+import { tileToScreen } from "@/lib/game/iso";
+import { loadCharacterSheet, pickFrame, type CharacterSprites } from "@/lib/game/character-sheet";
 import { groundCell, type Terrain } from "@/lib/game/forest-autotile";
 import {
   loadObjectSprite,
@@ -28,60 +22,23 @@ import {
   type ObjectSprite,
   type PlacedObject,
 } from "@/lib/game/world-object";
+import { OBJECT_CATALOG, type IsoWorld } from "@/lib/game/world-model";
+import { buildSolidGrid, type SolidGrid } from "@/lib/game/iso-collision";
+import { computeIntent, applyMovement, createEntity, type IsoEntity } from "@/lib/game/iso-actor";
+import { LAB_TOWN } from "@/lib/game/worlds/lab-town";
 
 const ZOOM = 2;
 const VIEW_W = CANVAS_W / ZOOM;
 const VIEW_H = CANVAS_H / ZOOM;
 
-const COLS = 24;
-const ROWS = 24;
 const CELL = 32;
-const SPEED = 1.8;
 const ANIM_TICKS = 7;
 const FOOT_OFFSET = 4;
 
-const OBJECT_SRC: Record<string, string> = {
-  house: "/world/objects/house.png",
-  oak_big: "/world/objects/oak_big.png",
-  oak1: "/world/objects/oak1.png",
-  oak2: "/world/objects/oak2.png",
-  pine1: "/world/objects/pine1.png",
-  pine2: "/world/objects/pine2.png",
-  bush_large: "/world/objects/bush_large.png",
-  bush: "/world/objects/bush.png",
-  rock: "/world/objects/rock.png",
-  mushroom: "/world/objects/mushroom.png",
-};
-
-// Scene layout (kind + tile). Spawn is the centre tile (12,12).
-const SCENE: ReadonlyArray<{ kind: string; col: number; row: number }> = [
-  { kind: "house", col: 9, row: 7 },
-  { kind: "oak_big", col: 4, row: 5 },
-  { kind: "oak1", col: 6, row: 14 },
-  { kind: "pine1", col: 9, row: 16 },
-  { kind: "oak2", col: 16, row: 9 },
-  { kind: "pine2", col: 18, row: 13 },
-  { kind: "oak1", col: 14, row: 18 },
-  { kind: "pine1", col: 20, row: 17 },
-  { kind: "oak2", col: 5, row: 18 },
-  { kind: "bush_large", col: 16, row: 14 },
-  { kind: "bush", col: 10, row: 15 },
-  { kind: "rock", col: 15, row: 11 },
-  { kind: "mushroom", col: 9, row: 13 },
-];
-
-function buildTerrain(): Terrain {
-  const t: Terrain = Array.from({ length: ROWS }, () => Array.from({ length: COLS }, () => true));
-  for (let r = 6; r <= 9; r++) for (let c = 7; c <= 11; c++) t[r][c] = false; // dirt clearing
-  return t;
-}
-
-interface PlayerState {
-  px: number;
-  py: number;
-  dir: Dir8;
-  moving: boolean;
-  animTimer: number;
+/** The autotiler reads a grass/dirt boolean grid; everything non-grass renders as
+ * bare ground for now (water gets its own autotiler in a later pass). */
+function grassGrid(world: IsoWorld): Terrain {
+  return world.terrain.map((row) => row.map((kind) => kind === "grass"));
 }
 
 export default function IsoLab() {
@@ -90,26 +47,23 @@ export default function IsoLab() {
   const spritesRef = useRef<CharacterSprites | null>(null);
   const forestRef = useRef<HTMLImageElement | null>(null);
   const placedRef = useRef<PlacedObject[]>([]);
-  const terrainRef = useRef<Terrain>(buildTerrain());
+  const terrainRef = useRef<Terrain>(grassGrid(LAB_TOWN));
+  const solidRef = useRef<SolidGrid>(buildSolidGrid(LAB_TOWN));
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
 
-  const spawn = tileToScreen(12, 12);
-  const playerRef = useRef<PlayerState>({
-    px: spawn.x,
-    py: spawn.y,
-    dir: "S",
-    moving: false,
-    animTimer: 0,
-  });
+  const playerRef = useRef<IsoEntity>(
+    createEntity("local", LAB_TOWN.spawn.col, LAB_TOWN.spawn.row),
+  );
 
   useEffect(() => {
     let cancelled = false;
-    const kinds = Object.keys(OBJECT_SRC);
+    // Load one sprite per unique kind the world places, then resolve placements.
+    const kinds = [...new Set(LAB_TOWN.objects.map((o) => o.kind))];
     Promise.all([
       loadCharacterSheet("/world/characters/long.png"),
       loadImage("/world/tiles/forest.png"),
-      ...kinds.map((k) => loadObjectSprite(OBJECT_SRC[k])),
+      ...kinds.map((k) => loadObjectSprite(OBJECT_CATALOG[k].src)),
     ])
       .then(([sprites, forest, ...objs]) => {
         if (cancelled) return;
@@ -118,7 +72,11 @@ export default function IsoLab() {
         const byKind = Object.fromEntries(
           kinds.map((k, i) => [k, objs[i] as ObjectSprite]),
         ) as Record<string, ObjectSprite>;
-        placedRef.current = SCENE.map((p) => ({ sprite: byKind[p.kind], col: p.col, row: p.row }));
+        placedRef.current = LAB_TOWN.objects.map((o) => ({
+          sprite: byKind[o.kind],
+          col: o.col,
+          row: o.row,
+        }));
         setReady(true);
       })
       .catch((err) => {
@@ -145,7 +103,7 @@ export default function IsoLab() {
       lastTime = now;
       accumulator = Math.min(accumulator + elapsed, MAX_ACCUMULATOR);
       while (accumulator >= TICK_RATE) {
-        update(playerRef.current, input);
+        applyMovement(solidRef.current, playerRef.current, computeIntent(input));
         accumulator -= TICK_RATE;
       }
       ctx.imageSmoothingEnabled = false;
@@ -179,7 +137,7 @@ export default function IsoLab() {
         {error
           ? error
           : ready
-            ? "WASD / Arrows — walk behind and in front of the trees and house"
+            ? "WASD / Arrows — you now collide with the cottage, trees, and rocks"
             : "Loading art…"}
       </p>
     </div>
@@ -195,38 +153,11 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   });
 }
 
-// ── Update ──
-
-function update(player: PlayerState, input: ReturnType<typeof createInputManager>): void {
-  let dx = 0;
-  let dy = 0;
-  if (input.isDown("ArrowUp") || input.isDown("KeyW")) dy -= 1;
-  if (input.isDown("ArrowDown") || input.isDown("KeyS")) dy += 1;
-  if (input.isDown("ArrowLeft") || input.isDown("KeyA")) dx -= 1;
-  if (input.isDown("ArrowRight") || input.isDown("KeyD")) dx += 1;
-
-  player.moving = dx !== 0 || dy !== 0;
-  if (player.moving) {
-    const len = Math.hypot(dx, dy);
-    const tryX = player.px + (dx / len) * SPEED;
-    const tryY = player.py + (dy / len) * SPEED;
-    const t = screenToTile(tryX, tryY);
-    if (t.col >= 0 && t.col <= COLS - 1 && t.row >= 0 && t.row <= ROWS - 1) {
-      player.px = tryX;
-      player.py = tryY;
-    }
-    player.dir = vectorToDir8(dx, dy) ?? player.dir;
-    player.animTimer++;
-  } else {
-    player.animTimer = 0;
-  }
-}
-
 // ── Render ──
 
 function render(
   ctx: CanvasRenderingContext2D,
-  player: PlayerState,
+  player: IsoEntity,
   terrain: Terrain,
   placed: PlacedObject[],
   sprites: CharacterSprites | null,
@@ -237,13 +168,16 @@ function render(
 
   ctx.save();
   ctx.scale(ZOOM, ZOOM);
-  const camX = Math.round(player.px - VIEW_W / 2);
-  const camY = Math.round(player.py - VIEW_H / 2);
+  const pos = tileToScreen(player.col, player.row);
+  const camX = Math.round(pos.x - VIEW_W / 2);
+  const camY = Math.round(pos.y - VIEW_H / 2);
 
   // Ground: back-to-front by (col+row) so each surface covers the skirt behind it.
   if (forest) {
-    for (let sum = 0; sum <= COLS + ROWS - 2; sum++) {
-      for (let row = Math.max(0, sum - COLS + 1); row <= Math.min(sum, ROWS - 1); row++) {
+    const rows = terrain.length;
+    const cols = terrain[0].length;
+    for (let sum = 0; sum <= cols + rows - 2; sum++) {
+      for (let row = Math.max(0, sum - cols + 1); row <= Math.min(sum, rows - 1); row++) {
         const col = sum - row;
         const [sc, sr] = groundCell(terrain, col, row);
         const s = tileToScreen(col, row);
@@ -269,7 +203,7 @@ function render(
     draw: () => drawObject(ctx, o, camX, camY),
   }));
   if (sprites) {
-    drawables.push({ depth: player.py, draw: () => drawPlayer(ctx, player, sprites, camX, camY) });
+    drawables.push({ depth: pos.y, draw: () => drawPlayer(ctx, player, pos, sprites, camX, camY) });
   }
   drawables.sort((a, b) => a.depth - b.depth).forEach((d) => d.draw());
 
@@ -278,18 +212,19 @@ function render(
 
 function drawPlayer(
   ctx: CanvasRenderingContext2D,
-  player: PlayerState,
+  player: IsoEntity,
+  pos: { x: number; y: number },
   sprites: CharacterSprites,
   camX: number,
   camY: number,
 ): void {
   ctx.fillStyle = "rgba(0,0,0,0.22)";
   ctx.beginPath();
-  ctx.ellipse(player.px - camX, player.py - camY, 7, 3, 0, 0, Math.PI * 2);
+  ctx.ellipse(pos.x - camX, pos.y - camY, 7, 3, 0, 0, Math.PI * 2);
   ctx.fill();
 
   const frame = pickFrame(sprites, player.dir, player.moving, player.animTimer, ANIM_TICKS);
-  const x = Math.round(player.px - frame.width / 2 - camX);
-  const y = Math.round(player.py - frame.height + FOOT_OFFSET - camY);
+  const x = Math.round(pos.x - frame.width / 2 - camX);
+  const y = Math.round(pos.y - frame.height + FOOT_OFFSET - camY);
   ctx.drawImage(frame, x, y);
 }
