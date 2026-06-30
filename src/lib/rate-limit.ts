@@ -98,14 +98,32 @@ export const createEventLimiter = new RateLimiter({ maxAttempts: 10, windowMs: 6
 export const createCommunityLimiter = new RateLimiter({ maxAttempts: 5, windowMs: 60 * 60 * 1000 });
 
 /**
- * Extract a rate-limit key from a request.
- * Uses X-Forwarded-For header (for reverse proxies) or falls back to a default.
+ * Number of trusted reverse proxies in front of the app. Railway's edge is a
+ * single hop, so 1 is correct in production; override via env if the topology
+ * changes (e.g. adding a CDN in front). Always at least 1.
+ */
+const TRUSTED_PROXY_HOPS = Math.max(1, Number(process.env.TRUSTED_PROXY_HOPS) || 1);
+
+/**
+ * Extract a client IP for rate-limiting, resistant to X-Forwarded-For spoofing.
+ *
+ * X-Forwarded-For is a client→proxy chain: each hop *appends* the IP it saw, so
+ * the leftmost entry is fully client-controlled and trivially forged (the old
+ * code read it, so rotating the header defeated every limiter). We instead trust
+ * only the entry our own infrastructure appended — `TRUSTED_PROXY_HOPS` from the
+ * right. A client injecting extra XFF values only pushes its forgeries further
+ * left, past the hop we read. Falls back to x-real-ip, then a shared constant.
  */
 export function getClientIp(request: Request): string {
   const forwarded = request.headers.get("x-forwarded-for");
   if (forwarded) {
-    return forwarded.split(",")[0].trim();
+    const parts = forwarded
+      .split(",")
+      .map((p) => p.trim())
+      .filter(Boolean);
+    if (parts.length > 0) {
+      return parts[Math.max(0, parts.length - TRUSTED_PROXY_HOPS)];
+    }
   }
-  // In development without a proxy, use a fallback
   return request.headers.get("x-real-ip") || "unknown";
 }
