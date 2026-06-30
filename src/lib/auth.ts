@@ -63,3 +63,15 @@ export async function requireAdmin(): Promise<
 export function generateCode(): string {
   return crypto.randomInt(100000, 999999).toString();
 }
+
+/**
+ * Constant-time comparison for short secrets (reset codes), so a partial match
+ * can't be inferred from response timing. Returns false on length mismatch
+ * rather than letting timingSafeEqual throw.
+ */
+export function constantTimeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a);
+  const bb = Buffer.from(b);
+  if (ab.length !== bb.length) return false;
+  return crypto.timingSafeEqual(ab, bb);
+}

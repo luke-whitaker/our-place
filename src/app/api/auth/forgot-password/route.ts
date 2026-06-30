@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { generateCode } from "@/lib/auth";
+import { sendPasswordResetCode } from "@/lib/email";
 import { forgotPasswordLimiter, getClientIp } from "@/lib/rate-limit";
 import { forgotPasswordSchema, getZodErrorMessage } from "@/lib/schemas";
 
@@ -44,8 +45,14 @@ export async function POST(request: NextRequest) {
       data: { resetCode, resetCodeExpiresAt: expiresAt },
     });
 
-    // In production, send this code via email/SMS here.
-    // For development, log it to the server console only.
+    // Deliver the code. A send failure is logged but never surfaced — the
+    // response stays generic whether or not the account exists, so it can't be
+    // used to probe which emails are registered.
+    try {
+      await sendPasswordResetCode(user.email, resetCode);
+    } catch (err) {
+      console.error("Failed to send password reset email:", err);
+    }
     if (process.env.NODE_ENV !== "production") {
       console.log(`[DEV] Reset code for ${email}: ${resetCode}`);
     }

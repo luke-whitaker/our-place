@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { constantTimeEqual } from "@/lib/auth";
 import { resetPasswordLimiter, getClientIp } from "@/lib/rate-limit";
 import { resetPasswordSchema, getZodErrorMessage } from "@/lib/schemas";
 import bcrypt from "bcryptjs";
@@ -32,7 +33,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Invalid email or reset code." }, { status: 400 });
     }
 
-    if (!user.resetCode || user.resetCode !== code) {
+    if (!user.resetCode || !constantTimeEqual(user.resetCode, code)) {
       return NextResponse.json({ error: "Invalid email or reset code." }, { status: 400 });
     }
 
