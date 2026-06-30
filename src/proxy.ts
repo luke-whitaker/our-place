@@ -14,15 +14,18 @@ import { NextRequest, NextResponse } from "next/server";
 // in production — it only "worked" in dev because dev used Report-Only mode.
 // R2 public host for uploaded media (e.g. https://pub-….r2.dev). Read from env
 // so the bucket URL isn't hardcoded in a public repo; empty string if unset.
-const r2Host = (() => {
-  const base = process.env.R2_PUBLIC_BASE_URL;
-  if (!base) return "";
+function originFromEnv(value: string | undefined): string {
+  if (!value) return "";
   try {
-    return new URL(base).origin;
+    return new URL(value).origin;
   } catch {
     return "";
   }
-})();
+}
+const r2Host = originFromEnv(process.env.R2_PUBLIC_BASE_URL);
+// World-art host (often the same R2 bucket); allowed as an <img> source below.
+const worldAssetHost = originFromEnv(process.env.NEXT_PUBLIC_WORLD_ASSET_BASE);
+const imgHosts = [r2Host, worldAssetHost].filter((h, i, arr) => h && arr.indexOf(h) === i);
 
 export function proxy(request: NextRequest) {
   const isDev = process.env.NODE_ENV !== "production";
@@ -38,7 +41,7 @@ export function proxy(request: NextRequest) {
     // dev additionally needs 'unsafe-eval' for React Fast Refresh.
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
     "style-src 'self' 'unsafe-inline'",
-    `img-src 'self' data: blob: https://img.youtube.com${r2Host ? ` ${r2Host}` : ""}`,
+    `img-src 'self' data: blob: https://img.youtube.com${imgHosts.length ? ` ${imgHosts.join(" ")}` : ""}`,
     `media-src 'self' blob:${r2Host ? ` ${r2Host}` : ""}`,
     "font-src 'self'",
     "frame-src https://www.youtube.com https://player.vimeo.com",
