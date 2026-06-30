@@ -6,6 +6,7 @@ import { createInputManager } from "@/lib/game/input";
 import { loadObjectSprite, type ObjectSprite } from "@/lib/game/world-object";
 import { loadCharacterSheet, type CharacterSprites } from "@/lib/game/character-sheet";
 import { OBJECT_CATALOG } from "@/lib/game/world-model";
+import { worldAsset, newWorldImage } from "@/lib/game/asset-url";
 import {
   createIsoState,
   update,
@@ -88,10 +89,10 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
     let cancelled = false;
     const kinds = [...new Set(WORLD.objects.map((o) => o.kind))];
     Promise.all([
-      loadCharacterSheet("/world/characters/long.png"),
-      loadImage("/world/tiles/forest.png"),
-      loadImage("/world/tiles/water.png"),
-      ...kinds.map((k) => loadObjectSprite(OBJECT_CATALOG[k].src)),
+      loadCharacterSheet(worldAsset("/world/characters/long.png")),
+      loadImage(worldAsset("/world/tiles/forest.png")),
+      loadImage(worldAsset("/world/tiles/water.png")),
+      ...kinds.map((k) => loadObjectSprite(worldAsset(OBJECT_CATALOG[k].src))),
     ])
       .then(([characters, forest, water, ...objs]) => {
         if (cancelled) return;
@@ -297,7 +298,7 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
+    const img = newWorldImage(src);
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error(`Failed to load ${src}`));
     img.src = src;

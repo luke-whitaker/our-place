@@ -5,6 +5,7 @@
 // git like the other art (see CREDITS.md).
 
 import { tileToScreen } from "./iso";
+import { newWorldImage } from "./asset-url";
 
 export interface ObjectSprite {
   img: HTMLImageElement;
@@ -21,7 +22,7 @@ export interface PlacedObject {
 
 export function loadObjectSprite(src: string): Promise<ObjectSprite> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
+    const img = newWorldImage(src);
     img.onload = () => resolve({ img, ...baseAnchor(img) });
     img.onerror = () => reject(new Error(`Failed to load object sprite: ${src}`));
     img.src = src;
@@ -29,6 +30,8 @@ export function loadObjectSprite(src: string): Promise<ObjectSprite> {
 }
 
 // Scan the alpha channel for the opaque bounding box; anchor at its bottom-centre.
+// Reads pixels via getImageData, so cross-origin art must be CORS-enabled (see
+// newWorldImage) or this throws on a tainted canvas.
 function baseAnchor(img: HTMLImageElement): { anchorX: number; anchorY: number } {
   const canvas = document.createElement("canvas");
   canvas.width = img.width;

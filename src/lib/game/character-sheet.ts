@@ -13,6 +13,8 @@
 // runtime loads a copy served out of git (R2 in prod, a local dev copy under
 // public/world/characters/).
 
+import { newWorldImage } from "./asset-url";
+
 export const SHEET = {
   cols: 9,
   rows: 9,
@@ -100,7 +102,7 @@ export function pickFrame(
 /** Load a character sheet image and slice it into per-facing idle/walk frames. */
 export function loadCharacterSheet(url: string): Promise<CharacterSprites> {
   return new Promise((resolve, reject) => {
-    const img = new Image();
+    const img = newWorldImage(url);
     img.onload = () => resolve(sliceSheet(img));
     img.onerror = () => reject(new Error(`Failed to load character sheet: ${url}`));
     img.src = url;
