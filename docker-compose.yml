@@ -1,0 +1,38 @@
+# Local development database for Our Place.
+#
+# Keeps day-to-day dev work OFF the production database (Railway). The connection
+# string below is already wired into `.env` (Prisma CLI/seed) and
+# `.env.development.local` (the Next.js dev server).
+#
+# Usage:
+#   docker compose up -d      # start the dev Postgres in the background
+#   npm run db:migrate        # apply Prisma migrations to it
+#   npm run db:seed           # seed the 9 starter communities
+#   npm run db:studio         # browse it
+#   docker compose down       # stop it (data persists in the named volume)
+#   docker compose down -v    # stop AND wipe the data (fresh start)
+#
+# The password here is a throwaway dev credential, not a secret — this file is
+# committed on purpose so the setup is reproducible.
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: ourplace-dev-db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ourplace
+      POSTGRES_PASSWORD: ourplace
+      POSTGRES_DB: ourplace
+    ports:
+      - "5432:5432"
+    volumes:
+      - ourplace-dev-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ourplace -d ourplace"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  ourplace-dev-db:

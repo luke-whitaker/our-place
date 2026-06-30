@@ -13,6 +13,7 @@
     "db:migrate": "prisma migrate dev",
     "db:push": "prisma db push",
     "db:seed": "npx tsx prisma/seed.ts",
+    "db:create-admin": "npx tsx scripts/create-admin.ts",
     "db:studio": "prisma studio",
     "world:upload": "tsx scripts/upload-world-art.ts",
     "start": "next start",
