@@ -25,6 +25,15 @@ RUN npx prisma generate
 ENV JWT_SECRET=build-placeholder
 ENV DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder
 
+# NEXT_PUBLIC_* vars are different: Next.js inlines them into the client
+# bundle (and into build-time-evaluated server code like the CSP header
+# in src/proxy.ts) during `next build` itself, so a runtime-only value
+# from Railway is too late. Railway auto-populates ARGs that match a
+# variable name it has, so declaring it here pulls the real value into
+# the build.
+ARG NEXT_PUBLIC_WORLD_ASSET_BASE
+ENV NEXT_PUBLIC_WORLD_ASSET_BASE=$NEXT_PUBLIC_WORLD_ASSET_BASE
+
 RUN npm run build
 
 # Stage 3: Production runner
