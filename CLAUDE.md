@@ -103,7 +103,7 @@ Game engine types live alongside the engine in `src/lib/game/`.
 - **Unit tests**: Vitest — `npm run test` (or `npm run test:watch`)
 - Test files live next to the module they test: `media-utils.test.ts` alongside `media-utils.ts`
 - Test pure `lib/` functions first; DB-dependent code needs a test PostgreSQL instance
-- **UI tests**: Playwright scripts in project root (`test-ui.mjs`)
+- **UI tests**: ad hoc Playwright scripts, run from the project root (none are checked in)
 
 ### Commands
 
