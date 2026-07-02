@@ -123,6 +123,51 @@ Game engine types live alongside the engine in `src/lib/game/`.
 
 ---
 
+## Core Coding Rules
+
+Adapted from NASA/JPL's "Power of Ten" rules for safety-critical code (Gerard J. Holzmann), kept in language-neutral form (master copy: `~/Desktop/coding-guidelines/CLAUDE.md`). The goal is code that is simple to read, easy to analyze (by humans and tools), and predictable at runtime.
+
+1. **Keep control flow simple.** Avoid deeply nested conditionals, non-local jumps, and clever flow tricks. Prefer early returns for error cases. Avoid recursion unless the depth is obviously bounded and the recursive solution is clearly simpler; if you use it, state the bound.
+
+2. **Give every loop a provable upper bound.** A reader should be able to see at a glance why a loop terminates. When iterating over external or unbounded input (queues, streams, retries, pagination), add an explicit limit or timeout and treat exceeding it as an error. Intentionally infinite loops (the game loop, event loops) are fine, but mark them as intentional.
+
+3. **Use resources predictably.** Avoid unbounded growth of memory, connections, file handles, tasks, or queues. Acquire resources deliberately, release them deterministically, and prefer fixed-size buffers, pools, and caches with eviction in long-running code.
+
+4. **Keep functions short.** A function should be one logical unit that fits on one screen, roughly 60 lines or less. React interpretation for this project: component _logic_ stays under ~60 lines; extract subcomponents when the JSX stops fitting on a screen. If a function needs internal section comments to stay navigable, split it.
+
+5. **Check your assumptions.** Validate parameters and external input at function boundaries (Zod at API boundaries, as already practiced). Use assertions for conditions that should never happen; assertions must be side-effect free, and a failed assumption must lead to an explicit recovery action rather than silent continuation.
+
+6. **Declare data in the smallest possible scope.** Declare variables where they are used, not at the top of a function. Never reuse a variable for a second, unrelated purpose. Prefer immutable bindings and narrow visibility so there are fewer places a value can change.
+
+7. **Never silently ignore a return value or error.** Handle it or propagate it. If ignoring a result is genuinely correct, make that explicit in the language's idiom (`void promise`, `_ = value`) so the reader knows it was a decision, not an accident. In UI code, a caught error must surface user-facing state (`setError(...)`), never vanish.
+
+8. **Limit metaprogramming and build-time magic.** Reflection, code generation, monkey-patching, and dynamic attribute access defeat both static analysis and readers. Keep conditional code paths, feature flags, and environment-dependent branches to a minimum: every flag doubles the number of variants that need testing.
+
+9. **Limit indirection.** Keep data flow and control flow easy to follow: no more than one level of "look elsewhere to understand this." Add an abstraction layer only when there is more than one concrete implementation or a proven need. Avoid `any` entirely (currently at zero — keep it there).
+
+10. **Zero warnings from day one.** Keep `strict: true`, keep `tsc --noEmit` clean, treat lint warnings as errors. If a tool produces a confusing warning, rewrite the code to be more obviously correct rather than suppressing the message. Suppressions (`eslint-disable`, `@ts-expect-error`) require a comment explaining why.
+
+## Comments
+
+- Comment "why," not "what." The code shows what; comments explain intent, constraints, and non-obvious decisions.
+- No redundant comments (`close()  // closes the connection`).
+- Complex logic always gets comments: concurrency/async patterns, error recovery strategies, edge cases, performance-critical sections (the iso engine's render/update loops qualify).
+- Let descriptive names carry the load. Prefer renaming over commenting where a name can say it.
+- No TODO or FIXME comments without an issue/ticket reference. No commented-out code in commits.
+
+## Writing Style (README, docs, commit messages, error messages)
+
+- Write like a knowledgeable colleague: clear, direct, friendly. Second person ("you"), active voice, present tense ("returns," not "will return").
+- Be concise: every sentence earns its place. Front-load key information; lead with what the reader needs to do.
+- Task-oriented over feature-oriented: every piece of information should answer "so what should I do?"
+- No marketing language. Frame version comparisons neutrally (what the new version provides, not what the old lacked).
+- Warn about mistakes people will actually make, not theoretical ones.
+- Short paragraphs (3-4 lines max). Consistent list markers; parallel construction in lists; numbers only for sequential steps.
+- No em-dashes in new prose; use commas, periods, or parentheses. Straight quotes only.
+- Code examples in docs: one-sentence intro, complete runnable block with a language identifier, key points after. Use realistic data and descriptive names. Mark anti-patterns ❌/✅ and always pair them with the correct alternative.
+
+---
+
 ## The 8-Bit World — Current Status
 
 **Architecture decision (still holds):** the world is the logged-in home / navigation layer (Option B). Entering a building transitions to the existing community pages. Rendering forum content _inside_ the world (Option A) remains a future possibility, not current scope.
