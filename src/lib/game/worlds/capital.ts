@@ -6,13 +6,14 @@
 // community's forum view, and a Portal button (`/world?at=<slug>`) drops you at
 // its doorstep.
 //
-// Buildings use the placeholder house sprite (320×320) for now; the layout,
-// doors, and slugs are final. Swapping in distinct per-building art is a one-line
-// OBJECT_CATALOG change (see world-model.ts). The player spawns south of the
-// town and approaches northward, so buildings sit "above" their doors and read
-// cleanly in the 2:1 projection.
+// Each building uses one of the six Evergrow Town_House sprites (drawn at half
+// size — see OBJECT_CATALOG in world-model.ts), with variants alternated so
+// neighbours differ. The player spawns south of the town and approaches
+// northward, so buildings sit "above" their doors and read cleanly in the 2:1
+// projection.
 
 import type { IsoWorld, TerrainKind, PlacedObjectData } from "../world-model";
+import { OBJECT_CATALOG } from "../world-model";
 import type { Door, MushroomWarp, Region } from "../types";
 
 const COLS = 56;
@@ -21,8 +22,10 @@ const ROWS = 48;
 interface BuildingSpec {
   id: string;
   label: string;
+  /** An OBJECT_CATALOG building kind; its footprint extends north-west of the anchor. */
+  kind: string;
   col: number;
-  /** Front-anchor tile; the 3×2 footprint sits on rows [row-1, row]. */
+  /** Front-anchor tile — the south corner of the building's base. */
   row: number;
 }
 
@@ -32,16 +35,22 @@ const SOUTH_ROW = 30;
 const BUILDING_COLS = [6, 17, 28, 39, 50];
 
 const BUILDINGS: ReadonlyArray<BuildingSpec> = [
-  { id: "my-place", label: "My Place", col: 6, row: NORTH_ROW },
-  { id: "welcome-center", label: "Welcome Center", col: 17, row: NORTH_ROW },
-  { id: "creative", label: "Creative", col: 28, row: NORTH_ROW },
-  { id: "community-support", label: "Community Support", col: 39, row: NORTH_ROW },
-  { id: "technology", label: "Technology", col: 50, row: NORTH_ROW },
-  { id: "health", label: "Health", col: 6, row: SOUTH_ROW },
-  { id: "music", label: "Music", col: 17, row: SOUTH_ROW },
-  { id: "food", label: "Food", col: 28, row: SOUTH_ROW },
-  { id: "gaming", label: "Gaming", col: 39, row: SOUTH_ROW },
-  { id: "sports", label: "Sports", col: 50, row: SOUTH_ROW },
+  { id: "my-place", label: "My Place", kind: "cottage_blue", col: 6, row: NORTH_ROW },
+  { id: "welcome-center", label: "Welcome Center", kind: "manor_blue", col: 17, row: NORTH_ROW },
+  { id: "creative", label: "Creative", kind: "house_purple", col: 28, row: NORTH_ROW },
+  {
+    id: "community-support",
+    label: "Community Support",
+    kind: "cottage_awning",
+    col: 39,
+    row: NORTH_ROW,
+  },
+  { id: "technology", label: "Technology", kind: "tower_green", col: 50, row: NORTH_ROW },
+  { id: "health", label: "Health", kind: "cottage_awning", col: 6, row: SOUTH_ROW },
+  { id: "music", label: "Music", kind: "tower_green", col: 17, row: SOUTH_ROW },
+  { id: "food", label: "Food", kind: "hall_red", col: 28, row: SOUTH_ROW },
+  { id: "gaming", label: "Gaming", kind: "house_purple", col: 39, row: SOUTH_ROW },
+  { id: "sports", label: "Sports", kind: "cottage_blue", col: 50, row: SOUTH_ROW },
 ];
 
 const NORTH_STREET = NORTH_ROW + 1; // 13
@@ -53,10 +62,10 @@ const SPAWN = { col: 28, row: 40 };
 // tall building sprites don't occlude it.
 const POND = { col: 40, row: 40, radius: 3 };
 
-/** Tiles inside a building's 3×2 footprint (for keeping trees/paths off them). */
+/** Tiles inside any building's catalog footprint (for keeping trees off them). */
 function inFootprint(c: number, r: number): boolean {
-  return BUILDINGS.some(
-    (b) => c >= b.col - 1 && c <= b.col + 1 && (r === b.row || r === b.row - 1),
+  return BUILDINGS.some((b) =>
+    OBJECT_CATALOG[b.kind].footprint.some((f) => b.col + f.dc === c && b.row + f.dr === r),
   );
 }
 
@@ -108,7 +117,7 @@ const { terrain, isPath } = buildTerrain();
 // ── Objects: buildings, then framing trees, then accents ──
 
 const objects: PlacedObjectData[] = BUILDINGS.map((b) => ({
-  kind: "house",
+  kind: b.kind,
   col: b.col,
   row: b.row,
 }));

@@ -225,7 +225,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Ports v1 — two-way travel between forum view and world view (Portal buttons + doors)
 - [x] Isometric world — 2.5D engine (iso projection, autotiled ground, depth-sorted objects, 8-direction character) with collision, doors, warp shrines, region toasts, and Ports
 - [x] Authored capital town — a building with a Ports door for each community, composed as a serializable world document
-- [ ] Distinct building art — swap the placeholder cottage for the Evergrow Town_House sprites
+- [x] Distinct building art — each community building is one of the six Evergrow Town_House sprites, half-scaled to fit the town's lots, with collision matched to each base
 - [ ] Water autotiling + richer terrain
 - [ ] Ports v2 — building interiors with PC sprites (log on to the forum, or warp PC-to-PC)
 - [ ] DB-backed worlds + Builder/Creator placement (user-built buildings and objects)

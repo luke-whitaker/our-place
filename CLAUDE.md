@@ -183,9 +183,9 @@ Adapted from NASA/JPL's "Power of Ten" rules for safety-critical code (Gerard J.
 
 **Product concept — Ports:** the forum and the world are two views of the same place; users travel between them deliberately. Door ids are community slugs (`/world?at=<slug>` spawns at that building; walking into a door ports back to `/communities/<slug>`).
 
-**Placeholder art:** community buildings use a single 320×320 `house.png`; runtime art (`public/world/{characters,tiles,objects}/`) is gitignored dev copies (BossNelNel character + Evergrow/PixelHoo tiles — see `CREDITS.md`). Prod must serve these out of git (R2). The avatar builder still customizes a _procedural_ sprite (`sprites.ts`), disconnected from the fixed iso character — an open product question.
+**Art:** community buildings use the six Evergrow Town*House sprites, drawn at half size via `OBJECT_CATALOG`'s per-kind `scale` (art is authored oversized for the 32×16 tile). Runtime art (`public/world/{characters,tiles,objects}/`) is gitignored dev copies (BossNelNel character + Evergrow/PixelHoo tiles — see `CREDITS.md`); prod serves it from R2 (`npm run world:upload` after adding art). The avatar builder still customizes a \_procedural* sprite (`sprites.ts`), disconnected from the fixed iso character — an open product question.
 
-**Next (canonical roadmap lives in `README.md` → Roadmap):** distinct per-building art (Evergrow Town_House sprites), Ports v2 (interiors + PC sprites), player identity bound to world position + username above avatar, multiplayer presence.
+**Next (canonical roadmap lives in `README.md` → Roadmap):** Ports v2 (interiors + PC sprites), player identity bound to world position + username above avatar, multiplayer presence.
 
 > Historical note: the engine was adapted from the pixel-art RPG in `~/Desktop/portfolio-site`.
 

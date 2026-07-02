@@ -46,7 +46,9 @@ export default function IsoLab() {
       loadCharacterSheet(worldAsset("/world/characters/long.png")),
       loadImage(worldAsset("/world/tiles/forest.png")),
       loadImage(worldAsset("/world/tiles/water.png")),
-      ...kinds.map((k) => loadObjectSprite(worldAsset(OBJECT_CATALOG[k].src))),
+      ...kinds.map((k) =>
+        loadObjectSprite(worldAsset(OBJECT_CATALOG[k].src), OBJECT_CATALOG[k].scale),
+      ),
     ])
       .then(([characters, forest, water, ...objs]) => {
         if (cancelled) return;

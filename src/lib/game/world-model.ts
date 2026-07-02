@@ -43,6 +43,9 @@ export interface ObjectDef {
   footprint: ReadonlyArray<FootprintCell>;
   /** Whether the footprint blocks movement. */
   solid: boolean;
+  /** Draw-time scale (default 1) for art authored oversized for the 32×16 tile.
+   * Keep to powers of ½ so nearest-neighbour downscaling stays crisp. */
+  scale?: number;
 }
 
 /** A one-tile footprint at the anchor — trees, rocks, bushes, the warp shrine. */
@@ -59,8 +62,61 @@ const HOUSE_FOOTPRINT: ReadonlyArray<FootprintCell> = [
   { dc: 1, dr: 0 },
 ];
 
+/** A wc×wr tile block whose SOUTH CORNER sits on the anchor tile. Sprites anchor
+ * at the bottom-centre of their opaque content — for a building that point is the
+ * south corner of its base diamond — so the blocked tiles extend north-west of
+ * the anchor: dc, dr ∈ [-(w-1) .. 0]. A sprite drawn s×w px wide at scale k spans
+ * roughly (k·w)/16 tiles, split across the two axes. */
+function baseRect(wc: number, wr: number): ReadonlyArray<FootprintCell> {
+  const cells: FootprintCell[] = [];
+  for (let dr = -(wr - 1); dr <= 0; dr++) {
+    for (let dc = -(wc - 1); dc <= 0; dc++) cells.push({ dc, dr });
+  }
+  return cells;
+}
+
 export const OBJECT_CATALOG: Record<string, ObjectDef> = {
   house: { src: "/world/objects/house.png", footprint: HOUSE_FOOTPRINT, solid: true },
+  // The six Evergrow Town_House sheets, drawn at half size so a building spans
+  // 5–7 tiles (the Capital's lots sit 11 columns apart). Source sheets:
+  // cottage_blue=320x320, tower_green=320x480, house_purple=352x384,
+  // cottage_awning=384x320, manor_blue=384x448, hall_red=448x448.
+  cottage_blue: {
+    src: "/world/objects/cottage_blue.png",
+    footprint: baseRect(5, 5),
+    solid: true,
+    scale: 0.5,
+  },
+  tower_green: {
+    src: "/world/objects/tower_green.png",
+    footprint: baseRect(5, 5),
+    solid: true,
+    scale: 0.5,
+  },
+  house_purple: {
+    src: "/world/objects/house_purple.png",
+    footprint: baseRect(6, 5),
+    solid: true,
+    scale: 0.5,
+  },
+  cottage_awning: {
+    src: "/world/objects/cottage_awning.png",
+    footprint: baseRect(6, 6),
+    solid: true,
+    scale: 0.5,
+  },
+  manor_blue: {
+    src: "/world/objects/manor_blue.png",
+    footprint: baseRect(6, 6),
+    solid: true,
+    scale: 0.5,
+  },
+  hall_red: {
+    src: "/world/objects/hall_red.png",
+    footprint: baseRect(7, 7),
+    solid: true,
+    scale: 0.5,
+  },
   oak_big: { src: "/world/objects/oak_big.png", footprint: SINGLE, solid: true },
   oak1: { src: "/world/objects/oak1.png", footprint: SINGLE, solid: true },
   oak2: { src: "/world/objects/oak2.png", footprint: SINGLE, solid: true },

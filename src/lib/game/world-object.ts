@@ -9,9 +9,12 @@ import { newWorldImage } from "./asset-url";
 
 export interface ObjectSprite {
   img: HTMLImageElement;
-  /** Opaque-content bottom-centre, in image pixels — the ground contact point. */
+  /** Opaque-content bottom-centre, in DRAW pixels — the ground contact point. */
   anchorX: number;
   anchorY: number;
+  /** On-canvas size: image size × the catalog's draw-time scale. */
+  drawW: number;
+  drawH: number;
 }
 
 export interface PlacedObject {
@@ -20,10 +23,19 @@ export interface PlacedObject {
   row: number;
 }
 
-export function loadObjectSprite(src: string): Promise<ObjectSprite> {
+export function loadObjectSprite(src: string, scale = 1): Promise<ObjectSprite> {
   return new Promise((resolve, reject) => {
     const img = newWorldImage(src);
-    img.onload = () => resolve({ img, ...baseAnchor(img) });
+    img.onload = () => {
+      const anchor = baseAnchor(img);
+      resolve({
+        img,
+        anchorX: anchor.anchorX * scale,
+        anchorY: anchor.anchorY * scale,
+        drawW: img.width * scale,
+        drawH: img.height * scale,
+      });
+    };
     img.onerror = () => reject(new Error(`Failed to load object sprite: ${src}`));
     img.src = src;
   });
@@ -75,5 +87,7 @@ export function drawObject(
     o.sprite.img,
     Math.round(s.x - o.sprite.anchorX - camX),
     Math.round(s.y - o.sprite.anchorY - camY),
+    o.sprite.drawW,
+    o.sprite.drawH,
   );
 }

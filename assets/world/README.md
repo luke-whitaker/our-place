@@ -53,9 +53,11 @@ rest on their tile and sort correctly with the player. To add one:
    it blocks, relative to its anchor tile), and `solid`.
 3. Reference it as `{ kind: "<name>", col, row }` in a world.
 
-The placeholder community building is `house.png` (a single 320×320 cottage). The
-6 Evergrow `Town_House` sprites can replace it per-building by adding catalog
-entries and pointing each building's `kind` at them — no layout change needed.
+Community buildings use the 6 Evergrow `Town_House` sprites (catalog kinds
+`cottage_blue`, `tower_green`, `house_purple`, `cottage_awning`, `manor_blue`,
+`hall_red`), drawn at half size via the catalog's `scale` so each spans 5-7
+tiles. Oversized art can set `scale` (keep to powers of ½ for crisp
+nearest-neighbour); footprints should approximate the scaled base diamond.
 
 ### Character — the 8-direction sheet
 
