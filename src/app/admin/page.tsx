@@ -12,6 +12,7 @@ interface CreatedUser {
   role: string;
   isVerified: boolean;
   createdAt: string;
+  inviter: { username: string; displayName: string } | null;
 }
 
 export default function AdminPage() {
@@ -25,6 +26,7 @@ export default function AdminPage() {
     email: "",
     phone: "",
     password: "",
+    invited_by_id: "",
   });
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
@@ -50,6 +52,8 @@ export default function AdminPage() {
       return;
     }
     if (!loading && user?.role === "admin") {
+      // Default the inviter to the logged-in admin; they can pick someone else.
+      setForm((prev) => (prev.invited_by_id ? prev : { ...prev, invited_by_id: user.id }));
       loadUsers();
     }
   }, [loading, user, router, loadUsers]);
@@ -80,7 +84,14 @@ export default function AdminPage() {
       }
 
       setSuccess(`Account created for ${data.user.display_name} (@${data.user.username})`);
-      setForm({ display_name: "", username: "", email: "", phone: "", password: "" });
+      setForm({
+        display_name: "",
+        username: "",
+        email: "",
+        phone: "",
+        password: "",
+        invited_by_id: user?.id ?? "",
+      });
       loadUsers();
     } catch {
       setError("Something went wrong. Please try again.");
@@ -208,6 +219,27 @@ export default function AdminPage() {
                   Share this with them in person. They&apos;ll use it to log in.
                 </p>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-ink-secondary mb-1.5">
+                  Invited By
+                </label>
+                <select
+                  value={form.invited_by_id}
+                  onChange={(e) => updateField("invited_by_id", e.target.value)}
+                  required
+                  className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
+                >
+                  {users.map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.displayName} (@{u.username})
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-xs text-ink-faint">
+                  The member who met them face-to-face and vouches for them.
+                </p>
+              </div>
             </div>
 
             <div className="mt-5 rounded-xl bg-accent-50 border border-accent-100 px-4 py-3">
@@ -247,6 +279,7 @@ export default function AdminPage() {
                       <p className="text-sm font-medium text-ink">{u.displayName}</p>
                       <p className="text-xs text-ink-muted">
                         @{u.username} &middot; {u.email}
+                        {u.inviter && <> &middot; invited by @{u.inviter.username}</>}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">

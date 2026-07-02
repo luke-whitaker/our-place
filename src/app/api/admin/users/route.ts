@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { createUserSchema, getZodErrorMessage } from "@/lib/schemas";
+import { adminCreateUserSchema, getZodErrorMessage } from "@/lib/schemas";
 import { AVATAR_COLORS } from "@/lib/types";
 import bcrypt from "bcryptjs";
 
@@ -19,6 +19,7 @@ export async function GET() {
         role: true,
         isVerified: true,
         createdAt: true,
+        inviter: { select: { username: true, displayName: true } },
       },
       orderBy: { createdAt: "desc" },
     });
@@ -36,12 +37,23 @@ export async function POST(request: NextRequest) {
     if (auth.error) return auth.error;
 
     const body = await request.json();
-    const parsed = createUserSchema.safeParse(body);
+    const parsed = adminCreateUserSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
 
-    const { display_name, username, email, phone, password } = parsed.data;
+    const { display_name, username, email, phone, password, invited_by_id } = parsed.data;
+
+    const inviter = await prisma.user.findUnique({
+      where: { id: invited_by_id },
+      select: { id: true },
+    });
+    if (!inviter) {
+      return NextResponse.json(
+        { error: "The inviting member doesn't exist. Pick them from the list." },
+        { status: 400 },
+      );
+    }
     const phoneClean = phone.replace(/\D/g, "");
     const usernameLower = username.toLowerCase();
     const emailLower = email.toLowerCase();
@@ -80,6 +92,7 @@ export async function POST(request: NextRequest) {
         phone: phoneClean,
         passwordHash,
         avatarColor,
+        invitedById: invited_by_id,
         isVerified: true,
       },
     });

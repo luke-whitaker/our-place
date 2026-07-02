@@ -22,8 +22,14 @@ model User {
   isVerified              Boolean   @default(true) @map("is_verified")
   resetCode               String?   @map("reset_code")
   resetCodeExpiresAt      DateTime? @map("reset_code_expires_at")
+  invitedById             String?   @map("invited_by_id")
   createdAt               DateTime  @default(now()) @map("created_at")
   updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at")
+
+  // Web of trust: who vouched for this account. Null only for trust roots
+  // (the founding admin, the seed system user) — every invited member has one.
+  inviter  User?  @relation("WebOfTrust", fields: [invitedById], references: [id], onDelete: SetNull)
+  invitees User[] @relation("WebOfTrust")
 
   createdCommunities Community[]       @relation("CommunityCreator")
   memberships        CommunityMember[]
@@ -37,6 +43,7 @@ model User {
 
   @@index([email])
   @@index([username])
+  @@index([invitedById])
   @@map("users")
 }
 

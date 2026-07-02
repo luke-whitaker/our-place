@@ -18,6 +18,13 @@ export const createUserSchema = z.object({
     .min(8, "Password must be at least 8 characters."),
 });
 
+// The admin dashboard's create-account form: the web of trust requires every
+// invited member to name their inviter. The base createUserSchema stays
+// inviter-free for the trust roots (scripts/create-admin.ts bootstrap).
+export const adminCreateUserSchema = createUserSchema.extend({
+  invited_by_id: z.uuid({ error: "Pick the member who invited this person." }),
+});
+
 export const loginSchema = z.object({
   login: z
     .string({ error: "Please enter your email/username and password." })
