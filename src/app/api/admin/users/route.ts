@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
-import { adminCreateUserSchema, getZodErrorMessage } from "@/lib/schemas";
+import { adminCreateUserSchema, getZodErrorMessage, normalizePhone } from "@/lib/schemas";
 import { AVATAR_COLORS } from "@/lib/types";
 import bcrypt from "bcryptjs";
 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         { status: 400 },
       );
     }
-    const phoneClean = phone.replace(/\D/g, "");
+    const phoneClean = phone === undefined ? null : normalizePhone(phone);
     const usernameLower = username.toLowerCase();
     const emailLower = email.toLowerCase();
 
@@ -66,12 +66,14 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingPhone = await prisma.user.findUnique({ where: { phone: phoneClean } });
-    if (existingPhone) {
-      return NextResponse.json(
-        { error: "An account with this phone number already exists." },
-        { status: 409 },
-      );
+    if (phoneClean) {
+      const existingPhone = await prisma.user.findUnique({ where: { phone: phoneClean } });
+      if (existingPhone) {
+        return NextResponse.json(
+          { error: "An account with this phone number already exists." },
+          { status: 409 },
+        );
+      }
     }
 
     const existingUsername = await prisma.user.findFirst({

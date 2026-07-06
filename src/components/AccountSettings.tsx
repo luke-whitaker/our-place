@@ -95,10 +95,7 @@ export default function AccountSettings() {
       body.email = email.trim();
     }
     if (editing === "phone") {
-      if (!phone.trim()) {
-        setError("Phone number cannot be empty.");
-        return;
-      }
+      // Phone is optional — an empty value removes the number from the account.
       body.phone = phone.trim();
     }
     if (editing === "password") {
@@ -154,7 +151,7 @@ export default function AccountSettings() {
             type="tel"
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
-            placeholder="Phone number"
+            placeholder="Phone number (leave blank to remove)"
             autoFocus
             className={inputClass}
           />

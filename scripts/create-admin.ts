@@ -19,7 +19,7 @@ import { parseArgs } from "node:util";
 import bcrypt from "bcryptjs";
 import { PrismaClient } from "../src/generated/prisma/client";
 import { PrismaPg } from "@prisma/adapter-pg";
-import { createUserSchema, getZodErrorMessage } from "../src/lib/schemas";
+import { createUserSchema, getZodErrorMessage, normalizePhone } from "../src/lib/schemas";
 import { AVATAR_COLORS } from "../src/lib/types";
 
 const { values } = parseArgs({
@@ -27,7 +27,7 @@ const { values } = parseArgs({
     username: { type: "string", default: "admin" },
     "display-name": { type: "string", default: "Admin" },
     email: { type: "string", default: "admin@local.test" },
-    phone: { type: "string", default: "0000000001" },
+    phone: { type: "string" },
     password: { type: "string", default: "localdev123" },
     force: { type: "boolean", default: false },
   },
@@ -66,7 +66,7 @@ async function main() {
   }
 
   const { display_name, username, email, phone, password } = parsed.data;
-  const phoneClean = phone.replace(/\D/g, "");
+  const phoneClean = phone === undefined ? null : normalizePhone(phone);
   const usernameLower = username.toLowerCase();
   const emailLower = email.toLowerCase();
 
@@ -94,16 +94,18 @@ async function main() {
     return;
   }
 
-  const existingPhone = await prisma.user.findUnique({
-    where: { phone: phoneClean },
-    select: { username: true },
-  });
-  if (existingPhone) {
-    console.error(
-      `Phone ${phoneClean} is already used by "${existingPhone.username}". Pass --phone.`,
-    );
-    process.exitCode = 1;
-    return;
+  if (phoneClean) {
+    const existingPhone = await prisma.user.findUnique({
+      where: { phone: phoneClean },
+      select: { username: true },
+    });
+    if (existingPhone) {
+      console.error(
+        `Phone ${phoneClean} is already used by "${existingPhone.username}". Pass --phone.`,
+      );
+      process.exitCode = 1;
+      return;
+    }
   }
 
   const passwordHash = await bcrypt.hash(password, 12);

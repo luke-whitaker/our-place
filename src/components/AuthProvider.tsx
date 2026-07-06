@@ -8,7 +8,7 @@ interface User {
   username: string;
   display_name: string;
   email?: string;
-  phone?: string;
+  phone?: string | null;
   bio?: string;
   avatar_color: string;
   avatar: Record<string, string> | null;

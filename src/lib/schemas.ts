@@ -2,6 +2,14 @@ import { z } from "zod";
 
 // ── Auth schemas ──
 
+// Phone numbers are optional and stored digits-only, so formatting
+// differences can't bypass the unique constraint (one human, one account).
+// Returns null for empty/formatting-only input, meaning "no phone on file."
+export function normalizePhone(raw: string): string | null {
+  const digits = raw.replace(/\D/g, "");
+  return digits.length > 0 ? digits : null;
+}
+
 export const createUserSchema = z.object({
   username: z
     .string({ error: "All fields are required." })
@@ -12,7 +20,7 @@ export const createUserSchema = z.object({
   email: z
     .string({ error: "All fields are required." })
     .email("Please enter a valid email address."),
-  phone: z.string({ error: "All fields are required." }).min(1, "All fields are required."),
+  phone: z.string().max(30, "Phone number is too long.").optional(),
   password: z
     .string({ error: "All fields are required." })
     .min(8, "Password must be at least 8 characters."),
@@ -37,12 +45,13 @@ export const loginSchema = z.object({
 export const updateAccountSchema = z
   .object({
     email: z.string().email("Please enter a valid email address.").optional(),
-    phone: z.string().min(1, "Phone number cannot be empty.").optional(),
+    // An empty string clears the phone number (phone is optional).
+    phone: z.string().max(30, "Phone number is too long.").optional(),
     theme: z.enum(["auto", "platinum", "terminal", "dusk"]).optional(),
     current_password: z.string().optional(),
     new_password: z.string().min(8, "Password must be at least 8 characters.").optional(),
   })
-  .refine((d) => d.email || d.phone || d.theme || d.new_password, {
+  .refine((d) => d.email || d.phone !== undefined || d.theme || d.new_password, {
     message: "Nothing to update.",
   })
   .refine((d) => !d.new_password || (d.current_password && d.current_password.length > 0), {

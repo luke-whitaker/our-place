@@ -7,7 +7,23 @@ import {
   createCommentSchema,
   createReactionSchema,
   getZodErrorMessage,
+  normalizePhone,
 } from "./schemas";
+
+// ── Phone normalization ──
+
+describe("normalizePhone", () => {
+  it("strips formatting down to digits", () => {
+    expect(normalizePhone("(555) 123-4567")).toBe("5551234567");
+    expect(normalizePhone("+1 555.123.4567")).toBe("15551234567");
+  });
+
+  it("returns null when no digits remain", () => {
+    expect(normalizePhone("")).toBeNull();
+    expect(normalizePhone("   ")).toBeNull();
+    expect(normalizePhone("n/a")).toBeNull();
+  });
+});
 
 // ── Create user schema ──
 
@@ -43,6 +59,10 @@ describe("createUserSchema", () => {
   it("rejects short password", () => {
     expect(createUserSchema.safeParse({ ...valid, password: "short" }).success).toBe(false);
   });
+
+  it("accepts input without a phone (phone is optional)", () => {
+    expect(createUserSchema.safeParse({ ...valid, phone: undefined }).success).toBe(true);
+  });
 });
 
 // ── Login schema ──
@@ -68,6 +88,10 @@ describe("updateAccountSchema", () => {
 
   it("accepts a phone-only update", () => {
     expect(updateAccountSchema.safeParse({ phone: "555-9876" }).success).toBe(true);
+  });
+
+  it("accepts an empty phone (clears the number)", () => {
+    expect(updateAccountSchema.safeParse({ phone: "" }).success).toBe(true);
   });
 
   it("accepts a password change with current password", () => {

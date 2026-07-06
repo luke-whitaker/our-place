@@ -190,14 +190,13 @@ export default function AdminPage() {
 
               <div>
                 <label className="block text-sm font-medium text-ink-secondary mb-1.5">
-                  Phone Number
+                  Phone Number <span className="font-normal text-ink-faint">(optional)</span>
                 </label>
                 <input
                   type="tel"
                   value={form.phone}
                   onChange={(e) => updateField("phone", e.target.value)}
                   placeholder="(555) 123-4567"
-                  required
                   className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
                 />
               </div>

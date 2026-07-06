@@ -3,7 +3,7 @@ import bcrypt from "bcryptjs";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { updateAccountLimiter } from "@/lib/rate-limit";
-import { updateAccountSchema, getZodErrorMessage } from "@/lib/schemas";
+import { updateAccountSchema, getZodErrorMessage, normalizePhone } from "@/lib/schemas";
 
 // PATCH: Update the current user's account (email, phone, password).
 // Changing the password requires the current password.
@@ -35,7 +35,8 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Account not found." }, { status: 404 });
     }
 
-    const data: { email?: string; phone?: string; theme?: string; passwordHash?: string } = {};
+    const data: { email?: string; phone?: string | null; theme?: string; passwordHash?: string } =
+      {};
 
     if (theme) {
       data.theme = theme;
@@ -61,17 +62,20 @@ export async function PATCH(request: NextRequest) {
       data.email = normalized;
     }
 
-    if (phone) {
-      const normalized = phone.trim();
-      const taken = await prisma.user.findFirst({
-        where: { phone: normalized, NOT: { id: user.id } },
-        select: { id: true },
-      });
-      if (taken) {
-        return NextResponse.json(
-          { error: "That phone number is already in use." },
-          { status: 409 },
-        );
+    if (phone !== undefined) {
+      // Digits-only storage keeps the unique constraint honest; null clears it.
+      const normalized = normalizePhone(phone);
+      if (normalized) {
+        const taken = await prisma.user.findFirst({
+          where: { phone: normalized, NOT: { id: user.id } },
+          select: { id: true },
+        });
+        if (taken) {
+          return NextResponse.json(
+            { error: "That phone number is already in use." },
+            { status: 409 },
+          );
+        }
       }
       data.phone = normalized;
     }
