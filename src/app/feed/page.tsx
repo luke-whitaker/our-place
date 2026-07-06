@@ -312,7 +312,7 @@ export default function FeedPage() {
               friendPosts,
               "No friend posts yet — visit someone's place to add them as a friend",
               {
-                label: "Browse Communities to Meet People",
+                label: "Browse Communities and Add Friends",
                 href: "/communities",
               },
             )}
