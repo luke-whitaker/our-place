@@ -1,10 +1,9 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
-import { generatePlayerSprites } from "@/lib/game/sprites";
-import { DIR } from "@/lib/game/constants";
+import AvatarPreview from "@/components/AvatarPreview";
 import type { AvatarConfig } from "@/lib/types";
 import {
   SKIN_TONES,
@@ -15,10 +14,6 @@ import {
   DEFAULT_AVATAR,
 } from "@/lib/types";
 
-const PREVIEW_SCALE = 8;
-const PREVIEW_SIZE = 32 * PREVIEW_SCALE;
-const ANIM_INTERVAL = 400;
-
 export default function AvatarBuilderPage() {
   const { user, loading, refresh } = useAuth();
   const router = useRouter();
@@ -26,9 +21,6 @@ export default function AvatarBuilderPage() {
   const [config, setConfig] = useState<AvatarConfig>(DEFAULT_AVATAR);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [animFrame, setAnimFrame] = useState<0 | 1>(0);
-
-  const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -41,28 +33,6 @@ export default function AvatarBuilderPage() {
       setConfig(user.avatar as unknown as AvatarConfig);
     }
   }, [user]);
-
-  useEffect(() => {
-    const id = setInterval(() => setAnimFrame((f) => (f === 0 ? 1 : 0)), ANIM_INTERVAL);
-    return () => clearInterval(id);
-  }, []);
-
-  const renderPreview = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d")!;
-    ctx.imageSmoothingEnabled = false;
-    ctx.clearRect(0, 0, PREVIEW_SIZE, PREVIEW_SIZE);
-
-    const sprites = generatePlayerSprites(config);
-    const sprite = sprites[DIR.DOWN][animFrame];
-    ctx.drawImage(sprite, 0, 0, PREVIEW_SIZE, PREVIEW_SIZE);
-  }, [config, animFrame]);
-
-  useEffect(() => {
-    renderPreview();
-  }, [renderPreview]);
 
   async function handleSave() {
     setSaving(true);
@@ -82,7 +52,8 @@ export default function AvatarBuilderPage() {
       }
 
       await refresh();
-      router.push("/feed");
+      // First-timers head into the app; editors return to their profile.
+      router.push(isFirstTime ? "/feed" : "/profile");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -121,42 +92,16 @@ export default function AvatarBuilderPage() {
           </p>
         </div>
 
-        {/* Preview */}
+        {/* Preview — the real in-world character, walking */}
         <div className="flex justify-center mb-8">
           <div className="rounded-2xl border-2 border-line bg-surface-inverse-soft p-6 shadow-lg">
-            <canvas
-              ref={canvasRef}
-              width={PREVIEW_SIZE}
-              height={PREVIEW_SIZE}
-              style={{ imageRendering: "pixelated" }}
-            />
+            <AvatarPreview config={config} scale={7} animate />
           </div>
         </div>
 
-        {/* Options */}
+        {/* Options. (No hair-style toggle: only the long-hair sheet is
+            licensed today — the control returns when a second sheet lands.) */}
         <div className="op-card space-y-6 rounded-2xl border border-line bg-surface p-6 shadow-sm">
-          {/* Hair Style */}
-          <div>
-            <label className="block text-sm font-semibold text-ink-secondary mb-3">
-              Hair Style
-            </label>
-            <div className="flex gap-3">
-              {(["short", "long"] as const).map((style) => (
-                <button
-                  key={style}
-                  onClick={() => update("hairStyle", style)}
-                  className={`flex-1 rounded-xl border-2 px-4 py-3 text-sm font-medium capitalize transition-all ${
-                    config.hairStyle === style
-                      ? "border-accent-500 bg-accent-50 text-accent-700"
-                      : "border-line bg-surface text-ink-tertiary hover:border-line-strong"
-                  }`}
-                >
-                  {style}
-                </button>
-              ))}
-            </div>
-          </div>
-
           {/* Hair Color */}
           <ColorPicker
             label="Hair Color"

@@ -1,7 +1,3 @@
-// ── Tile & Map ──
-
-export const TILE = 32;
-
 // Canvas (native resolution): 30 tiles wide × 20 tiles tall
 export const CANVAS_W = 960;
 export const CANVAS_H = 640;
@@ -35,17 +31,6 @@ export const MAX_ACCUMULATOR = 200; // prevents spiral of death
 // ── Fade ──
 
 export const FADE_SPEED = 0.04; // per tick, ~625ms total fade
-
-// ── Directions ──
-
-export const DIR = {
-  DOWN: 0,
-  UP: 1,
-  LEFT: 2,
-  RIGHT: 3,
-} as const;
-
-export type Direction = (typeof DIR)[keyof typeof DIR];
 
 // ── Palette ──
 

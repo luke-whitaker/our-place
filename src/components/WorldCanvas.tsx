@@ -1,10 +1,12 @@
 "use client";
 
 import { useRef, useEffect, useCallback, useState } from "react";
+import { useAuth } from "@/components/AuthProvider";
 import { CANVAS_W, CANVAS_H, TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
 import { loadObjectSprite, type ObjectSprite } from "@/lib/game/world-object";
 import { loadCharacterSheet, type CharacterSprites } from "@/lib/game/character-sheet";
+import { isAvatarConfig } from "@/lib/game/avatar-recolor";
 import { OBJECT_CATALOG } from "@/lib/game/world-model";
 import { worldAsset, newWorldImage } from "@/lib/game/asset-url";
 import {
@@ -46,6 +48,7 @@ const WORLD = CAPITAL;
  * to that place's forum view.
  */
 export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProps) {
+  const { user, loading: authLoading } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const wrapperRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef<IsoState | null>(null);
@@ -85,11 +88,19 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
   }, [spawnAt]);
 
   // ── Load art (character sheet, ground sheet, one sprite per object kind) ──
+  // The character sheet is palette-swapped to the signed-in user's avatar
+  // colors, so we wait for auth to settle; logged-out visitors get the
+  // default paint. `avatarKey` keeps the effect stable across auth refreshes
+  // that return the same avatar.
+  const avatar = isAvatarConfig(user?.avatar) ? user.avatar : null;
+  const avatarKey = JSON.stringify(avatar);
   useEffect(() => {
+    if (authLoading) return;
     let cancelled = false;
+    const avatarConfig = avatarKey === "null" ? null : JSON.parse(avatarKey);
     const kinds = [...new Set(WORLD.objects.map((o) => o.kind))];
     Promise.all([
-      loadCharacterSheet(worldAsset("/world/characters/long.png")),
+      loadCharacterSheet(worldAsset("/world/characters/long.png"), avatarConfig),
       loadImage(worldAsset("/world/tiles/forest.png")),
       loadImage(worldAsset("/world/tiles/water.png")),
       ...kinds.map((k) =>
@@ -116,7 +127,7 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [authLoading, avatarKey]);
 
   // ── Save position + discoveries periodically and on unmount ──
   useEffect(() => {

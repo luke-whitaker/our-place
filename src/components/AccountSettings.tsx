@@ -3,7 +3,9 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { THEMES, THEME_LABELS, applyTheme, isTheme, type Theme } from "@/lib/theme";
+import { isAvatarConfig } from "@/lib/game/avatar-recolor";
 import { useAuth } from "@/components/AuthProvider";
+import AvatarPreview from "@/components/AvatarPreview";
 
 type EditableField = "email" | "phone" | "password";
 
@@ -288,12 +290,17 @@ export default function AccountSettings() {
 
         {/* Avatar */}
         <div className="flex items-center justify-between py-2">
-          <div>
-            <p className="text-sm font-medium text-ink-secondary">Avatar</p>
-            <p className="text-sm text-ink-faint">Your 8-bit character</p>
+          <div className="flex items-center gap-4">
+            {isAvatarConfig(user.avatar) && <AvatarPreview config={user.avatar} scale={2} />}
+            <div>
+              <p className="text-sm font-medium text-ink-secondary">Avatar</p>
+              <p className="text-sm text-ink-faint">
+                {user.avatar ? "Your character in the world" : "Not customized yet"}
+              </p>
+            </div>
           </div>
           <Link href="/avatar-builder" className={editButtonClass}>
-            Edit
+            {user.avatar ? "Edit" : "Create"}
           </Link>
         </div>
         <div className="border-t border-line-soft" />

@@ -13,7 +13,9 @@
 // runtime loads a copy served out of git (R2 in prod, a local dev copy under
 // public/world/characters/).
 
+import type { AvatarConfig } from "@/lib/types";
 import { newWorldImage } from "./asset-url";
+import { recolorSheet } from "./avatar-recolor";
 
 export const SHEET = {
   cols: 9,
@@ -99,17 +101,38 @@ export function pickFrame(
   return sprites.walk[dir][walkFrameIndex(animTimer, ticksPerFrame)];
 }
 
-/** Load a character sheet image and slice it into per-facing idle/walk frames. */
-export function loadCharacterSheet(url: string): Promise<CharacterSprites> {
+/**
+ * Load a character sheet image and slice it into per-facing idle/walk frames.
+ * With an avatar config, the sheet is palette-swapped to the user's colors
+ * first (one pixel pass, before slicing). A recolor failure (e.g. a tainted
+ * canvas from a missing CORS header) falls back to the sheet's original
+ * colors — a default-colored character beats a world that won't load.
+ */
+export function loadCharacterSheet(
+  url: string,
+  avatar?: AvatarConfig | null,
+): Promise<CharacterSprites> {
   return new Promise((resolve, reject) => {
     const img = newWorldImage(url);
-    img.onload = () => resolve(sliceSheet(img));
+    img.onload = () => {
+      let source: SheetSource = img;
+      if (avatar) {
+        try {
+          source = recolorSheet(img, avatar);
+        } catch (error) {
+          console.error("Avatar recolor failed; using default colors:", error);
+        }
+      }
+      resolve(sliceSheet(source));
+    };
     img.onerror = () => reject(new Error(`Failed to load character sheet: ${url}`));
     img.src = url;
   });
 }
 
-function cut(img: HTMLImageElement, col: number, row: number): HTMLCanvasElement {
+type SheetSource = HTMLImageElement | HTMLCanvasElement;
+
+function cut(img: SheetSource, col: number, row: number): HTMLCanvasElement {
   const sx = SHEET.originX + col * SHEET.cellW;
   const sy = SHEET.originY + row * SHEET.cellH;
   const canvas = document.createElement("canvas");
@@ -121,7 +144,7 @@ function cut(img: HTMLImageElement, col: number, row: number): HTMLCanvasElement
   return canvas;
 }
 
-function sliceSheet(img: HTMLImageElement): CharacterSprites {
+function sliceSheet(img: SheetSource): CharacterSprites {
   const idle = {} as Record<Dir8, HTMLCanvasElement>;
   const walk = {} as Record<Dir8, HTMLCanvasElement[]>;
 
