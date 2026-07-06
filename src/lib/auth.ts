@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { cookies } from "next/headers";
+import prisma from "./db";
 import { AuthPayload } from "./types";
 
 function getJwtSecret(): string {
@@ -22,6 +23,35 @@ export function signToken(payload: AuthPayload): string {
   return jwt.sign(payload, JWT_SECRET, { expiresIn: "24h" });
 }
 
+/**
+ * Cookie options for the auth token — shared by every route that sets it
+ * (login, password change) so the security attributes can't drift apart.
+ */
+export const AUTH_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  maxAge: 24 * 60 * 60, // 24 hours
+  path: "/",
+} as const;
+
+/**
+ * A token is revoked if it was issued before the user's last password change.
+ * Both sides compare at whole-second precision (JWT iat has second
+ * resolution), so the fresh token re-issued in the same second as the change
+ * survives while every earlier session dies.
+ */
+export function tokenIssuedBeforePasswordChange(
+  iatSeconds: number | undefined,
+  passwordChangedAt: Date | null,
+): boolean {
+  if (!passwordChangedAt) return false;
+  // A verified token without iat can't prove it postdates the change — treat
+  // it as revoked (signToken always produces one, so this shouldn't happen).
+  if (iatSeconds === undefined) return true;
+  return iatSeconds < Math.floor(passwordChangedAt.getTime() / 1000);
+}
+
 export function verifyToken(token: string): AuthPayload | null {
   try {
     return jwt.verify(token, JWT_SECRET) as AuthPayload;
@@ -34,7 +64,20 @@ export async function getAuthUser(): Promise<AuthPayload | null> {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
   if (!token) return null;
-  return verifyToken(token);
+  const payload = verifyToken(token);
+  if (!payload) return null;
+
+  // The signature checks out, but the token may have been revoked: password
+  // changes stamp passwordChangedAt, and any token issued before it is dead.
+  // The lookup also kills tokens of since-deleted accounts.
+  const user = await prisma.user.findUnique({
+    where: { id: payload.userId },
+    select: { passwordChangedAt: true },
+  });
+  if (!user) return null;
+  if (tokenIssuedBeforePasswordChange(payload.iat, user.passwordChangedAt)) return null;
+
+  return payload;
 }
 
 export async function requireAuth(): Promise<

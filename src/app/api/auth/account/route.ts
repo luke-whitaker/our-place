@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import prisma from "@/lib/db";
-import { requireAuth } from "@/lib/auth";
+import { requireAuth, signToken, AUTH_COOKIE_OPTIONS } from "@/lib/auth";
 import { updateAccountLimiter } from "@/lib/rate-limit";
 import { updateAccountSchema, getZodErrorMessage, normalizePhone } from "@/lib/schemas";
 
@@ -35,8 +35,13 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Account not found." }, { status: 404 });
     }
 
-    const data: { email?: string; phone?: string | null; theme?: string; passwordHash?: string } =
-      {};
+    const data: {
+      email?: string;
+      phone?: string | null;
+      theme?: string;
+      passwordHash?: string;
+      passwordChangedAt?: Date;
+    } = {};
 
     if (theme) {
       data.theme = theme;
@@ -48,6 +53,9 @@ export async function PATCH(request: NextRequest) {
         return NextResponse.json({ error: "Current password is incorrect." }, { status: 401 });
       }
       data.passwordHash = await bcrypt.hash(new_password, 12);
+      // Revokes every existing session: getAuthUser rejects tokens issued
+      // before this timestamp.
+      data.passwordChangedAt = new Date();
     }
 
     if (email) {
@@ -82,7 +90,21 @@ export async function PATCH(request: NextRequest) {
 
     await prisma.user.update({ where: { id: user.id }, data });
 
-    return NextResponse.json({ message: "Account updated." });
+    const response = NextResponse.json({ message: "Account updated." });
+
+    if (new_password) {
+      // The change revoked every session, including this one — re-issue a
+      // fresh token so the device that changed the password stays signed in.
+      const token = signToken({
+        userId: auth.user.userId,
+        username: auth.user.username,
+        is_verified: auth.user.is_verified,
+        role: auth.user.role,
+      });
+      response.cookies.set("auth_token", token, AUTH_COOKIE_OPTIONS);
+    }
+
+    return response;
   } catch (error) {
     console.error("Account update error:", error);
     return NextResponse.json({ error: "Failed to update account." }, { status: 500 });

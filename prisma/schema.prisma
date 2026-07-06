@@ -22,6 +22,7 @@ model User {
   isVerified              Boolean   @default(true) @map("is_verified")
   resetCode               String?   @map("reset_code")
   resetCodeExpiresAt      DateTime? @map("reset_code_expires_at")
+  passwordChangedAt       DateTime? @map("password_changed_at")
   invitedById             String?   @map("invited_by_id")
   createdAt               DateTime  @default(now()) @map("created_at")
   updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at")

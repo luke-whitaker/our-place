@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { signToken } from "@/lib/auth";
+import { signToken, AUTH_COOKIE_OPTIONS } from "@/lib/auth";
 import { loginLimiter, getClientIp } from "@/lib/rate-limit";
 import { loginSchema, getZodErrorMessage } from "@/lib/schemas";
 import bcrypt from "bcryptjs";
@@ -75,13 +75,7 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    response.cookies.set("auth_token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "strict",
-      maxAge: 24 * 60 * 60, // 24 hours
-      path: "/",
-    });
+    response.cookies.set("auth_token", token, AUTH_COOKIE_OPTIONS);
 
     return response;
   } catch (error) {

@@ -49,7 +49,14 @@ export async function POST(request: NextRequest) {
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash, resetCode: null, resetCodeExpiresAt: null },
+      // passwordChangedAt revokes every existing session — whoever had access
+      // to the account (the reason for the reset) is signed out everywhere.
+      data: {
+        passwordHash,
+        resetCode: null,
+        resetCodeExpiresAt: null,
+        passwordChangedAt: new Date(),
+      },
     });
 
     return NextResponse.json({

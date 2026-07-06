@@ -3,6 +3,8 @@ export interface AuthPayload {
   username: string;
   is_verified: number;
   role: string;
+  /** Issued-at (seconds since epoch) — added by jsonwebtoken on sign. */
+  iat?: number;
 }
 
 export const AVATAR_COLORS = [
