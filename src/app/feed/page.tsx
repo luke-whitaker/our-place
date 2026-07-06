@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import PostCard from "@/components/PostCard";
+import FriendRequestsPanel from "@/components/FriendRequestsPanel";
 import { Post, CommunityWithMembership } from "@/lib/types";
 
 type FeedTab = "friends" | "scroll" | "communities" | "events";
@@ -304,10 +305,19 @@ export default function FeedPage() {
   function renderTabContent() {
     switch (activeTab) {
       case "friends":
-        return renderPostList(friendPosts, "No friend posts yet", {
-          label: "Browse Communities to Meet People",
-          href: "/communities",
-        });
+        return (
+          <div className="space-y-6">
+            <FriendRequestsPanel onFriendshipChanged={loadFriendsFeed} />
+            {renderPostList(
+              friendPosts,
+              "No friend posts yet — visit someone's place to add them as a friend",
+              {
+                label: "Browse Communities to Meet People",
+                href: "/communities",
+              },
+            )}
+          </div>
+        );
 
       case "scroll":
         return renderPostList(explorePosts, "Nothing to show yet — be the first to post!", {

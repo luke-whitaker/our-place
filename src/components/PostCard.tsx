@@ -71,16 +71,25 @@ export default function PostCard({
       <div className="p-5">
         {/* Header */}
         <div className="flex items-start gap-3">
-          <div
+          <Link
+            href={`/profile/${post.author_username}`}
+            aria-label={`Visit ${post.author_name}'s place`}
             className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-inverse text-sm font-bold"
             style={{ backgroundColor: post.author_avatar_color || "#6366f1" }}
           >
             {post.author_name?.charAt(0).toUpperCase() || "?"}
-          </div>
+          </Link>
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className="text-sm font-semibold text-ink">{post.author_name}</span>
-              <span className="text-xs text-ink-faint">@{post.author_username}</span>
+              <Link
+                href={`/profile/${post.author_username}`}
+                className="group flex items-center gap-2"
+              >
+                <span className="text-sm font-semibold text-ink group-hover:text-accent-600">
+                  {post.author_name}
+                </span>
+                <span className="text-xs text-ink-faint">@{post.author_username}</span>
+              </Link>
               <span className="text-xs text-ink-disabled">&middot;</span>
               <span className="text-xs text-ink-faint">{timeAgo(post.created_at)}</span>
               <PostTypeBadge postType={postType} />

@@ -264,7 +264,11 @@ export default function CommunityDetailPage() {
                 </h2>
                 <div className="space-y-2">
                   {members.map((member) => (
-                    <div key={member.id} className="flex items-center gap-2.5">
+                    <Link
+                      key={member.id}
+                      href={`/profile/${member.username}`}
+                      className="group flex items-center gap-2.5"
+                    >
                       <div
                         className="flex h-7 w-7 items-center justify-center rounded-full text-ink-inverse text-xs font-bold"
                         style={{ backgroundColor: member.avatar_color || "#6366f1" }}
@@ -272,7 +276,7 @@ export default function CommunityDetailPage() {
                         {member.display_name?.charAt(0).toUpperCase() || "?"}
                       </div>
                       <div className="min-w-0">
-                        <p className="text-xs font-medium text-ink-secondary truncate">
+                        <p className="text-xs font-medium text-ink-secondary truncate group-hover:text-accent-600">
                           {member.display_name}
                         </p>
                         <p className="text-xs text-ink-faint">@{member.username}</p>
@@ -280,7 +284,7 @@ export default function CommunityDetailPage() {
                       {member.role === "admin" && (
                         <span className="ml-auto text-xs text-accent-500 font-medium">Admin</span>
                       )}
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </div>

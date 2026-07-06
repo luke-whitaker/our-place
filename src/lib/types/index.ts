@@ -13,6 +13,8 @@ export type {
 } from "./forum";
 export { COMMUNITY_CATEGORIES } from "./forum";
 
+export type { FriendshipStatus, FriendEntry, PublicProfile } from "./social";
+
 export type { AvatarConfig } from "./game";
 export {
   SKIN_TONES,

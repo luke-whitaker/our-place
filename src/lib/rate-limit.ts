@@ -97,6 +97,9 @@ export const createEventLimiter = new RateLimiter({ maxAttempts: 10, windowMs: 6
 /** Community creation: 5 per hour per user */
 export const createCommunityLimiter = new RateLimiter({ maxAttempts: 5, windowMs: 60 * 60 * 1000 });
 
+/** Friend requests: 20 per hour per user */
+export const friendRequestLimiter = new RateLimiter({ maxAttempts: 20, windowMs: 60 * 60 * 1000 });
+
 /**
  * Number of trusted reverse proxies in front of the app. Railway's edge is a
  * single hop, so 1 is correct in production; override via env if the topology

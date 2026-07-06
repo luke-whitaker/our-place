@@ -74,6 +74,14 @@ export const resetPasswordSchema = z.object({
     .min(8, "Password must be at least 8 characters."),
 });
 
+// ── Friendship schemas ──
+
+export const sendFriendRequestSchema = z.object({
+  username: z
+    .string({ error: "Pick someone to send a friend request to." })
+    .min(1, "Pick someone to send a friend request to."),
+});
+
 // ── Content schemas ──
 
 export const createCommunitySchema = z.object({
