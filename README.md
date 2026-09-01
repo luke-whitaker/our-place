@@ -227,6 +227,8 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Authored capital town — a building with a Ports door for each community, composed as a serializable world document
 - [x] Distinct building art — each community building is one of the six Evergrow Town_House sprites, half-scaled to fit the town's lots, with collision matched to each base
 - [x] Water autotiling (4-edge blob autotiler + the animated pond in the Capital)
+- [x] First-run onboarding — new members build a character, step straight into the world as it, and start in the Welcome Center
+- [x] Operations backbone — CI on every push, nightly database backups with weekly restore verification, and a deploy-drift alarm
 - [ ] Richer terrain + new biomes
 - [ ] Ports v2 — building interiors with PC sprites (log on to the forum, or warp PC-to-PC)
 - [ ] DB-backed worlds + Builder/Creator placement (user-built buildings and objects)

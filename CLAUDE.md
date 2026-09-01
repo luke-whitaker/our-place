@@ -104,22 +104,24 @@ Game engine types live alongside the engine in `src/lib/game/`.
 - Test files live next to the module they test: `media-utils.test.ts` alongside `media-utils.ts`
 - Test pure `lib/` functions first; DB-dependent code needs a test PostgreSQL instance
 - **UI tests**: ad hoc Playwright scripts, run from the project root (none are checked in)
+- **CI**: `.github/workflows/ci.yml` runs format, lint, tsc, tests, and a production build on every push. The build step needs the same throwaway `JWT_SECRET` and `DATABASE_URL` placeholders the Dockerfile sets, because `next build` evaluates module-level code while collecting page data.
 
 ### Commands
 
-| Command                | Purpose                        |
-| ---------------------- | ------------------------------ |
-| `npm run dev`          | Dev server                     |
-| `npm run build`        | Production build               |
-| `npm run lint`         | ESLint                         |
-| `npm run format`       | Prettier (auto-fix)            |
-| `npm run format:check` | Prettier (CI check)            |
-| `npm run test`         | Vitest (single run)            |
-| `npm run test:watch`   | Vitest (watch mode)            |
-| `npm run db:migrate`   | Run Prisma migrations          |
-| `npm run db:push`      | Push schema without migration  |
-| `npm run db:seed`      | Seed starter communities       |
-| `npm run db:studio`    | Open Prisma Studio (DB viewer) |
+| Command                | Purpose                                 |
+| ---------------------- | --------------------------------------- |
+| `npm run dev`          | Dev server                              |
+| `npm run build`        | Production build                        |
+| `npm run lint`         | ESLint                                  |
+| `npm run format`       | Prettier (auto-fix)                     |
+| `npm run format:check` | Prettier (CI check)                     |
+| `npm run test`         | Vitest (single run)                     |
+| `npm run test:watch`   | Vitest (watch mode)                     |
+| `npm run db:migrate`   | Run Prisma migrations                   |
+| `npm run db:push`      | Push schema without migration           |
+| `npm run db:seed`      | Seed starter communities                |
+| `npm run db:studio`    | Open Prisma Studio (DB viewer)          |
+| `npm run db:backup`    | Dump the database to private R2 storage |
 
 ---
 
@@ -204,6 +206,12 @@ Security conventions reflected in the code:
 - **Headers:** `next.config.ts` sets X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy.
 
 **Done:** rate limiting (auth + content routes), Zod validation on all request bodies, pagination on list endpoints, `$transaction`-wrapped count updates, reaction-type validation against the enum, security headers (X-Frame-Options, X-Content-Type-Options, Referrer-Policy, Permissions-Policy), Prisma migrations.
+
+### Operations
+
+- **Backups:** Railway gates scheduled backups behind its Pro plan, so `scripts/backup-db.ts` (nightly via `.github/workflows/backup-db.yml`) dumps to a **private** R2 bucket, verifies the stored object, and prunes past 30 days. `.github/workflows/verify-restore.yml` restores the newest archive weekly into a throwaway Postgres and checks the rows survived. **Database dumps must never go in `R2_BUCKET`** — that bucket is served publicly for world art and media; the script refuses if the two bucket names match.
+- **Postgres major version** is shared by production, `docker-compose.yml`, and the backup workflows' `PG_MAJOR` (18 as of September 2026). `pg_dump` and `pg_restore` refuse to read a server newer than themselves, so these must move together, and a dev bump needs a volume reset (`docker compose down -v`). Postgres 18+ images want the volume at `/var/lib/postgresql`, not `/var/lib/postgresql/data`.
+- **Verifying a deploy:** `GET /api/version` reports the commit the running instance was built from. Use it rather than assuming, and rather than GitHub's deployment records, which Railway does not write reliably. A healthy site is not evidence of a landed deploy: production once served a two-month-old build because the Railway environment had come unlinked from its git branch. `.github/workflows/deploy-drift.yml` now checks this every morning.
 
 <!-- BEGIN:nextjs-agent-rules -->
 
