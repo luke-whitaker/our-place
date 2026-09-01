@@ -31,8 +31,10 @@ jobs:
 
       - name: Compare deployed commit against main
         env:
-          GH_TOKEN: ${{ github.token }}
-          REPO: ${{ github.repository }}
+          # Railway deploys without reliably writing a GitHub deployment
+          # record, so those records report drift that is not real. Ask the
+          # running app instead: it cannot be wrong about what it is running.
+          SITE: https://www.ourplaceonline.com
           # A deploy takes a few minutes, so a very recent commit is not drift.
           # Overridable on manual runs so the alarm itself can be tested.
           GRACE_MINUTES: ${{ inputs.grace_minutes || '45' }}
@@ -43,11 +45,16 @@ jobs:
           head_epoch=$(git show -s --format=%ct HEAD)
           age_minutes=$(( ( $(date -u +%s) - head_epoch ) / 60 ))
 
-          deployed_sha=$(gh api "repos/$REPO/deployments?per_page=1" --jq '.[0].sha // ""')
-          deployed_at=$(gh api "repos/$REPO/deployments?per_page=1" --jq '.[0].created_at // "never"')
+          if ! version_json=$(curl -fsS --max-time 20 "$SITE/api/version"); then
+            echo "Could not read $SITE/api/version."
+            echo "Either the site is down, or a build without the version endpoint is live."
+            version_json=""
+          fi
+          deployed_sha=$(printf '%s' "$version_json" | jq -r '.commit // ""' 2>/dev/null || echo "")
+          [ "$deployed_sha" = "unknown" ] && deployed_sha=""
 
           echo "main     : $head_sha (committed ${age_minutes}m ago)"
-          echo "deployed : ${deployed_sha:-none} (at $deployed_at)"
+          echo "deployed : ${deployed_sha:-unreadable}"
 
           if [ "$deployed_sha" = "$head_sha" ]; then
             echo "In sync."
@@ -62,7 +69,8 @@ jobs:
           # Railway can be configured to watch only app paths, and docs- or
           # tooling-only commits then never produce a deployment. Alarming on
           # those would train the reader to ignore this job, so only the files
-          # that actually change what production runs count as drift.
+          # that actually change what production runs count as drift. The
+          # version endpoint lives in src, so it is covered by this list.
           if [ -n "$deployed_sha" ] && git cat-file -e "${deployed_sha}^{commit}" 2>/dev/null; then
             app_changes=$(git diff --name-only "$deployed_sha" "$head_sha" -- \
               src prisma public package.json package-lock.json \
@@ -78,7 +86,7 @@ jobs:
 
           echo
           echo "DRIFT: main has not been deployed."
-          echo "Production is serving ${deployed_sha:-an unknown commit}, not $head_sha."
+          echo "Production is serving ${deployed_sha:-an unreadable commit}, not $head_sha."
           echo "Check the Railway dashboard: service > Settings > Source (the GitHub"
           echo "authorization has dropped before), and the Deployments tab for failures."
           exit 1
