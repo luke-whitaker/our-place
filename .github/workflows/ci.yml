@@ -39,4 +39,13 @@ jobs:
 
       # Catches a build that breaks only in a production compile, which is
       # otherwise discovered by Railway after the push has already landed.
-      - run: npm run build
+      #
+      # next build evaluates module-level code while collecting page data, and
+      # src/lib/auth.ts throws without JWT_SECRET. These are the same
+      # throwaway placeholders the Dockerfile's builder stage uses, not
+      # secrets: the real values are injected at runtime.
+      - name: Build
+        env:
+          JWT_SECRET: build-placeholder
+          DATABASE_URL: postgresql://placeholder:placeholder@localhost:5432/placeholder
+        run: npm run build
