@@ -1,0 +1,57 @@
+name: Deploy drift check
+
+# Railway silently stopped deploying between July 7 and September 1, 2026.
+# Nothing broke visibly, because Railway keeps serving the last good build
+# forever, so a healthy site looked like a shipped one. This job compares the
+# newest Railway deployment against main and fails when they drift, which
+# sends the repo owner the usual failed-workflow email.
+on:
+  schedule:
+    - cron: "20 8 * * *"
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      deployments: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Compare deployed commit against main
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          # A deploy takes a few minutes, so a very recent commit is not drift.
+          GRACE_MINUTES: "45"
+        run: |
+          set -euo pipefail
+
+          head_sha=$(git rev-parse HEAD)
+          head_epoch=$(git show -s --format=%ct HEAD)
+          age_minutes=$(( ( $(date -u +%s) - head_epoch ) / 60 ))
+
+          deployed_sha=$(gh api "repos/$REPO/deployments?per_page=1" --jq '.[0].sha // ""')
+          deployed_at=$(gh api "repos/$REPO/deployments?per_page=1" --jq '.[0].created_at // "never"')
+
+          echo "main     : $head_sha (committed ${age_minutes}m ago)"
+          echo "deployed : ${deployed_sha:-none} (at $deployed_at)"
+
+          if [ "$deployed_sha" = "$head_sha" ]; then
+            echo "In sync."
+            exit 0
+          fi
+
+          if [ "$age_minutes" -lt "$GRACE_MINUTES" ]; then
+            echo "Newest commit is under ${GRACE_MINUTES}m old; a deploy may still be in flight."
+            exit 0
+          fi
+
+          echo
+          echo "DRIFT: main has not been deployed."
+          echo "Production is serving ${deployed_sha:-an unknown commit}, not $head_sha."
+          echo "Check the Railway dashboard: service > Settings > Source (the GitHub"
+          echo "authorization has dropped before), and the Deployments tab for failures."
+          exit 1
