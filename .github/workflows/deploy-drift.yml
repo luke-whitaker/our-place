@@ -9,6 +9,11 @@ on:
   schedule:
     - cron: "20 8 * * *"
   workflow_dispatch:
+    inputs:
+      grace_minutes:
+        description: "Grace window for an in-flight deploy. Set 0 to test that the alarm still fires."
+        required: false
+        default: "45"
 
 jobs:
   check:
@@ -25,7 +30,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           # A deploy takes a few minutes, so a very recent commit is not drift.
-          GRACE_MINUTES: "45"
+          # Overridable on manual runs so the alarm itself can be tested.
+          GRACE_MINUTES: ${{ inputs.grace_minutes || '45' }}
         run: |
           set -euo pipefail
 
