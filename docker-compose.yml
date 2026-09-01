@@ -14,10 +14,20 @@
 #
 # The password here is a throwaway dev credential, not a secret — this file is
 # committed on purpose so the setup is reproducible.
+#
+# The major version tracks Railway's production Postgres (18 as of Sept 2026).
+# It matters beyond general parity: pg_dump and pg_restore refuse to read an
+# archive from a newer server, so a dev database behind production cannot
+# restore a production backup, which is the one thing a backup must allow.
+#
+# Postgres will not start on a data directory created by a different major
+# version, so bumping this needs a volume reset:
+#   docker compose down -v && docker compose up -d
+#   npx prisma migrate deploy && npm run db:seed && npm run db:create-admin
 
 services:
   db:
-    image: postgres:16-alpine
+    image: postgres:18-alpine
     container_name: ourplace-dev-db
     restart: unless-stopped
     environment:
@@ -27,7 +37,10 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - ourplace-dev-db:/var/lib/postgresql/data
+      # Postgres 18+ images store data in a major-version-specific subdirectory
+      # and expect the mount one level up, at /var/lib/postgresql. Mounting the
+      # old /var/lib/postgresql/data path makes the container refuse to start.
+      - ourplace-dev-db:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ourplace -d ourplace"]
       interval: 5s

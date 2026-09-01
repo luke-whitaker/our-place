@@ -1,0 +1,100 @@
+name: Verify backup restores
+
+# A backup nobody has restored is a hope, not a backup. This pulls the newest
+# archive out of R2 and restores it into a throwaway Postgres, then checks the
+# schema and row counts survived. It runs against a disposable container, so
+# production data never lands on anyone's laptop.
+on:
+  schedule:
+    # Weekly, an hour after the nightly backup.
+    - cron: "10 9 * * 1"
+  workflow_dispatch:
+
+jobs:
+  restore:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        # Must match or exceed production's major version, or pg_restore
+        # refuses the archive.
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: verify
+          POSTGRES_PASSWORD: verify
+          POSTGRES_DB: verify
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U verify"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install postgresql-client
+        env:
+          PG_MAJOR: "18"
+        run: |
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+            https://www.postgresql.org/media/keys/ACCC4CF8.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y "postgresql-client-${PG_MAJOR}"
+          echo "/usr/lib/postgresql/${PG_MAJOR}/bin" >> "$GITHUB_PATH"
+
+      - run: npm ci
+
+      - name: Download the newest backup
+        env:
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_BACKUP_BUCKET: ${{ secrets.R2_BACKUP_BUCKET }}
+          R2_BACKUP_ACCESS_KEY_ID: ${{ secrets.R2_BACKUP_ACCESS_KEY_ID }}
+          R2_BACKUP_SECRET_ACCESS_KEY: ${{ secrets.R2_BACKUP_SECRET_ACCESS_KEY }}
+        run: npx tsx scripts/fetch-latest-backup.ts restore-check.dump
+
+      - name: Restore into the throwaway database
+        env:
+          PGPASSWORD: verify
+        run: |
+          set -euo pipefail
+          pg_restore --no-owner --no-acl --exit-on-error \
+            -h localhost -p 5432 -U verify -d verify restore-check.dump
+          echo "pg_restore completed without error."
+
+      - name: Check the restored data
+        env:
+          PGPASSWORD: verify
+        run: |
+          set -euo pipefail
+          q() { psql -tAq -h localhost -p 5432 -U verify -d verify -c "$1"; }
+
+          tables=$(q "SELECT count(*) FROM information_schema.tables WHERE table_schema='public';")
+          users=$(q "SELECT count(*) FROM users;")
+          communities=$(q "SELECT count(*) FROM communities;")
+
+          echo "tables=$tables users=$users communities=$communities"
+
+          # The schema has 11 tables; a restore that silently drops some is the
+          # failure this job exists to catch.
+          if [ "$tables" -lt 11 ]; then
+            echo "Restored schema has only $tables tables, expected at least 11."
+            exit 1
+          fi
+          # Production always has at least the founding admin and the seeded
+          # communities. Zero means the archive was structure-only.
+          if [ "$users" -lt 1 ] || [ "$communities" -lt 1 ]; then
+            echo "Restored database has no users or no communities."
+            exit 1
+          fi
+          echo "Restore verified: schema and data both survived the round trip."
