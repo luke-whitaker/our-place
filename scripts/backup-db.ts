@@ -13,6 +13,9 @@
 
 import { config } from "dotenv";
 import { spawn } from "node:child_process";
+import { writeFile, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { AwsClient } from "aws4fetch";
 
 config({ path: ".env.local" });
@@ -60,15 +63,12 @@ function loadConfig(): BackupConfig {
   };
 }
 
-// Streams pg_dump's stdout into memory. Fine at this scale (a ~116 MB
-// database compresses to well under Node's buffer limits); revisit with a
-// streaming upload if the database grows past a couple of gigabytes.
-function runPgDump(databaseUrl: string): Promise<Buffer> {
+// Collects a child process's stdout. Output stays in memory, which is fine at
+// this scale; revisit with a streaming upload if the database ever grows past
+// a couple of gigabytes.
+function runCommand(command: string, args: string[]): Promise<Buffer> {
   return new Promise((resolve, reject) => {
-    // -Fc is pg_dump's compressed custom format, restored with pg_restore.
-    const child = spawn("pg_dump", ["--format=custom", "--no-owner", "--no-acl", databaseUrl], {
-      stdio: ["ignore", "pipe", "pipe"],
-    });
+    const child = spawn(command, args, { stdio: ["ignore", "pipe", "pipe"] });
 
     const chunks: Buffer[] = [];
     const errors: Buffer[] = [];
@@ -76,18 +76,43 @@ function runPgDump(databaseUrl: string): Promise<Buffer> {
     child.stderr.on("data", (c: Buffer) => errors.push(c));
 
     child.on("error", (err) =>
-      reject(new Error(`Could not run pg_dump (is postgresql-client installed?): ${err.message}`)),
+      reject(
+        new Error(`Could not run ${command} (is postgresql-client installed?): ${err.message}`),
+      ),
     );
     child.on("close", (code) => {
       if (code !== 0) {
         reject(
-          new Error(`pg_dump exited ${code}: ${Buffer.concat(errors).toString().slice(0, 500)}`),
+          new Error(`${command} exited ${code}: ${Buffer.concat(errors).toString().slice(0, 500)}`),
         );
         return;
       }
       resolve(Buffer.concat(chunks));
     });
   });
+}
+
+// --format=custom is pg_dump's compressed archive, restored with pg_restore.
+function runPgDump(databaseUrl: string): Promise<Buffer> {
+  return runCommand("pg_dump", ["--format=custom", "--no-owner", "--no-acl", databaseUrl]);
+}
+
+// Byte length proves the upload arrived, not that it is worth keeping. An
+// archive that stores cleanly while carrying no rows is the silent failure a
+// backup must never hide, so read its own table of contents back and count
+// the tables that actually carry data.
+async function countTablesWithData(dump: Buffer): Promise<number> {
+  const scratch = path.join(tmpdir(), `ourplace-backup-verify-${process.pid}.dump`);
+  await writeFile(scratch, dump);
+  try {
+    const toc = await runCommand("pg_restore", ["--list", scratch]);
+    return toc
+      .toString()
+      .split("\n")
+      .filter((line) => line.includes("TABLE DATA")).length;
+  } finally {
+    await rm(scratch, { force: true });
+  }
 }
 
 async function uploadBackup(cfg: BackupConfig, key: string, body: Buffer): Promise<void> {
@@ -188,6 +213,12 @@ async function main() {
   if (dump.length === 0) {
     throw new Error("pg_dump produced an empty file.");
   }
+
+  const tables = await countTablesWithData(dump);
+  if (tables === 0) {
+    throw new Error("The dump carries no table data. Refusing to store an empty backup.");
+  }
+  console.log(`Archive carries data for ${tables} table(s).`);
 
   const stamp = new Date().toISOString().replace(/[:.]/g, "-");
   const key = `${KEY_PREFIX}ourplace-${stamp}.dump`;
