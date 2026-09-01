@@ -4,6 +4,44 @@ import Link from "next/link";
 import { useAuth } from "./AuthProvider";
 import { useState } from "react";
 
+// How long a new member sees the floating "Enter the World" note before it
+// becomes hover-only.
+const WORLD_HINT_DAYS = 7;
+
+function isNewMember(createdAt?: string) {
+  if (!createdAt) return false;
+  const created = new Date(createdAt).getTime();
+  if (Number.isNaN(created)) return false;
+  return Date.now() - created < WORLD_HINT_DAYS * 24 * 60 * 60 * 1000;
+}
+
+// The 🍄 next to the logo — the persistent door into the world. New members
+// get a floating note so the world can't be missed; after that it only
+// appears on hover or focus.
+function WorldDoor({ createdAt }: { createdAt?: string }) {
+  const showHint = isNewMember(createdAt);
+  return (
+    <div className="group relative">
+      <Link
+        href="/world"
+        aria-label="Enter the World"
+        className="flex h-9 w-9 items-center justify-center rounded-lg text-xl transition-colors hover:bg-surface-emphasis"
+      >
+        <span aria-hidden>🍄</span>
+      </Link>
+      <span
+        className={`pointer-events-none absolute left-1/2 top-full z-50 mt-1 -translate-x-1/2 whitespace-nowrap rounded-lg bg-accent-500 px-2.5 py-1 text-xs font-semibold text-ink-inverse shadow-lg ${
+          showHint
+            ? "animate-bounce"
+            : "opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+        }`}
+      >
+        Enter the World
+      </span>
+    </div>
+  );
+}
+
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
@@ -12,10 +50,13 @@ export default function Navbar() {
     <nav className="op-navbar sticky top-0 z-50 border-b border-line bg-surface/80 backdrop-blur-lg">
       <div className="mx-auto max-w-6xl px-4 sm:px-6">
         <div className="flex h-16 items-center justify-between">
-          {/* Logo */}
-          <Link href={user?.is_verified ? "/feed" : "/"} className="flex items-center">
-            <span className="op-logo text-lg font-bold text-ink tracking-tight">Our Place</span>
-          </Link>
+          {/* Logo + the mushroom door into the world */}
+          <div className="flex items-center gap-1.5">
+            <Link href={user?.is_verified ? "/feed" : "/"} className="flex items-center">
+              <span className="op-logo text-lg font-bold text-ink tracking-tight">Our Place</span>
+            </Link>
+            {!loading && user?.is_verified ? <WorldDoor createdAt={user.created_at} /> : null}
+          </div>
 
           {/* Desktop Navigation */}
           {!loading && user?.is_verified ? (

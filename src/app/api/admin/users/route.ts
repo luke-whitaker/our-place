@@ -86,17 +86,36 @@ export async function POST(request: NextRequest) {
     const passwordHash = await bcrypt.hash(password, 12);
     const avatarColor = AVATAR_COLORS[Math.floor(Math.random() * AVATAR_COLORS.length)];
 
-    const user = await prisma.user.create({
-      data: {
-        username: usernameLower,
-        displayName: display_name,
-        email: emailLower,
-        phone: phoneClean,
-        passwordHash,
-        avatarColor,
-        invitedById: invited_by_id,
-        isVerified: true,
-      },
+    // Every new member starts in the Welcome Center so their first feed has a
+    // place greeting them. Skipped quietly if that community doesn't exist.
+    const welcomeCenter = await prisma.community.findUnique({
+      where: { slug: "welcome-center" },
+      select: { id: true },
+    });
+
+    const user = await prisma.$transaction(async (tx) => {
+      const created = await tx.user.create({
+        data: {
+          username: usernameLower,
+          displayName: display_name,
+          email: emailLower,
+          phone: phoneClean,
+          passwordHash,
+          avatarColor,
+          invitedById: invited_by_id,
+          isVerified: true,
+        },
+      });
+      if (welcomeCenter) {
+        await tx.communityMember.create({
+          data: { userId: created.id, communityId: welcomeCenter.id, role: "member" },
+        });
+        await tx.community.update({
+          where: { id: welcomeCenter.id },
+          data: { memberCount: { increment: 1 } },
+        });
+      }
+      return created;
     });
 
     return NextResponse.json(

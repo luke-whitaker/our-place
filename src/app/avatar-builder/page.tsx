@@ -67,8 +67,9 @@ function AvatarBuilderForm({ initial }: { initial: AvatarConfig | null }) {
       }
 
       await refresh();
-      // First-timers head into the app; editors return to their profile.
-      router.push(isFirstTime ? "/feed" : "/profile");
+      // First-timers step straight into the world they just dressed for;
+      // editors return to their profile.
+      router.push(isFirstTime ? "/world" : "/profile");
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
