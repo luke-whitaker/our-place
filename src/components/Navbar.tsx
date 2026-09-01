@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { useState } from "react";
 
@@ -17,27 +18,36 @@ function isNewMember(createdAt?: string) {
 
 // The 🍄 next to the logo — the persistent door into the world. New members
 // get a floating note so the world can't be missed; after that it only
-// appears on hover or focus.
+// appears on hover or focus. In the world itself the mushroom reads as
+// "you are here" and drops the note, which would be telling you to go
+// somewhere you already are.
 function WorldDoor({ createdAt }: { createdAt?: string }) {
-  const showHint = isNewMember(createdAt);
+  const inWorld = usePathname() === "/world";
+  const showHint = !inWorld && isNewMember(createdAt);
+
   return (
     <div className="group relative">
       <Link
         href="/world"
         aria-label="Enter the World"
-        className="flex h-9 w-9 items-center justify-center rounded-lg text-xl transition-colors hover:bg-surface-emphasis"
+        aria-current={inWorld ? "page" : undefined}
+        className={`flex h-9 w-9 items-center justify-center rounded-lg text-xl transition-colors hover:bg-surface-emphasis ${
+          inWorld ? "bg-surface-emphasis" : ""
+        }`}
       >
         <span aria-hidden>🍄</span>
       </Link>
-      <span
-        className={`pointer-events-none absolute left-1/2 top-full z-50 mt-1 -translate-x-1/2 whitespace-nowrap rounded-lg bg-accent-500 px-2.5 py-1 text-xs font-semibold text-ink-inverse shadow-lg ${
-          showHint
-            ? "animate-bounce"
-            : "opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
-        }`}
-      >
-        Enter the World
-      </span>
+      {!inWorld && (
+        <span
+          className={`pointer-events-none absolute left-1/2 top-full z-50 mt-1 -translate-x-1/2 whitespace-nowrap rounded-lg bg-accent-500 px-2.5 py-1 text-xs font-semibold text-ink-inverse shadow-lg ${
+            showHint
+              ? "animate-bounce"
+              : "opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100"
+          }`}
+        >
+          Enter the World
+        </span>
+      )}
     </div>
   );
 }
