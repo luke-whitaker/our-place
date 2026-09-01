@@ -25,9 +25,17 @@ jobs:
           node-version: 22
           cache: npm
 
-      # Install the newest client so it can dump whatever major version
-      # Railway runs (pg_dump reads servers at or below its own version).
+      # pg_dump refuses to dump a server newer than itself, so this must be at
+      # or above Railway's Postgres major version (18 as of Sept 2026). Raise
+      # it when Railway upgrades; the failure is loud and names both versions.
+      #
+      # The runner ships postgresql-client-16 and Debian's /usr/bin/pg_dump is
+      # a version-selecting wrapper, so installing a newer client is not
+      # enough on its own. Putting the versioned bin directory first on PATH
+      # is what actually decides which binary runs.
       - name: Install postgresql-client
+        env:
+          PG_MAJOR: "18"
         run: |
           sudo install -d /usr/share/postgresql-common/pgdg
           sudo curl -fsSL -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
@@ -35,8 +43,9 @@ jobs:
           echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
             | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
           sudo apt-get update
-          sudo apt-get install -y postgresql-client-17
-          pg_dump --version
+          sudo apt-get install -y "postgresql-client-${PG_MAJOR}"
+          echo "/usr/lib/postgresql/${PG_MAJOR}/bin" >> "$GITHUB_PATH"
+          "/usr/lib/postgresql/${PG_MAJOR}/bin/pg_dump" --version
 
       - run: npm ci
 
