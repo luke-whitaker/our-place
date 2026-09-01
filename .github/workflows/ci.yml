@@ -1,0 +1,42 @@
+name: CI
+
+# The gates this project has always run by hand: Prettier, ESLint at zero
+# warnings, tsc, the unit tests, and a production build. Running them on every
+# push is worth it on its own, and it is also the prerequisite for Railway's
+# "Wait for CI" setting, which cannot be enabled safely while pushes produce
+# no check runs at all.
+on:
+  push:
+  pull_request:
+
+# A newer push makes an in-flight run for the same branch irrelevant.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      # .npmrc sets ignore-scripts, so the Prisma client is not generated on
+      # install. Everything below needs src/generated to exist.
+      - run: npm run db:generate
+
+      - run: npm run format:check
+      - run: npm run lint
+      - run: npx tsc --noEmit
+      - run: npm run test
+
+      # Catches a build that breaks only in a production compile, which is
+      # otherwise discovered by Railway after the push has already landed.
+      - run: npm run build
