@@ -15,12 +15,8 @@ import {
 } from "@/lib/types";
 
 export default function AvatarBuilderPage() {
-  const { user, loading, refresh } = useAuth();
+  const { user, loading } = useAuth();
   const router = useRouter();
-
-  const [config, setConfig] = useState<AvatarConfig>(DEFAULT_AVATAR);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -28,11 +24,30 @@ export default function AvatarBuilderPage() {
     }
   }, [user, loading, router]);
 
-  useEffect(() => {
-    if (user?.avatar) {
-      setConfig(user.avatar as unknown as AvatarConfig);
-    }
-  }, [user]);
+  if (loading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-surface-muted">
+        <div className="h-8 w-8 animate-spin rounded-full border-3 border-accent-500 border-t-transparent" />
+      </div>
+    );
+  }
+
+  if (!user) return null;
+
+  // The form mounts only once the user exists, so it can seed its config
+  // state from the saved avatar directly.
+  return <AvatarBuilderForm initial={user.avatar as unknown as AvatarConfig | null} />;
+}
+
+function AvatarBuilderForm({ initial }: { initial: AvatarConfig | null }) {
+  const { refresh } = useAuth();
+  const router = useRouter();
+
+  const [config, setConfig] = useState<AvatarConfig>(() => initial ?? DEFAULT_AVATAR);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState("");
+
+  const isFirstTime = initial === null;
 
   async function handleSave() {
     setSaving(true);
@@ -64,18 +79,6 @@ export default function AvatarBuilderPage() {
   function update(field: keyof AvatarConfig, value: string) {
     setConfig((prev) => ({ ...prev, [field]: value }));
   }
-
-  if (loading) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-surface-muted">
-        <div className="h-8 w-8 animate-spin rounded-full border-3 border-accent-500 border-t-transparent" />
-      </div>
-    );
-  }
-
-  if (!user) return null;
-
-  const isFirstTime = !user.avatar;
 
   return (
     <div className="min-h-screen bg-surface-muted px-4 py-8 sm:py-12">

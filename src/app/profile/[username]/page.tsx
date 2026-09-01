@@ -65,7 +65,9 @@ export default function PublicProfilePage() {
       router.replace("/profile");
       return;
     }
-    void loadProfile();
+    void (async () => {
+      await loadProfile();
+    })();
   }, [user, loading, username, router, loadProfile]);
 
   if (loading || loadingProfile) {

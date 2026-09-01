@@ -52,9 +52,9 @@ export default function AdminPage() {
       return;
     }
     if (!loading && user?.role === "admin") {
-      // Default the inviter to the logged-in admin; they can pick someone else.
-      setForm((prev) => (prev.invited_by_id ? prev : { ...prev, invited_by_id: user.id }));
-      loadUsers();
+      void (async () => {
+        await loadUsers();
+      })();
     }
   }, [loading, user, router, loadUsers]);
 
@@ -74,7 +74,8 @@ export default function AdminPage() {
       const res = await fetch("/api/admin/users", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
+        // The inviter defaults to the logged-in admin unless they picked someone else.
+        body: JSON.stringify({ ...form, invited_by_id: form.invited_by_id || (user?.id ?? "") }),
       });
       const data = await res.json();
 
@@ -90,7 +91,7 @@ export default function AdminPage() {
         email: "",
         phone: "",
         password: "",
-        invited_by_id: user?.id ?? "",
+        invited_by_id: "",
       });
       loadUsers();
     } catch {
@@ -224,7 +225,7 @@ export default function AdminPage() {
                   Invited By
                 </label>
                 <select
-                  value={form.invited_by_id}
+                  value={form.invited_by_id || (user?.id ?? "")}
                   onChange={(e) => updateField("invited_by_id", e.target.value)}
                   required
                   className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"

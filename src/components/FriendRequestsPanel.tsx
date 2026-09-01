@@ -49,7 +49,9 @@ export default function FriendRequestsPanel({
   }, []);
 
   useEffect(() => {
-    void load();
+    void (async () => {
+      await load();
+    })();
   }, [load]);
 
   async function act(friendshipId: string, method: "PATCH" | "DELETE") {

@@ -2,11 +2,7 @@
 
 /** The viewer's relationship to another user, derived from the friendship row. */
 export type FriendshipStatus =
-  | "self"
-  | "friends"
-  | "pending_outgoing"
-  | "pending_incoming"
-  | "none";
+  "self" | "friends" | "pending_outgoing" | "pending_incoming" | "none";
 
 /** One side of a friendship or request, as listed by GET /api/friends. */
 export interface FriendEntry {

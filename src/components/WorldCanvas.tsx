@@ -214,20 +214,19 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
   }, [gameLoop]);
 
   // ── Touch D-pad handlers ──
-  const input = inputRef.current;
+  // Each button carries its key code in data-key so the two handlers stay
+  // direct event handlers (a handler factory would read the ref during render).
 
-  function dpadDown(code: string) {
-    return (e: React.TouchEvent) => {
-      e.preventDefault();
-      input.press(code);
-    };
+  function dpadDown(e: React.TouchEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    const code = e.currentTarget.dataset.key;
+    if (code) inputRef.current.press(code);
   }
 
-  function dpadUp(code: string) {
-    return (e: React.TouchEvent) => {
-      e.preventDefault();
-      input.release(code);
-    };
+  function dpadUp(e: React.TouchEvent<HTMLButtonElement>) {
+    e.preventDefault();
+    const code = e.currentTarget.dataset.key;
+    if (code) inputRef.current.release(code);
   }
 
   return (
@@ -260,35 +259,39 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
           <div className="flex flex-col items-center gap-1 pointer-events-auto">
             <button
               className="h-14 w-14 select-none rounded-lg border border-white/20 bg-surface/10 text-xl text-ink-inverse active:bg-surface/25"
-              onTouchStart={dpadDown("ArrowUp")}
-              onTouchEnd={dpadUp("ArrowUp")}
-              onTouchCancel={dpadUp("ArrowUp")}
+              data-key="ArrowUp"
+              onTouchStart={dpadDown}
+              onTouchEnd={dpadUp}
+              onTouchCancel={dpadUp}
             >
               ▲
             </button>
             <div className="flex gap-1">
               <button
                 className="h-14 w-14 select-none rounded-lg border border-white/20 bg-surface/10 text-xl text-ink-inverse active:bg-surface/25"
-                onTouchStart={dpadDown("ArrowLeft")}
-                onTouchEnd={dpadUp("ArrowLeft")}
-                onTouchCancel={dpadUp("ArrowLeft")}
+                data-key="ArrowLeft"
+                onTouchStart={dpadDown}
+                onTouchEnd={dpadUp}
+                onTouchCancel={dpadUp}
               >
                 ◄
               </button>
               <button
                 className="h-14 w-14 select-none rounded-lg border border-white/20 bg-surface/10 text-xl text-ink-inverse active:bg-surface/25"
-                onTouchStart={dpadDown("ArrowRight")}
-                onTouchEnd={dpadUp("ArrowRight")}
-                onTouchCancel={dpadUp("ArrowRight")}
+                data-key="ArrowRight"
+                onTouchStart={dpadDown}
+                onTouchEnd={dpadUp}
+                onTouchCancel={dpadUp}
               >
                 ►
               </button>
             </div>
             <button
               className="h-14 w-14 select-none rounded-lg border border-white/20 bg-surface/10 text-xl text-ink-inverse active:bg-surface/25"
-              onTouchStart={dpadDown("ArrowDown")}
-              onTouchEnd={dpadUp("ArrowDown")}
-              onTouchCancel={dpadUp("ArrowDown")}
+              data-key="ArrowDown"
+              onTouchStart={dpadDown}
+              onTouchEnd={dpadUp}
+              onTouchCancel={dpadUp}
             >
               ▼
             </button>
@@ -297,9 +300,10 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
           {/* Interact button */}
           <button
             className="h-16 w-16 select-none rounded-full border-2 border-white/25 bg-surface/10 text-lg font-bold text-ink-inverse pointer-events-auto active:bg-surface/25"
-            onTouchStart={dpadDown("Enter")}
-            onTouchEnd={dpadUp("Enter")}
-            onTouchCancel={dpadUp("Enter")}
+            data-key="Enter"
+            onTouchStart={dpadDown}
+            onTouchEnd={dpadUp}
+            onTouchCancel={dpadUp}
           >
             A
           </button>

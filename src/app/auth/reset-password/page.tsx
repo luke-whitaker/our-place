@@ -1,26 +1,25 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  // The forgot-password page stashes the email (and, in dev, the demo code) in
+  // sessionStorage; read them lazily so the server render never touches it.
+  const [email, setEmail] = useState(() =>
+    typeof window === "undefined" ? "" : (sessionStorage.getItem("reset_email") ?? ""),
+  );
   const [code, setCode] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-  const [demoCode, setDemoCode] = useState<string | null>(null);
-
-  useEffect(() => {
-    const storedEmail = sessionStorage.getItem("reset_email");
-    const storedCode = sessionStorage.getItem("reset_code");
-    if (storedEmail) setEmail(storedEmail);
-    if (storedCode) setDemoCode(storedCode);
-  }, []);
+  const [demoCode] = useState<string | null>(() =>
+    typeof window === "undefined" ? null : sessionStorage.getItem("reset_code"),
+  );
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();

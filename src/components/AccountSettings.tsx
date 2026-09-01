@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import { THEMES, THEME_LABELS, applyTheme, isTheme, type Theme } from "@/lib/theme";
 import { isAvatarConfig } from "@/lib/game/avatar-recolor";
@@ -37,10 +37,11 @@ export default function AccountSettings() {
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [theme, setTheme] = useState<Theme>("auto");
-  useEffect(() => {
-    if (user && isTheme(user.theme)) setTheme(user.theme);
-  }, [user]);
+  // Mounted only after auth resolves (profile page gates on loading), so the
+  // account's saved theme is available at first render.
+  const [theme, setTheme] = useState<Theme>(() =>
+    user && isTheme(user.theme) ? user.theme : "auto",
+  );
 
   if (!user) return null;
 

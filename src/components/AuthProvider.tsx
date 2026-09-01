@@ -56,11 +56,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await fetch("/api/auth/me", { method: "DELETE" });
     setUser(null);
+    // Hard navigation on purpose: a full document load drops every piece of
+    // logged-in client state, which router.push would keep in memory.
+    // eslint-disable-next-line @next/next/no-location-assign-relative-destination
     window.location.href = "/";
   }, []);
 
   useEffect(() => {
-    refresh();
+    void (async () => {
+      await refresh();
+    })();
   }, [refresh]);
 
   return (
