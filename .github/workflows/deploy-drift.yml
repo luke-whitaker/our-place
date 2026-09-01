@@ -23,7 +23,11 @@ jobs:
       contents: read
       deployments: read
     steps:
+      # Full history: the check diffs main against the deployed commit, which
+      # may be many commits back.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Compare deployed commit against main
         env:
@@ -53,6 +57,23 @@ jobs:
           if [ "$age_minutes" -lt "$GRACE_MINUTES" ]; then
             echo "Newest commit is under ${GRACE_MINUTES}m old; a deploy may still be in flight."
             exit 0
+          fi
+
+          # Railway can be configured to watch only app paths, and docs- or
+          # tooling-only commits then never produce a deployment. Alarming on
+          # those would train the reader to ignore this job, so only the files
+          # that actually change what production runs count as drift.
+          if [ -n "$deployed_sha" ] && git cat-file -e "${deployed_sha}^{commit}" 2>/dev/null; then
+            app_changes=$(git diff --name-only "$deployed_sha" "$head_sha" -- \
+              src prisma public package.json package-lock.json \
+              Dockerfile start.sh next.config.ts prisma.config.ts | head -5)
+            if [ -z "$app_changes" ]; then
+              echo "Undeployed commits touch no app files. Nothing to ship."
+              exit 0
+            fi
+            echo
+            echo "Undeployed app changes:"
+            echo "$app_changes" | sed 's/^/  /'
           fi
 
           echo
