@@ -11,7 +11,7 @@ import {
   isVideoType,
   getFileExtension,
 } from "@/lib/media-utils";
-import { uploadToStorage } from "@/lib/storage";
+import { StorageConfigError, StorageUploadError, uploadToStorage } from "@/lib/storage";
 
 export async function POST(request: NextRequest) {
   try {
@@ -78,6 +78,21 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error("Upload error:", error);
+
+    // Say which half broke. A single opaque 500 for both a missing env var and
+    // a rejected object turns every upload failure into a log-diving exercise.
+    if (error instanceof StorageConfigError) {
+      return NextResponse.json(
+        { error: "File storage is not configured on this server." },
+        { status: 503 },
+      );
+    }
+    if (error instanceof StorageUploadError) {
+      return NextResponse.json(
+        { error: `File storage rejected the upload (${error.status}).` },
+        { status: 502 },
+      );
+    }
     return NextResponse.json({ error: "Failed to upload file." }, { status: 500 });
   }
 }

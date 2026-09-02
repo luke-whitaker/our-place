@@ -118,7 +118,13 @@ async function countTablesWithData(dump: Buffer): Promise<number> {
 async function uploadBackup(cfg: BackupConfig, key: string, body: Buffer): Promise<void> {
   const response = await cfg.client.fetch(`${cfg.endpoint}/${cfg.bucket}/${key}`, {
     method: "PUT",
-    headers: { "Content-Type": "application/octet-stream" },
+    headers: {
+      "Content-Type": "application/octet-stream",
+      // Same 411 trap as src/lib/storage.ts: undici streams any body at or
+      // above 64 KiB and drops the Content-Length R2 requires. Today's dumps
+      // are smaller than that, so this would first bite as the data grows.
+      "Content-Length": String(body.byteLength),
+    },
     body: new Uint8Array(body),
   });
   if (!response.ok) {
