@@ -80,3 +80,6 @@ next-env.d.ts
 
 # Claude Code agent worktrees (ephemeral; created inside the repo by the Agent tool)
 /.claude/worktrees/
+
+# Personal, local-only Claude Code notes (see the memory docs)
+/CLAUDE.local.md
