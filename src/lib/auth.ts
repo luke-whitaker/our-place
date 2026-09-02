@@ -72,12 +72,15 @@ export async function getAuthUser(): Promise<AuthPayload | null> {
   // The lookup also kills tokens of since-deleted accounts.
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },
-    select: { passwordChangedAt: true },
+    select: { passwordChangedAt: true, role: true },
   });
   if (!user) return null;
   if (tokenIssuedBeforePasswordChange(payload.iat, user.passwordChangedAt)) return null;
 
-  return payload;
+  // role comes from the database, not the token: the token is valid for 24h,
+  // and a promotion or demotion during that window must take effect on the
+  // very next request rather than waiting for the token to expire and reissue.
+  return { ...payload, role: user.role };
 }
 
 export async function requireAuth(): Promise<
