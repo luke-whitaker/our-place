@@ -10,11 +10,11 @@ Our Place is a community platform built on one conviction: **online spaces shoul
 
 There is no public registration. Accounts are created in person by existing members who have met you face-to-face. This "web of trust" means every person here is a real human, vouched for by someone in the community — and it's how Our Place grows beyond its first members.
 
-Most social media silos people into echo chambers and infinite scroll. Our Place is the opposite: a digital layer for real communities, where you keep up with what's happening locally, start and share events, and turn online conversations into in-person ones.
+Most social media silos people into echo chambers and infinite scroll. Our Place is the opposite: a digital layer for real communities, where you keep up with what's happening locally and turn online conversations into in-person ones.
 
 ### Two ways to experience it
 
-- **The forum** — a Reddit-/Discord-inspired space to follow the communities you care about: post, comment, react, and organize events. Familiar social media, without the dark patterns.
+- **The forum** — a Reddit-/Discord-inspired space to follow the communities you care about: post, comment, and react. Familiar social media, without the dark patterns.
 - **The world** — an **8-bit RPG overworld** you can teleport into, where each community is a building in a town. Instead of scrolling mindlessly, you wander, explore, and build — leaving room for the kind of boredom that turns into a creative idea. Approach a building and step inside to reach its forum content. Think Roblox meets Reddit, but pixel art.
 
 The forum is fully functional today. The world is actively in development.
@@ -34,20 +34,20 @@ The forum is fully functional today. The world is actively in development.
 - **Communities** — Create or join communities organized by category (Gaming, Creative, Tech, etc.)
 - **Rich Posts** — Text, photo, video, and rich editor post types
 - **Comments & Reactions** — Threaded comments and emoji reactions on posts
-- **Events** — Community event creation and management
-- **Feed** — Personalized feed with explore and friends tabs
-- **My Place** — Personal profile space for each user
+- **Feed** — Three chronological views (your friends, your communities, everyone), each stating under its heading what it shows and how it is ordered. Nothing is ranked.
+- **People** — A member directory that shows who invited whom, plus friend requests and your friends list
+- **My Place** — Personal profile space for each user, friends-only
 - **File Uploads** — Image and media uploads with validation
 
 ### Authentication & Security
 
-- **Invite-only accounts** — admin-only account creation via dashboard (`/admin`)
+- **Invite-only accounts** — admin-only account creation via dashboard (`/admin`); every account records the member who invited them
 - JWT auth with httpOnly cookies and bcrypt password hashing
 - Password reset flow
 - Rate limiting on all auth and content creation routes
 - Zod schema validation on all API request bodies
 - Role-based access control (admin/user roles)
-- **Account settings** — update your email, phone, and password (current password required)
+- **Account settings** — update your name, email, phone, and password (current password required)
 
 ### Three Themes
 
@@ -118,44 +118,46 @@ The same My Place profile rendered in each built-in theme. **Auto** mode switche
 src/
 ├── app/
 │   ├── api/            # REST API routes
-│   │   ├── admin/      # Admin dashboard API (user management)
-│   │   ├── auth/       # Login, password reset
+│   │   ├── admin/      # Account creation (admin only)
+│   │   ├── auth/       # Login, account settings, avatar, password reset
 │   │   ├── communities/# CRUD, join/leave, posts
-│   │   ├── posts/      # Comments, reactions
-│   │   ├── feed/       # Personalized, explore, friends
+│   │   ├── posts/      # Comments, reactions, deletion
+│   │   ├── feed/       # Friends, communities, everyone (all chronological)
+│   │   ├── friends/    # Friend requests
+│   │   ├── users/      # Member directory and public profiles
 │   │   ├── my-place/   # Personal space posts
-│   │   ├── events/     # Community events
-│   │   └── upload/     # File uploads
-│   ├── admin/          # Admin dashboard (account creation)
-│   ├── auth/           # Auth pages (login, password reset)
+│   │   ├── upload/     # Media uploads to R2
+│   │   └── version/    # The commit the running instance was built from
+│   ├── admin/          # Admin dashboard
+│   ├── auth/           # Login and password reset pages
 │   ├── communities/    # Community browsing and detail pages
-│   ├── feed/           # Feed dashboard
-│   ├── world/          # 8-bit overworld page
-│   └── profile/        # User profile
-├── components/         # Reusable React components
-│   ├── WorldCanvas.tsx # Game engine canvas component
-│   ├── PostCard.tsx    # Post display
-│   ├── Navbar.tsx      # Navigation bar
-│   └── ...
-├── generated/prisma/   # Auto-generated Prisma client (not committed)
+│   ├── feed/           # The feed
+│   ├── people/         # Member directory and friends
+│   ├── profile/        # My Place (yours and other members')
+│   ├── avatar-builder/ # First-login character customization
+│   ├── world/          # The isometric overworld
+│   └── iso-lab/        # Engine sandbox (dev only)
+├── components/         # React components (feed/ holds the feed's subcomponents)
+├── generated/prisma/   # Generated Prisma client (not committed)
 └── lib/
-    ├── game/           # Game engine (sprites, input, engine, types, tileset)
-    ├── types/          # TypeScript type definitions
+    ├── game/           # The isometric engine (see .claude/rules/world-engine.md)
+    │   └── worlds/     # Authored worlds: the Capital and the lab town
+    ├── types/          # Wire types by domain
+    ├── api-client.ts   # apiFetch: the client-side API helper
+    ├── auth.ts         # JWT, cookies, session revocation
     ├── db.ts           # Prisma client singleton
-    ├── schemas.ts      # Zod validation schemas
-    ├── pagination.ts   # Pagination utilities
-    └── media-utils.ts  # File upload helpers
+    ├── schemas.ts      # Zod schemas for every request body
+    ├── storage.ts      # Cloudflare R2 uploads
+    └── rate-limit.ts   # In-memory rate limiters
 prisma/
 ├── schema.prisma       # Database schema (source of truth)
 ├── migrations/         # Prisma migration history
 └── seed.ts             # Seed data (9 starter communities)
 scripts/
-├── generate-world.ts   # Procedural frontier world generator (deterministic)
-├── generate-tiles.lua  # Aseprite script — generate tile sprite sheet
-└── generate-player.lua # Aseprite script — generate player sprite sheet
-public/world/
-├── world.bin           # Generated tile grid (500×500, one byte per tile)
-└── world.meta.json     # Spawn, doors, node bounds, passages, mushroom network
+├── backup-db.ts        # Nightly database dump to private R2 storage
+├── create-admin.ts     # Bootstrap the first admin account
+└── upload-world-art.ts # Push runtime art to R2
+.github/workflows/      # CI, nightly backup, weekly restore check, deploy-drift alarm
 ```
 
 ## Getting Started
@@ -229,15 +231,57 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Water autotiling (4-edge blob autotiler + the animated pond in the Capital)
 - [x] First-run onboarding — new members build a character, step straight into the world as it, and start in the Welcome Center
 - [x] Operations backbone — CI on every push, nightly database backups with weekly restore verification, and a deploy-drift alarm
-- [ ] Richer terrain + new biomes
-- [ ] Ports v2 — building interiors with PC sprites (log on to the forum, or warp PC-to-PC)
-- [ ] DB-backed worlds + Builder/Creator placement (user-built buildings and objects)
+- [x] People page and honest feeds — a member directory with the web of trust visible, friend requests in one place, and chronological feeds that say what they show
+- [x] Terrain tint experiment — autumn, snow, dusk, swamp, and scorched variants from the one forest sheet, in the engine sandbox
+- [ ] Viewport culling — draw only what the camera can see, the prerequisite for a bigger world
+- [ ] More space to explore — outskirts around the Capital
+- [ ] Floating My Place islands — one house, a biome you choose, and a mushroom shrine back to the Capital
+- [ ] Post interaction controls — the author chooses whether a post can be liked, disliked, or commented on; polls
+- [ ] Wilderness with tinted biomes and user-placed content sprites
+- [ ] Ports v2 — building interiors with PC sprites, once interior art exists
 - [ ] Player identity bound to world position + username rendered above the avatar
 - [ ] Real-time multiplayer presence (the engine is built with the seams for it)
 
 ---
 
 ## Version History
+
+### v0.7.0 — People, Honest Feeds, and the World Decision (September 2026)
+
+**Why:** The first real members surfaced three kinds of friction in the same week. Finding
+someone who had never posted was impossible, because the only path to a profile ran through
+a post. The feed's second tab was still labeled "Endless Scroll" from the earliest prototype,
+which contradicts the thesis on the front page. And events were half-built: a calendar with
+no way to create an event or RSVP. Meanwhile the world's direction had been undecided since
+August over one question, whether new biomes need new art.
+
+**What changed:**
+
+- **People page** (`/people`) — friend requests, your friends, and a searchable directory of
+  every member, each row showing who invited them. The web of trust is now visible, and
+  adding a friend no longer requires finding one of their posts. People also gets a navbar
+  link and the feed's bottom-bar slot.
+- **Honest feeds** — the "Endless Scroll" tab is now "Everyone", every feed is chronological
+  (the everyone feed had been ranked by reactions), and each tab states under its heading
+  exactly what it shows and how it is ordered.
+- **Events removed** from the UI and API. The tables stay; events come back later, built
+  around getting people into a room.
+- **Editable display name** in Account settings.
+- **Correctness** — community creation is one transaction; HSTS is sent and the deprecated
+  `X-XSS-Protection` header is gone; a member's role is read from the database on every
+  request, so promotions apply immediately; every client page calls the API through one
+  helper that surfaces errors and sends an expired session to the login page instead of
+  rendering an empty feed.
+- **World direction decided: the world stays isometric.** The terrain tint experiment
+  (`/iso-lab?world=capital&tint=autumn`) showed that one HSL pass at load turns the forest
+  sheet into autumn, snow, dusk, swamp, and scorched variants that read as different places,
+  with pines staying evergreen and buildings keeping their paint. Biome variety no longer
+  depends on buying art.
+- **Project instructions** restructured: a shorter `CLAUDE.md` plus path-scoped rules under
+  `.claude/rules/`.
+
+**What didn't change:** post, comment, community, and friendship API shapes. `/api/events`
+is removed and `/api/users` is new.
 
 ### v0.6.1 — Photo Uploads Actually Work (September 2026)
 
