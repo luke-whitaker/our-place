@@ -5,6 +5,7 @@ import { getAuthUser } from "@/lib/auth";
 import { createCommunityLimiter } from "@/lib/rate-limit";
 import { createCommunitySchema, getZodErrorMessage } from "@/lib/schemas";
 import { parsePagination, paginateResults } from "@/lib/pagination";
+import { v4 as uuidv4 } from "uuid";
 
 // GET: List/search all communities
 export async function GET(request: NextRequest) {
@@ -144,21 +145,35 @@ export async function POST(request: NextRequest) {
     ];
     const banner_color = bannerColors[Math.floor(Math.random() * bannerColors.length)];
 
+    // The id is generated up front (rather than left to the DB default) so the
+    // membership row below can reference it inside the same transaction array,
+    // which needs every query built before any of them run.
+    const communityId = uuidv4();
+
     let community;
     try {
-      community = await prisma.community.create({
-        data: {
-          name,
-          slug,
-          description,
-          category,
-          icon: icon || "\uD83C\uDF10",
-          bannerColor: banner_color,
-          guidelines: guidelines || "",
-          creatorId: auth.userId,
-          memberCount: 1,
-        },
-      });
+      // A community with no members (if the second write ever failed alone)
+      // is unreachable and unrecoverable through the UI, so both writes commit
+      // or neither does.
+      [community] = await prisma.$transaction([
+        prisma.community.create({
+          data: {
+            id: communityId,
+            name,
+            slug,
+            description,
+            category,
+            icon: icon || "\uD83C\uDF10",
+            bannerColor: banner_color,
+            guidelines: guidelines || "",
+            creatorId: auth.userId,
+            memberCount: 1,
+          },
+        }),
+        prisma.communityMember.create({
+          data: { userId: auth.userId, communityId, role: "admin" },
+        }),
+      ]);
     } catch (err: unknown) {
       if (err && typeof err === "object" && "code" in err && err.code === "P2002") {
         return NextResponse.json(
@@ -168,11 +183,6 @@ export async function POST(request: NextRequest) {
       }
       throw err;
     }
-
-    // Auto-join creator as admin
-    await prisma.communityMember.create({
-      data: { userId: auth.userId, communityId: community.id, role: "admin" },
-    });
 
     return NextResponse.json(
       {
