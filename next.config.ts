@@ -9,7 +9,10 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "X-DNS-Prefetch-Control", value: "on" },
   { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
-  { key: "X-XSS-Protection", value: "1; mode=block" },
+  // No `preload`: the apex domain redirect is handled at the registrar, outside
+  // this app's control, and preload lists are effectively permanent — we'd be
+  // committing infrastructure we don't own to HTTPS-only forever.
+  { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
 ];
 
 const nextConfig: NextConfig = {
