@@ -239,6 +239,27 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.6.1 — Photo Uploads Actually Work (September 2026)
+
+**Why:** Adding a photo to a post failed with "Failed to upload file." for every real photo.
+R2 requires `Content-Length` on every PUT and has no chunked-upload support, but undici streams
+any request body at or above its 64 KiB high-water mark, and a streamed body loses the header
+`fetch` would otherwise derive. R2 answered `411 MissingContentLength`. Uploads under roughly
+64 KB still succeeded, so the two small test images already in the bucket made the feature look
+healthy from the June migration onward. The first real photo from the first real user found it.
+
+**What changed:**
+
+- **Uploads send an explicit `Content-Length`** — `src/lib/storage.ts` sets it from the body
+  length. `scripts/backup-db.ts` carried the same defect and was passing only because the
+  nightly dump is still far under 64 KB, so it got the same fix before a growing database
+  turned it into a failing backup.
+- **Storage failures name their cause** — a missing R2 variable raises `StorageConfigError`
+  (HTTP 503, logging exactly which variables are absent), and an object R2 refuses raises
+  `StorageUploadError` (HTTP 502, carrying the R2 status). Both replace a single opaque 500.
+
+**What didn't change:** API response shapes, accepted file types, and size limits are identical.
+
 ### v0.6.0 — The World Goes Isometric (June 2026)
 
 **Why:** The world had been a top-down tile map — functional, but flat. To make it the explorable, characterful place the project is about, it moved to an **isometric 2.5D** view built around a purchased character and the Evergrow Forest art. The migration was also the moment to lay architecture seams for where the world is headed: a shared, multiplayer, player-built space.
