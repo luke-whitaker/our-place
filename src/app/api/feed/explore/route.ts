@@ -11,14 +11,15 @@ export async function GET(request: NextRequest) {
 
     const { limit, offset, page } = parsePagination(new URL(request.url).searchParams);
 
-    // Platform-wide posts from all communities, ordered by engagement then recency
+    // Every post on the platform, newest first — transparent and unranked,
+    // same ordering promise as the friends and communities feeds.
     const posts = await prisma.post.findMany({
       include: {
         author: { select: { displayName: true, username: true, avatarColor: true } },
         community: { select: { name: true, slug: true, icon: true } },
         reactions: { where: { userId: auth.user.userId }, select: { type: true } },
       },
-      orderBy: [{ reactionCount: "desc" }, { commentCount: "desc" }, { createdAt: "desc" }],
+      orderBy: { createdAt: "desc" },
       take: limit + 1,
       skip: offset,
     });

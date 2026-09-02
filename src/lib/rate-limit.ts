@@ -91,9 +91,6 @@ export const reactionLimiter = new RateLimiter({ maxAttempts: 60, windowMs: 60 *
 /** File uploads: 30 per hour per user */
 export const uploadLimiter = new RateLimiter({ maxAttempts: 30, windowMs: 60 * 60 * 1000 });
 
-/** Event creation: 10 per hour per user */
-export const createEventLimiter = new RateLimiter({ maxAttempts: 10, windowMs: 60 * 60 * 1000 });
-
 /** Community creation: 5 per hour per user */
 export const createCommunityLimiter = new RateLimiter({ maxAttempts: 5, windowMs: 60 * 60 * 1000 });
 

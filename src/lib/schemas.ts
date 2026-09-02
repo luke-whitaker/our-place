@@ -148,21 +148,6 @@ export const createReactionSchema = z.object({
   type: z.enum(REACTION_TYPES).default("like"),
 });
 
-export const createEventSchema = z.object({
-  title: z
-    .string({ error: "Title, description, and date are required." })
-    .min(1, "Title, description, and date are required."),
-  description: z
-    .string({ error: "Title, description, and date are required." })
-    .min(1, "Title, description, and date are required."),
-  event_date: z
-    .string({ error: "Title, description, and date are required." })
-    .min(1, "Title, description, and date are required."),
-  location: z.string().optional(),
-  event_end_date: z.string().optional().nullable(),
-  community_id: z.string().optional().nullable(),
-});
-
 // ── Avatar schema ──
 
 const hexColorRegex = /^#[0-9a-fA-F]{6}$/;
