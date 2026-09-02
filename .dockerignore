@@ -11,3 +11,4 @@ screenshots
 .DS_Store
 .cursor
 env.local
+.claude
