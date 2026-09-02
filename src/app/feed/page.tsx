@@ -188,11 +188,8 @@ export default function FeedPage() {
             {tabError && <p className="text-sm text-red-600">{tabError}</p>}
             {renderPostList(
               friendPosts,
-              "No friend posts yet — visit someone's place to add them as a friend",
-              {
-                label: "Browse Communities and Add Friends",
-                href: "/communities",
-              },
+              "No friend posts yet. Find the people you know and add them as friends.",
+              { label: "Find People", href: "/people" },
             )}
           </div>
         );
