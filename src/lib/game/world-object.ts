@@ -8,7 +8,8 @@ import { tileToScreen } from "./iso";
 import { newWorldImage } from "./asset-url";
 
 export interface ObjectSprite {
-  img: HTMLImageElement;
+  /** The art to draw: the loaded image, or a recolored canvas baked from it. */
+  img: HTMLImageElement | HTMLCanvasElement;
   /** Opaque-content bottom-centre, in DRAW pixels — the ground contact point. */
   anchorX: number;
   anchorY: number;

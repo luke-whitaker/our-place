@@ -2,21 +2,31 @@
 
 // ── Isometric vertical slice (dev harness) ──
 //
-// A throwaway page (/iso-lab) for proving the iso migration before touching the
-// live world. As of Phase 2 it's a thin harness over the real iso engine
-// (iso-engine.ts) — exactly the shape WorldCanvas will take in Phase 3. It loads
-// the art, builds collision, and runs the engine's createIsoState / update /
-// render loop. The engine owns movement, collision, doors, shrine discovery,
-// region toasts, the warp menu, and fades; this component owns only the canvas,
-// the fixed-timestep loop, and art loading.
+// A throwaway page (/iso-lab) for proving engine work before touching the live
+// world. It is a thin harness over the real iso engine (iso-engine.ts), exactly
+// the shape WorldCanvas takes. It loads the art, builds collision, and runs the
+// engine's createIsoState / update / render loop. The engine owns movement,
+// collision, doors, shrine discovery, region toasts, the warp menu, and fades;
+// this component owns only the canvas, the fixed-timestep loop, and art loading.
+//
+// Lab-only query params: `?world=capital` renders the live town instead of the
+// test scatter, and `?tint=<preset>` bakes a biome recolor into every sheet and
+// sprite except the character (see terrain-tint.ts).
 
 import { useEffect, useRef, useState } from "react";
 import { CANVAS_W, CANVAS_H, TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
 import { loadObjectSprite, type ObjectSprite } from "@/lib/game/world-object";
 import { loadCharacterSheet } from "@/lib/game/character-sheet";
-import { OBJECT_CATALOG } from "@/lib/game/world-model";
+import { OBJECT_CATALOG, type IsoWorld } from "@/lib/game/world-model";
 import { worldAsset, newWorldImage } from "@/lib/game/asset-url";
+import {
+  isTintPreset,
+  tintImage,
+  tintToImage,
+  type TintPreset,
+  type TintTarget,
+} from "@/lib/game/terrain-tint";
 import {
   createIsoState,
   update,
@@ -27,27 +37,51 @@ import {
   type IsoAssets,
 } from "@/lib/game/iso-engine";
 import { LAB_TOWN } from "@/lib/game/worlds/lab-town";
+import { CAPITAL } from "@/lib/game/worlds/capital";
+
+interface LabOptions {
+  world: IsoWorld;
+  tint: TintPreset;
+}
+
+function readLabOptions(): LabOptions {
+  if (typeof window === "undefined") return { world: LAB_TOWN, tint: "forest" };
+  const params = new URLSearchParams(window.location.search);
+  const tint = params.get("tint");
+  return {
+    world: params.get("world") === "capital" ? CAPITAL : LAB_TOWN,
+    tint: isTintPreset(tint) ? tint : "forest",
+  };
+}
 
 export default function IsoLab() {
+  const [{ world, tint }] = useState(readLabOptions);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef(createInputManager());
   const assetsRef = useRef<IsoAssets | null>(null);
-  const grassRef = useRef(terrainToGrass(LAB_TOWN));
-  const solidRef = useRef(buildWorldCollision(LAB_TOWN));
-  const stateRef = useRef<IsoState>(createIsoState(LAB_TOWN));
+  const grassRef = useRef(terrainToGrass(world));
+  const solidRef = useRef(buildWorldCollision(world));
+  const stateRef = useRef<IsoState>(createIsoState(world));
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
 
-  // Load art (character sheet, ground sheet, one sprite per object kind used).
+  // Load art (character sheet, ground sheets, one sprite per object kind used),
+  // tinting everything but the character.
   useEffect(() => {
     let cancelled = false;
-    const kinds = [...new Set(LAB_TOWN.objects.map((o) => o.kind))];
+    const kinds = [...new Set(world.objects.map((o) => o.kind))];
     Promise.all([
       loadCharacterSheet(worldAsset("/world/characters/long.png")),
-      loadImage(worldAsset("/world/tiles/forest.png")),
-      loadImage(worldAsset("/world/tiles/water.png")),
+      loadImage(worldAsset("/world/tiles/forest.png")).then((img) =>
+        tintToImage(img, tint, "ground"),
+      ),
+      loadImage(worldAsset("/world/tiles/water.png")).then((img) =>
+        tintToImage(img, tint, "ground"),
+      ),
       ...kinds.map((k) =>
-        loadObjectSprite(worldAsset(OBJECT_CATALOG[k].src), OBJECT_CATALOG[k].scale),
+        loadObjectSprite(worldAsset(OBJECT_CATALOG[k].src), OBJECT_CATALOG[k].scale).then(
+          (sprite) => tintSprite(sprite, tint, tintTargetFor(k)),
+        ),
       ),
     ])
       .then(([characters, forest, water, ...objs]) => {
@@ -70,7 +104,7 @@ export default function IsoLab() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [world, tint]);
 
   // Fixed-timestep loop (mirrors WorldCanvas).
   useEffect(() => {
@@ -88,13 +122,13 @@ export default function IsoLab() {
       lastTime = now;
       accumulator = Math.min(accumulator + elapsed, MAX_ACCUMULATOR);
       while (accumulator >= TICK_RATE) {
-        update(stateRef.current, LAB_TOWN, solidRef.current, input);
+        update(stateRef.current, world, solidRef.current, input);
         accumulator -= TICK_RATE;
       }
       const assets = assetsRef.current;
       if (assets) {
         ctx.imageSmoothingEnabled = false;
-        render(ctx, stateRef.current, LAB_TOWN, grassRef.current, assets);
+        render(ctx, stateRef.current, world, grassRef.current, assets);
       }
       rafId = requestAnimationFrame(loop);
     }
@@ -103,7 +137,7 @@ export default function IsoLab() {
       cancelAnimationFrame(rafId);
       cleanupInput();
     };
-  }, []);
+  }, [world]);
 
   return (
     <div className="flex flex-col items-center gap-3">
@@ -118,11 +152,24 @@ export default function IsoLab() {
         {error
           ? error
           : ready
-            ? "WASD / Arrows to walk · Enter at a door or shrine"
+            ? `WASD / Arrows to walk · Enter at a door or shrine · tint: ${tint}`
             : "Loading art…"}
       </p>
     </div>
   );
+}
+
+// Lab-only classification of catalog kinds. When tinting ships, this becomes
+// a `category` field on OBJECT_CATALOG entries instead of name matching.
+function tintTargetFor(kind: string): TintTarget {
+  if (kind.startsWith("pine")) return "evergreen";
+  if (/^(oak|bush|rock|mushroom)/.test(kind)) return "nature";
+  return "building";
+}
+
+function tintSprite(sprite: ObjectSprite, tint: TintPreset, target: TintTarget): ObjectSprite {
+  if (!(sprite.img instanceof HTMLImageElement)) return sprite;
+  return { ...sprite, img: tintImage(sprite.img, tint, target) };
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
