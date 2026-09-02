@@ -233,7 +233,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Operations backbone — CI on every push, nightly database backups with weekly restore verification, and a deploy-drift alarm
 - [x] People page and honest feeds — a member directory with the web of trust visible, friend requests in one place, and chronological feeds that say what they show
 - [x] Terrain tint experiment — autumn, snow, dusk, swamp, and scorched variants from the one forest sheet, in the engine sandbox
-- [ ] Viewport culling — draw only what the camera can see, the prerequisite for a bigger world
+- [x] Viewport culling — the renderer draws only the diagonal bands and sprites the camera can see, with tests proving the output is unchanged
 - [ ] More space to explore — outskirts around the Capital
 - [ ] Floating My Place islands — one house, a biome you choose, and a mushroom shrine back to the Capital
 - [ ] Post interaction controls — the author chooses whether a post can be liked, disliked, or commented on; polls
@@ -277,6 +277,11 @@ August over one question, whether new biomes need new art.
   sheet into autumn, snow, dusk, swamp, and scorched variants that read as different places,
   with pines staying evergreen and buildings keeping their paint. Biome variety no longer
   depends on buying art.
+- **Viewport culling** — the isometric renderer now iterates only the diagonal bands of
+  tiles and the sprites that can intersect the camera, about a quarter of the Capital per
+  frame and under 3,000 tiles of a 500x500 world. A brute-force property test proves the
+  culled set always covers every tile that touches the view, and a before-and-after pixel
+  comparison of the live world showed no change. This is the prerequisite for a bigger world.
 - **Project instructions** restructured: a shorter `CLAUDE.md` plus path-scoped rules under
   `.claude/rules/`.
 
