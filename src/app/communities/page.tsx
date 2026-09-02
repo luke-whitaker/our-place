@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import CommunityCard from "@/components/CommunityCard";
+import { apiFetch, userMessage } from "@/lib/api-client";
 import { CommunityWithMembership, COMMUNITY_CATEGORIES } from "@/lib/types";
 
 export default function CommunitiesPage() {
@@ -14,6 +15,7 @@ export default function CommunitiesPage() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("");
   const [loadingCommunities, setLoadingCommunities] = useState(true);
+  const [error, setError] = useState("");
 
   const loadCommunities = useCallback(async () => {
     setLoadingCommunities(true);
@@ -22,11 +24,13 @@ export default function CommunitiesPage() {
       if (search) params.set("search", search);
       if (category) params.set("category", category);
 
-      const res = await fetch(`/api/communities?${params.toString()}`);
-      const data = await res.json();
+      const data = await apiFetch<{ communities: CommunityWithMembership[] }>(
+        `/api/communities?${params.toString()}`,
+      );
       setCommunities(data.communities || []);
-    } catch {
-      // ignore
+      setError("");
+    } catch (err) {
+      setError(userMessage(err, "Failed to load communities."));
     }
     setLoadingCommunities(false);
   }, [search, category]);
@@ -127,6 +131,12 @@ export default function CommunitiesPage() {
           ))}
         </select>
       </div>
+
+      {error && (
+        <div className="mb-6 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
 
       {/* Communities Grid */}
       {loadingCommunities ? (

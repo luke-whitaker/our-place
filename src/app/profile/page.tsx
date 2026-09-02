@@ -7,6 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 import AccountSettings from "@/components/AccountSettings";
 import PostCard from "@/components/PostCard";
 import CreatePostForm from "@/components/CreatePostForm";
+import { apiFetch, userMessage } from "@/lib/api-client";
 import { CommunityWithMembership, Post } from "@/lib/types";
 
 type ProfileTab = "my-place" | "communities" | "account";
@@ -84,14 +85,16 @@ export default function ProfilePage() {
   const [myPlacePosts, setMyPlacePosts] = useState<Post[]>([]);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [loadingPosts, setLoadingPosts] = useState(true);
+  const [error, setError] = useState("");
 
   const loadProfile = useCallback(async () => {
     try {
-      const res = await fetch("/api/communities?joined=true");
-      const data = await res.json();
+      const data = await apiFetch<{ communities: CommunityWithMembership[] }>(
+        "/api/communities?joined=true",
+      );
       setCommunities(data.communities || []);
-    } catch {
-      // ignore
+    } catch (err) {
+      setError(userMessage(err, "Failed to load your communities."));
     }
     setLoadingProfile(false);
   }, []);
@@ -99,11 +102,10 @@ export default function ProfilePage() {
   const loadMyPlacePosts = useCallback(async () => {
     setLoadingPosts(true);
     try {
-      const res = await fetch("/api/my-place/posts");
-      const data = await res.json();
+      const data = await apiFetch<{ posts: Post[] }>("/api/my-place/posts");
       setMyPlacePosts(data.posts || []);
-    } catch {
-      // ignore
+    } catch (err) {
+      setError(userMessage(err, "Failed to load your posts."));
     }
     setLoadingPosts(false);
   }, []);
@@ -205,6 +207,12 @@ export default function ProfilePage() {
           </div>
         </div>
       </div>
+
+      {error && (
+        <div className="mt-6 rounded-xl bg-red-50 border border-red-100 px-4 py-3 text-sm text-red-600">
+          {error}
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="mt-6 flex gap-1 rounded-xl bg-surface-emphasis p-1">

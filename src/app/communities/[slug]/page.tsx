@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import PostCard from "@/components/PostCard";
 import CreatePostForm from "@/components/CreatePostForm";
+import { ApiError, apiFetch, userMessage } from "@/lib/api-client";
 import { Community, CommunityMember, Post } from "@/lib/types";
 
 export default function CommunityDetailPage() {
@@ -25,25 +26,26 @@ export default function CommunityDetailPage() {
 
   const loadCommunity = useCallback(async () => {
     try {
-      const [commRes, postsRes] = await Promise.all([
-        fetch(`/api/communities/${slug}`),
-        fetch(`/api/communities/${slug}/posts`),
+      const [commData, postsData] = await Promise.all([
+        apiFetch<{
+          community: Community;
+          membership: CommunityMember | null;
+          members: CommunityMember[];
+        }>(`/api/communities/${slug}`),
+        apiFetch<{ posts: Post[] }>(`/api/communities/${slug}/posts`),
       ]);
-      const commData = await commRes.json();
-      const postsData = await postsRes.json();
-
-      if (!commRes.ok) {
-        router.replace("/communities");
-        return;
-      }
-
       setCommunity(commData.community);
       setMembership(commData.membership);
       setMembers(commData.members || []);
       setPosts(postsData.posts || []);
     } catch (err) {
-      console.error("Failed to load community:", err);
-      setPageError("Failed to load community. Please try again.");
+      // A missing slug (404) sends the user back to the list rather than
+      // showing a bare error, matching the "not found" UX used elsewhere.
+      if (err instanceof ApiError && err.status === 404) {
+        router.replace("/communities");
+        return;
+      }
+      setPageError(userMessage(err, "Failed to load community. Please try again."));
     }
     setLoadingPage(false);
   }, [slug, router]);
@@ -73,16 +75,10 @@ export default function CommunityDetailPage() {
     setJoining(true);
     setPageError(null);
     try {
-      const res = await fetch(`/api/communities/${community.id}/join`, { method: "POST" });
-      if (res.ok) {
-        await loadCommunity();
-      } else {
-        const data = await res.json();
-        setPageError(data.error || "Failed to join community.");
-      }
+      await apiFetch(`/api/communities/${community.id}/join`, { method: "POST" });
+      await loadCommunity();
     } catch (err) {
-      console.error("Failed to join community:", err);
-      setPageError("Failed to join community. Please try again.");
+      setPageError(userMessage(err, "Failed to join community. Please try again."));
     }
     setJoining(false);
   }
@@ -92,27 +88,20 @@ export default function CommunityDetailPage() {
     setLeaving(true);
     setPageError(null);
     try {
-      const res = await fetch(`/api/communities/${community.id}/leave`, { method: "POST" });
-      if (res.ok) {
-        await loadCommunity();
-      } else {
-        const data = await res.json();
-        setPageError(data.error || "Failed to leave community.");
-      }
+      await apiFetch(`/api/communities/${community.id}/leave`, { method: "POST" });
+      await loadCommunity();
     } catch (err) {
-      console.error("Failed to leave community:", err);
-      setPageError("Failed to leave community. Please try again.");
+      setPageError(userMessage(err, "Failed to leave community. Please try again."));
     }
     setLeaving(false);
   }
 
   async function reloadPosts() {
     try {
-      const res = await fetch(`/api/communities/${slug}/posts`);
-      const data = await res.json();
+      const data = await apiFetch<{ posts: Post[] }>(`/api/communities/${slug}/posts`);
       setPosts(data.posts || []);
     } catch (err) {
-      console.error("Failed to reload posts:", err);
+      setPageError(userMessage(err, "Failed to refresh posts. Please try again."));
     }
   }
 

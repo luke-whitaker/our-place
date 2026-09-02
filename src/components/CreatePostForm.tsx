@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiFetch, userMessage } from "@/lib/api-client";
 import { PostType } from "@/lib/types";
 import RichContentEditor, { EditorBlock, createEmptyTextBlock } from "./RichContentEditor";
 import PhotoUploader from "./PhotoUploader";
@@ -209,22 +210,17 @@ export default function CreatePostForm({
         ? "/api/my-place/posts"
         : `/api/communities/${communityId}/posts`;
 
-      const res = await fetch(endpoint, {
+      await apiFetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Failed to create post.");
-        return;
-      }
 
       resetForm();
       setOpen(false);
       onPostCreated();
-    } catch {
-      setError("Something went wrong.");
+    } catch (err) {
+      setError(userMessage(err, "Failed to create post."));
     } finally {
       setLoading(false);
     }

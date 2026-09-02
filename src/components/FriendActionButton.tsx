@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { apiFetch, userMessage } from "@/lib/api-client";
 import type { FriendshipStatus } from "@/lib/types";
 
 const primaryClass =
@@ -30,15 +31,10 @@ export default function FriendActionButton({
     setBusy(true);
     setError("");
     try {
-      const res = await fetch(url, init);
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Something went wrong.");
-        return;
-      }
+      await apiFetch(url, init);
       onChanged();
-    } catch {
-      setError("Something went wrong.");
+    } catch (err) {
+      setError(userMessage(err));
     } finally {
       setBusy(false);
     }

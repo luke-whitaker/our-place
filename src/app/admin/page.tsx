@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
+import { apiFetch, userMessage } from "@/lib/api-client";
 
 interface CreatedUser {
   id: string;
@@ -34,13 +35,10 @@ export default function AdminPage() {
 
   const loadUsers = useCallback(async () => {
     try {
-      const res = await fetch("/api/admin/users");
-      if (res.ok) {
-        const data = await res.json();
-        setUsers(data.users);
-      }
-    } catch {
-      // silently fail — user list is supplementary
+      const data = await apiFetch<{ users: CreatedUser[] }>("/api/admin/users");
+      setUsers(data.users);
+    } catch (err) {
+      setError(userMessage(err, "Failed to load the member list."));
     } finally {
       setLoadingUsers(false);
     }
@@ -71,18 +69,18 @@ export default function AdminPage() {
     setSubmitting(true);
 
     try {
-      const res = await fetch("/api/admin/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        // The inviter defaults to the logged-in admin unless they picked someone else.
-        body: JSON.stringify({ ...form, invited_by_id: form.invited_by_id || (user?.id ?? "") }),
-      });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Failed to create account.");
-        return;
-      }
+      const data = await apiFetch<{ user: { display_name: string; username: string } }>(
+        "/api/admin/users",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          // The inviter defaults to the logged-in admin unless they picked someone else.
+          body: JSON.stringify({
+            ...form,
+            invited_by_id: form.invited_by_id || (user?.id ?? ""),
+          }),
+        },
+      );
 
       setSuccess(`Account created for ${data.user.display_name} (@${data.user.username})`);
       setForm({
@@ -94,8 +92,8 @@ export default function AdminPage() {
         invited_by_id: "",
       });
       loadUsers();
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      setError(userMessage(err, "Something went wrong. Please try again."));
     } finally {
       setSubmitting(false);
     }

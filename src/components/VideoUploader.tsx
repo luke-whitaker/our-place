@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
+import { apiFetch, userMessage } from "@/lib/api-client";
 import {
   parseVideoUrl,
   ACCEPTED_VIDEO_TYPES,
@@ -42,21 +43,19 @@ export default function VideoUploader({
     try {
       const formData = new FormData();
       formData.append("file", file);
-      const res = await fetch("/api/upload", { method: "POST", body: formData });
-      const data = await res.json();
-      if (res.ok) {
-        onVideoChange({
-          url: data.url,
-          filename: data.filename,
-          media_type: "video",
-          media_source: "upload",
-          file_size: data.file_size,
-        });
-      } else {
-        onError(data.error || "Failed to upload video.");
-      }
-    } catch {
-      onError("Failed to upload video.");
+      const data = await apiFetch<{ url: string; filename: string; file_size: number | null }>(
+        "/api/upload",
+        { method: "POST", body: formData },
+      );
+      onVideoChange({
+        url: data.url,
+        filename: data.filename,
+        media_type: "video",
+        media_source: "upload",
+        file_size: data.file_size,
+      });
+    } catch (err) {
+      onError(userMessage(err, "Failed to upload video."));
     }
     setUploading(false);
   }

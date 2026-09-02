@@ -5,6 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import PostCard from "@/components/PostCard";
 import FriendActionButton from "@/components/FriendActionButton";
+import { apiFetch } from "@/lib/api-client";
 import type { FriendshipStatus, Post, PublicProfile } from "@/lib/types";
 
 interface FriendshipInfo {
@@ -29,20 +30,20 @@ export default function PublicProfilePage() {
 
   const loadProfile = useCallback(async () => {
     try {
-      const res = await fetch(`/api/users/${username}`);
-      if (!res.ok) {
-        setNotFound(true);
-        return;
-      }
-      const data = await res.json();
+      const data = await apiFetch<{ user: PublicProfile; friendship: FriendshipInfo }>(
+        `/api/users/${username}`,
+      );
       setProfile(data.user);
       setFriendship(data.friendship);
 
       if (data.friendship.status === "friends") {
-        const postsRes = await fetch(`/api/users/${username}/posts`);
-        if (postsRes.ok) {
-          const postsData = await postsRes.json();
+        try {
+          const postsData = await apiFetch<{ posts: Post[] }>(`/api/users/${username}/posts`);
           setPosts(postsData.posts || []);
+        } catch {
+          // The profile itself loaded fine; a failed posts fetch just leaves
+          // the friends-only section empty rather than marking the person "not found."
+          setPosts([]);
         }
       } else {
         setPosts([]);

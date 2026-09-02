@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef } from "react";
+import { apiFetch, userMessage } from "@/lib/api-client";
 import { ACCEPTED_IMAGE_TYPES, MAX_IMAGE_SIZE, formatFileSize } from "@/lib/media-utils";
 
 export interface UploadedMedia {
@@ -46,30 +47,28 @@ export default function PhotoUploader({
     onUploadingChange(true);
     onError("");
 
-    try {
-      const uploaded: UploadedMedia[] = [];
-      for (const file of filesToUpload) {
-        const formData = new FormData();
-        formData.append("file", file);
-        const res = await fetch("/api/upload", { method: "POST", body: formData });
-        const data = await res.json();
-        if (res.ok) {
-          uploaded.push({
-            url: data.url,
-            filename: data.filename,
-            media_type: "image",
-            media_source: "upload",
-            file_size: data.file_size,
-          });
-        } else {
-          onError(data.error || "Failed to upload image.");
-          break;
-        }
+    const uploaded: UploadedMedia[] = [];
+    for (const file of filesToUpload) {
+      const formData = new FormData();
+      formData.append("file", file);
+      try {
+        const data = await apiFetch<{ url: string; filename: string; file_size: number | null }>(
+          "/api/upload",
+          { method: "POST", body: formData },
+        );
+        uploaded.push({
+          url: data.url,
+          filename: data.filename,
+          media_type: "image",
+          media_source: "upload",
+          file_size: data.file_size,
+        });
+      } catch (err) {
+        onError(userMessage(err, "Failed to upload image."));
+        break;
       }
-      onPhotosChange([...photos, ...uploaded]);
-    } catch {
-      onError("Failed to upload images.");
     }
+    onPhotosChange([...photos, ...uploaded]);
     onUploadingChange(false);
   }
 

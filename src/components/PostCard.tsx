@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { apiFetch, userMessage } from "@/lib/api-client";
 import { Post } from "@/lib/types";
 import { timeAgo } from "@/lib/time-utils";
 import { useAuth } from "./AuthProvider";
@@ -32,15 +33,16 @@ export default function PostCard({
 
   async function toggleReaction() {
     if (!user) return;
-    const res = await fetch(`/api/posts/${post.id}/reactions`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ type: "like" }),
-    });
-    const data = await res.json();
-    if (res.ok) {
+    try {
+      const data = await apiFetch<{ reacted: boolean }>(`/api/posts/${post.id}/reactions`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ type: "like" }),
+      });
       setReacted(data.reacted);
       setReactionCount((prev) => (data.reacted ? prev + 1 : prev - 1));
+    } catch (err) {
+      alert(userMessage(err, "Failed to react to post."));
     }
   }
 
@@ -49,17 +51,11 @@ export default function PostCard({
     if (!window.confirm("Delete this post? This can't be undone.")) return;
     setDeleting(true);
     try {
-      const res = await fetch(`/api/posts/${post.id}`, { method: "DELETE" });
-      if (res.ok) {
-        setDeleted(true);
-        onDeleted?.(post.id);
-      } else {
-        const data = await res.json().catch(() => ({}));
-        alert(data.error || "Failed to delete post.");
-        setDeleting(false);
-      }
-    } catch {
-      alert("Failed to delete post. Please try again.");
+      await apiFetch(`/api/posts/${post.id}`, { method: "DELETE" });
+      setDeleted(true);
+      onDeleted?.(post.id);
+    } catch (err) {
+      alert(userMessage(err, "Failed to delete post. Please try again."));
       setDeleting(false);
     }
   }

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { apiFetch, userMessage } from "@/lib/api-client";
 import { Comment } from "@/lib/types";
 import { timeAgo } from "@/lib/time-utils";
 import { useAuth } from "./AuthProvider";
@@ -26,13 +27,10 @@ export default function CommentSection({
     let cancelled = false;
     (async () => {
       try {
-        const res = await fetch(`/api/posts/${postId}/comments`);
-        if (!res.ok) throw new Error("Failed to load comments");
-        const data = await res.json();
+        const data = await apiFetch<{ comments: Comment[] }>(`/api/posts/${postId}/comments`);
         if (!cancelled) setComments(data.comments || []);
       } catch (err) {
-        console.error("Failed to load comments:", err);
-        if (!cancelled) setError("Could not load comments. Please try again.");
+        if (!cancelled) setError(userMessage(err, "Could not load comments. Please try again."));
       }
       if (!cancelled) setLoading(false);
     })();
@@ -47,24 +45,17 @@ export default function CommentSection({
     setSubmitting(true);
     setError(null);
     try {
-      const res = await fetch(`/api/posts/${postId}/comments`, {
+      await apiFetch(`/api/posts/${postId}/comments`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ content: commentText.trim() }),
       });
-      if (!res.ok) {
-        const data = await res.json();
-        setError(data.error || "Failed to post comment.");
-        return;
-      }
       setCommentText("");
       onCommentAdded();
-      const res2 = await fetch(`/api/posts/${postId}/comments`);
-      const data = await res2.json();
+      const data = await apiFetch<{ comments: Comment[] }>(`/api/posts/${postId}/comments`);
       setComments(data.comments || []);
     } catch (err) {
-      console.error("Failed to post comment:", err);
-      setError("Could not post comment. Please try again.");
+      setError(userMessage(err, "Could not post comment. Please try again."));
     } finally {
       setSubmitting(false);
     }
@@ -74,17 +65,11 @@ export default function CommentSection({
     if (!window.confirm("Delete this comment?")) return;
     setError(null);
     try {
-      const res = await fetch(`/api/posts/${postId}/comments/${commentId}`, { method: "DELETE" });
-      if (res.ok) {
-        setComments((prev) => prev.filter((c) => c.id !== commentId));
-        onCommentDeleted?.();
-      } else {
-        const data = await res.json().catch(() => ({}));
-        setError(data.error || "Failed to delete comment.");
-      }
+      await apiFetch(`/api/posts/${postId}/comments/${commentId}`, { method: "DELETE" });
+      setComments((prev) => prev.filter((c) => c.id !== commentId));
+      onCommentDeleted?.();
     } catch (err) {
-      console.error("Failed to delete comment:", err);
-      setError("Could not delete comment. Please try again.");
+      setError(userMessage(err, "Could not delete comment. Please try again."));
     }
   }
 

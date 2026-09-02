@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import AvatarPreview from "@/components/AvatarPreview";
+import { apiFetch, userMessage } from "@/lib/api-client";
 import type { AvatarConfig } from "@/lib/types";
 import {
   SKIN_TONES,
@@ -54,24 +55,18 @@ function AvatarBuilderForm({ initial }: { initial: AvatarConfig | null }) {
     setError("");
 
     try {
-      const res = await fetch("/api/auth/avatar", {
+      await apiFetch("/api/auth/avatar", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(config),
       });
 
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Failed to save avatar.");
-        return;
-      }
-
       await refresh();
       // First-timers step straight into the world they just dressed for;
       // editors return to their profile.
       router.push(isFirstTime ? "/world" : "/profile");
-    } catch {
-      setError("Something went wrong. Please try again.");
+    } catch (err) {
+      setError(userMessage(err, "Failed to save avatar."));
     } finally {
       setSaving(false);
     }

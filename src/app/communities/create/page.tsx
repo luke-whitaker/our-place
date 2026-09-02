@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
+import { apiFetch, userMessage } from "@/lib/api-client";
 import { COMMUNITY_CATEGORIES } from "@/lib/types";
 
 const COMMUNITY_ICONS = [
@@ -62,21 +63,14 @@ export default function CreateCommunityPage() {
     setSubmitting(true);
 
     try {
-      const res = await fetch("/api/communities", {
+      const data = await apiFetch<{ community: { slug: string } }>("/api/communities", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(form),
       });
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Failed to create community.");
-        return;
-      }
-
       router.push(`/communities/${data.community.slug}`);
-    } catch {
-      setError("Something went wrong.");
+    } catch (err) {
+      setError(userMessage(err, "Failed to create community."));
     } finally {
       setSubmitting(false);
     }
