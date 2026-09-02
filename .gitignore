@@ -77,3 +77,6 @@ next-env.d.ts
 /public/world/characters/
 /public/world/tiles/
 /public/world/objects/
+
+# Claude Code agent worktrees (ephemeral; created inside the repo by the Agent tool)
+/.claude/worktrees/
