@@ -8,11 +8,19 @@
 import { tileToScreen, HALF_W, HALF_H } from "./iso";
 import { groundCell, type Terrain } from "./forest-autotile";
 import { waterCell, WATER_FRAMES, WATER_FRAME_COLS } from "./water-autotile";
-import { drawObject, type ObjectSprite } from "./world-object";
+import { drawObject, objectDrawRect, type ObjectSprite } from "./world-object";
 import { pickFrame, type CharacterSprites } from "./character-sheet";
 import { computeIntent, applyMovement, createEntity, type IsoEntity } from "./iso-actor";
 import { buildSolidGrid, type SolidGrid } from "./iso-collision";
 import { drawPrompt, drawToast, drawWarpMenu } from "./hud";
+import {
+  CELL,
+  ENTITY_CULL_MARGIN,
+  visibleGroundTiles,
+  rectsOverlap,
+  objectCullView,
+  type ViewRect,
+} from "./iso-cull";
 import { CANVAS_W, CANVAS_H, FADE_SPEED, PAL } from "./constants";
 import type { GameMode, Door, MushroomWarp } from "./types";
 import type { IsoWorld } from "./world-model";
@@ -24,7 +32,6 @@ export const ISO_ZOOM = 2;
 export const ISO_VIEW_W = CANVAS_W / ISO_ZOOM;
 export const ISO_VIEW_H = CANVAS_H / ISO_ZOOM;
 
-const CELL = 32; // ground tile sprite is 32×32
 const ANIM_TICKS = 7; // ticks per walk frame
 const WATER_ANIM_TICKS = 12; // ticks per water ripple frame
 const FOOT_OFFSET = 4; // nudge the sprite's feet onto the tile centre
@@ -357,20 +364,35 @@ export function render(
 
   drawGround(ctx, world, grass, assets, state.frameTick, camX, camY);
 
-  // Objects + entities, painter's order by ground-anchor screen-Y.
+  // Objects + entities, painter's order by ground-anchor screen-Y. Each is
+  // skipped when its drawn rectangle can't possibly overlap the view — this
+  // only prunes work from the loop below; it never changes what gets drawn,
+  // since the skip test uses the exact same rectangle drawObject/drawEntity
+  // would paint.
+  const view = objectCullView(camX, camY, ISO_VIEW_W, ISO_VIEW_H);
   type Drawable = { depth: number; draw: () => void };
   const drawables: Drawable[] = [];
   for (const obj of world.objects) {
     const sprite = assets.objects[obj.kind];
     if (!sprite) continue;
+    const placed = { sprite, col: obj.col, row: obj.row };
+    if (!rectsOverlap(objectDrawRect(placed), view)) continue;
     drawables.push({
       depth: tileToScreen(obj.col, obj.row).y,
-      draw: () => drawObject(ctx, { sprite, col: obj.col, row: obj.row }, camX, camY),
+      draw: () => drawObject(ctx, placed, camX, camY),
     });
   }
   for (const entity of state.entities) {
+    const pos = tileToScreen(entity.col, entity.row);
+    const entityRect: ViewRect = {
+      x: pos.x - ENTITY_CULL_MARGIN,
+      y: pos.y - ENTITY_CULL_MARGIN,
+      w: ENTITY_CULL_MARGIN * 2,
+      h: ENTITY_CULL_MARGIN * 2,
+    };
+    if (!rectsOverlap(entityRect, view)) continue;
     drawables.push({
-      depth: tileToScreen(entity.col, entity.row).y,
+      depth: pos.y,
       draw: () => drawEntity(ctx, entity, assets.characters, camX, camY),
     });
   }
@@ -416,20 +438,20 @@ function drawGround(
   const { cols, rows, terrain } = world;
   const waterFrame = Math.floor(frameTick / WATER_ANIM_TICKS) % WATER_FRAMES;
   // Back-to-front by (col+row) so each surface covers the dirt skirt behind it.
-  for (let sum = 0; sum <= cols + rows - 2; sum++) {
-    for (let row = Math.max(0, sum - cols + 1); row <= Math.min(sum, rows - 1); row++) {
-      const col = sum - row;
-      const s = tileToScreen(col, row);
-      const dx = Math.round(s.x - 16 - camX);
-      const dy = Math.round(s.y - 8 - camY);
-      if (terrain[row][col] === "water") {
-        const [bc, br] = waterCell(terrain, col, row);
-        const sc = bc + waterFrame * WATER_FRAME_COLS;
-        ctx.drawImage(assets.water, sc * CELL, br * CELL, CELL, CELL, dx, dy, CELL, CELL);
-      } else {
-        const [sc, sr] = groundCell(grass, col, row);
-        ctx.drawImage(assets.forest, sc * CELL, sr * CELL, CELL, CELL, dx, dy, CELL, CELL);
-      }
+  // visibleGroundTiles restricts this to the diagonal bands the camera can
+  // actually see (see iso-cull.ts) instead of the whole grid — it yields tiles
+  // in the same order the old unculled double loop did, so output is unchanged.
+  for (const { col, row } of visibleGroundTiles(camX, camY, ISO_VIEW_W, ISO_VIEW_H, cols, rows)) {
+    const s = tileToScreen(col, row);
+    const dx = Math.round(s.x - 16 - camX);
+    const dy = Math.round(s.y - 8 - camY);
+    if (terrain[row][col] === "water") {
+      const [bc, br] = waterCell(terrain, col, row);
+      const sc = bc + waterFrame * WATER_FRAME_COLS;
+      ctx.drawImage(assets.water, sc * CELL, br * CELL, CELL, CELL, dx, dy, CELL, CELL);
+    } else {
+      const [sc, sr] = groundCell(grass, col, row);
+      ctx.drawImage(assets.forest, sc * CELL, sr * CELL, CELL, CELL, dx, dy, CELL, CELL);
     }
   }
 }

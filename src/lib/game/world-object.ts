@@ -76,6 +76,20 @@ export function objectDepth(o: PlacedObject): number {
   return tileToScreen(o.col, o.row).y;
 }
 
+/** The screen rectangle (world-screen px, pre-zoom, camera-independent) a
+ * placed object's sprite is drawn into — the same anchor math {@link drawObject}
+ * uses, minus the camera offset. Lets a caller ask "can this object possibly be
+ * visible?" without duplicating that math. */
+export function objectDrawRect(o: PlacedObject): { x: number; y: number; w: number; h: number } {
+  const s = tileToScreen(o.col, o.row);
+  return {
+    x: s.x - o.sprite.anchorX,
+    y: s.y - o.sprite.anchorY,
+    w: o.sprite.drawW,
+    h: o.sprite.drawH,
+  };
+}
+
 /** Draw a placed object with its base anchored on its tile. */
 export function drawObject(
   ctx: CanvasRenderingContext2D,
