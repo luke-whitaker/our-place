@@ -84,6 +84,12 @@ export default function Navbar() {
                 Communities
               </Link>
               <Link
+                href="/people"
+                className="rounded-lg px-3.5 py-2 text-sm font-medium text-ink-tertiary transition-colors hover:bg-surface-emphasis hover:text-ink"
+              >
+                People
+              </Link>
+              <Link
                 href="/communities/create"
                 className="rounded-lg px-3.5 py-2 text-sm font-medium text-ink-tertiary transition-colors hover:bg-surface-emphasis hover:text-ink"
               >
@@ -173,6 +179,13 @@ export default function Navbar() {
                           className="block px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted sm:hidden"
                         >
                           Communities
+                        </Link>
+                        <Link
+                          href="/people"
+                          onClick={() => setMenuOpen(false)}
+                          className="block px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted sm:hidden"
+                        >
+                          People
                         </Link>
                         <button
                           onClick={() => {

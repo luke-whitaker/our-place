@@ -24,3 +24,15 @@ export interface PublicProfile {
   my_place_post_count: number;
   community_count: number;
 }
+
+/** One row of the member directory, as listed by GET /api/users. */
+export interface PeopleEntry {
+  id: string;
+  username: string;
+  display_name: string;
+  avatar_color: string;
+  created_at: string;
+  /** Who vouched for this account. Null for trust roots ("Founding member"). */
+  invited_by: { username: string; display_name: string } | null;
+  friendship: { status: FriendshipStatus; id: string | null };
+}

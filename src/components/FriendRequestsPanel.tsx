@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
+import { apiFetch, userMessage } from "@/lib/api-client";
 import type { FriendEntry } from "@/lib/types";
 
 function PersonChip({ person }: { person: FriendEntry }) {
@@ -37,14 +38,13 @@ export default function FriendRequestsPanel({
 
   const load = useCallback(async () => {
     try {
-      const res = await fetch("/api/friends");
-      const data = await res.json();
-      if (res.ok) {
-        setIncoming(data.incoming || []);
-        setOutgoing(data.outgoing || []);
-      }
-    } catch {
-      // Non-fatal: the panel stays hidden and the feed still renders.
+      const data = await apiFetch<{ incoming: FriendEntry[]; outgoing: FriendEntry[] }>(
+        "/api/friends",
+      );
+      setIncoming(data.incoming || []);
+      setOutgoing(data.outgoing || []);
+    } catch (err) {
+      setError(userMessage(err, "Couldn't load friend requests."));
     }
   }, []);
 
@@ -58,23 +58,20 @@ export default function FriendRequestsPanel({
     setBusyId(friendshipId);
     setError("");
     try {
-      const res = await fetch(`/api/friends/${friendshipId}`, { method });
-      const data = await res.json();
-      if (!res.ok) {
-        setError(data.error || "Something went wrong.");
-        return;
-      }
+      await apiFetch(`/api/friends/${friendshipId}`, { method });
       await load();
       // Accepting adds a friend, so their posts belong in the feed now.
       if (method === "PATCH") onFriendshipChanged();
-    } catch {
-      setError("Something went wrong.");
+    } catch (err) {
+      setError(userMessage(err));
     } finally {
       setBusyId(null);
     }
   }
 
-  if (incoming.length === 0 && outgoing.length === 0) return null;
+  // Self-hiding when there's nothing to show, but a load failure still needs
+  // to be visible — don't let the empty-state check swallow the error.
+  if (incoming.length === 0 && outgoing.length === 0 && !error) return null;
 
   return (
     <div className="op-card rounded-2xl border border-line bg-surface p-5">
