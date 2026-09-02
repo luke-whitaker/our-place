@@ -16,6 +16,11 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
+# public/ can arrive with no tracked files (runtime art is gitignored and
+# served from R2), and git drops empty directories, so guarantee it exists
+# for the runner stage's COPY below. A deploy failed on exactly this once.
+RUN mkdir -p public
+
 # Generate Prisma client (again, with full source) and build Next.js
 RUN npx prisma generate
 

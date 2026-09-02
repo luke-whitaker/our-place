@@ -20,6 +20,7 @@ paths:
 - Verify a deploy with `curl -s https://www.ourplaceonline.com/api/version` against `git rev-parse main`. A healthy site is not evidence of a landed deploy. `deploy-drift.yml` runs this comparison every morning.
 - Railway traps: "Redeploy" replays the same image (use "Deploy latest commit"), and a deployment header id is a Railway id, not a git sha.
 - `start.sh` runs `prisma migrate deploy` on every container start, so migrations ship with the code. Never `db push` against production.
+- `public/` must exist in the build context. Runtime art is gitignored and served from R2, so the directory can have no tracked files at all, and git drops empty directories. `public/.gitkeep` plus `mkdir -p public` in the Dockerfile's builder stage keep the runner's COPY from failing. A deploy died this way on September 2, 2026, and CI's `next build` cannot catch Docker-only failures.
 - The image copies full `node_modules`, devDependencies included, because Next's standalone tracing misses Prisma's runtime deps. Known bloat. `npm audit --omit=dev` flags a MySQL driver Prisma's CLI pulls in that nothing here can reach.
 
 ## CI (`ci.yml`)
