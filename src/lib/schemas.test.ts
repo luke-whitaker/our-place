@@ -82,6 +82,30 @@ describe("loginSchema", () => {
 // ── Update account schema ──
 
 describe("updateAccountSchema", () => {
+  it("accepts a valid name update", () => {
+    expect(updateAccountSchema.safeParse({ display_name: "Jane Doe" }).success).toBe(true);
+  });
+
+  it("trims whitespace from the name", () => {
+    const result = updateAccountSchema.safeParse({ display_name: "  Jane Doe  " });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.display_name).toBe("Jane Doe");
+  });
+
+  it("rejects an empty or whitespace-only name", () => {
+    expect(updateAccountSchema.safeParse({ display_name: "" }).success).toBe(false);
+    expect(updateAccountSchema.safeParse({ display_name: "   " }).success).toBe(false);
+  });
+
+  it("rejects a name over 50 characters", () => {
+    expect(updateAccountSchema.safeParse({ display_name: "a".repeat(51) }).success).toBe(false);
+  });
+
+  it("does not treat a display_name-only body as nothing to update", () => {
+    const result = updateAccountSchema.safeParse({ display_name: "Jane Doe" });
+    expect(result.success).toBe(true);
+  });
+
   it("accepts an email-only update", () => {
     expect(updateAccountSchema.safeParse({ email: "new@example.com" }).success).toBe(true);
   });

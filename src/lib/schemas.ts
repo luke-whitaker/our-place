@@ -44,6 +44,12 @@ export const loginSchema = z.object({
 
 export const updateAccountSchema = z
   .object({
+    display_name: z
+      .string()
+      .trim()
+      .min(1, "Name can't be empty.")
+      .max(50, "Name must be 50 characters or fewer.")
+      .optional(),
     email: z.string().email("Please enter a valid email address.").optional(),
     // An empty string clears the phone number (phone is optional).
     phone: z.string().max(30, "Phone number is too long.").optional(),
@@ -51,7 +57,7 @@ export const updateAccountSchema = z
     current_password: z.string().optional(),
     new_password: z.string().min(8, "Password must be at least 8 characters.").optional(),
   })
-  .refine((d) => d.email || d.phone !== undefined || d.theme || d.new_password, {
+  .refine((d) => d.display_name || d.email || d.phone !== undefined || d.theme || d.new_password, {
     message: "Nothing to update.",
   })
   .refine((d) => !d.new_password || (d.current_password && d.current_password.length > 0), {

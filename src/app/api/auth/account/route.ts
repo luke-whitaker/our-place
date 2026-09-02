@@ -5,7 +5,7 @@ import { requireAuth, signToken, AUTH_COOKIE_OPTIONS } from "@/lib/auth";
 import { updateAccountLimiter } from "@/lib/rate-limit";
 import { updateAccountSchema, getZodErrorMessage, normalizePhone } from "@/lib/schemas";
 
-// PATCH: Update the current user's account (email, phone, password).
+// PATCH: Update the current user's account (name, email, phone, password).
 // Changing the password requires the current password.
 export async function PATCH(request: NextRequest) {
   try {
@@ -25,7 +25,7 @@ export async function PATCH(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
-    const { email, phone, theme, current_password, new_password } = parsed.data;
+    const { display_name, email, phone, theme, current_password, new_password } = parsed.data;
 
     const user = await prisma.user.findUnique({
       where: { id: auth.user.userId },
@@ -36,12 +36,17 @@ export async function PATCH(request: NextRequest) {
     }
 
     const data: {
+      displayName?: string;
       email?: string;
       phone?: string | null;
       theme?: string;
       passwordHash?: string;
       passwordChangedAt?: Date;
     } = {};
+
+    if (display_name) {
+      data.displayName = display_name;
+    }
 
     if (theme) {
       data.theme = theme;

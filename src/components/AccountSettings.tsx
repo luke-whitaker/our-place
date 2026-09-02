@@ -7,7 +7,7 @@ import { isAvatarConfig } from "@/lib/game/avatar-recolor";
 import { useAuth } from "@/components/AuthProvider";
 import AvatarPreview from "@/components/AvatarPreview";
 
-type EditableField = "email" | "phone" | "password";
+type EditableField = "name" | "email" | "phone" | "password";
 
 // Swatch backgrounds previewing each theme: [card surface, accent dot].
 // Hardcoded so every option shows its own colors regardless of the active theme.
@@ -31,6 +31,7 @@ export default function AccountSettings() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [currentPassword, setCurrentPassword] = useState("");
@@ -73,6 +74,7 @@ export default function AccountSettings() {
     setEditing(field);
     setError("");
     setSuccess("");
+    setDisplayName(user?.display_name || "");
     setEmail(user?.email || "");
     setPhone(user?.phone || "");
     setCurrentPassword("");
@@ -90,6 +92,13 @@ export default function AccountSettings() {
     setError("");
 
     const body: Record<string, string> = {};
+    if (editing === "name") {
+      if (!displayName.trim()) {
+        setError("Name can't be empty.");
+        return;
+      }
+      body.display_name = displayName.trim();
+    }
     if (editing === "email") {
       if (!email.trim()) {
         setError("Email cannot be empty.");
@@ -139,6 +148,17 @@ export default function AccountSettings() {
   function renderEditForm(field: EditableField) {
     return (
       <form onSubmit={handleSave} className="mt-3 space-y-3">
+        {field === "name" && (
+          <input
+            type="text"
+            value={displayName}
+            onChange={(e) => setDisplayName(e.target.value)}
+            placeholder="Your name"
+            maxLength={50}
+            autoFocus
+            className={inputClass}
+          />
+        )}
         {field === "email" && (
           <input
             type="email"
@@ -229,6 +249,23 @@ export default function AccountSettings() {
       )}
 
       <div className="space-y-3">
+        {/* Name */}
+        <div className="py-2">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-ink-secondary">Name</p>
+              <p className="text-sm text-ink-faint">{user.display_name}</p>
+            </div>
+            {editing !== "name" && (
+              <button onClick={() => startEditing("name")} className={editButtonClass}>
+                Edit
+              </button>
+            )}
+          </div>
+          {editing === "name" && renderEditForm("name")}
+        </div>
+        <div className="border-t border-line-soft" />
+
         {/* Email */}
         <div className="py-2">
           <div className="flex items-center justify-between">
