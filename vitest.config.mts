@@ -1,4 +1,4 @@
-import { defineConfig } from "vitest/config";
+import { configDefaults, defineConfig } from "vitest/config";
 import path from "path";
 import { fileURLToPath } from "url";
 
@@ -10,6 +10,10 @@ const dirname = path.dirname(fileURLToPath(import.meta.url));
 export default defineConfig({
   test: {
     include: ["src/**/*.test.ts"],
+    // Route tests need a real Postgres — they run separately under
+    // vitest.routes.config.mts (npm run test:routes) so plain `npm run test`
+    // never needs a database.
+    exclude: [...configDefaults.exclude, "src/**/*.route.test.ts"],
   },
   resolve: {
     alias: {

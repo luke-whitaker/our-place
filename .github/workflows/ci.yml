@@ -18,6 +18,26 @@ jobs:
   gates:
     runs-on: ubuntu-latest
     timeout-minutes: 15
+
+    # Route tests (test:routes) exercise real handlers against a real
+    # Postgres — see verify-restore.yml for the same pattern. The version
+    # must match or exceed production's major version (18), like everywhere
+    # else Postgres runs in Actions.
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: ourplace
+          POSTGRES_PASSWORD: ourplace
+          POSTGRES_DB: ourplace_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ourplace"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - uses: actions/checkout@v4
 
@@ -36,6 +56,11 @@ jobs:
       - run: npm run lint
       - run: npx tsc --noEmit
       - run: npm run test
+
+      - name: Route tests
+        env:
+          TEST_DATABASE_URL: postgresql://ourplace:ourplace@localhost:5432/ourplace_test
+        run: npm run test:routes
 
       # Catches a build that breaks only in a production compile, which is
       # otherwise discovered by Railway after the push has already landed.

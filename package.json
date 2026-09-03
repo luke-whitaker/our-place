@@ -22,7 +22,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:routes": "vitest run --config vitest.routes.config.mts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.7.0",
