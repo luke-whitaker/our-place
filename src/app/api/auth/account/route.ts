@@ -25,7 +25,16 @@ export async function PATCH(request: NextRequest) {
     if (!parsed.success) {
       return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
-    const { display_name, email, phone, theme, current_password, new_password } = parsed.data;
+    const {
+      display_name,
+      email,
+      phone,
+      theme,
+      biome,
+      island_visibility,
+      current_password,
+      new_password,
+    } = parsed.data;
 
     const user = await prisma.user.findUnique({
       where: { id: auth.user.userId },
@@ -40,6 +49,8 @@ export async function PATCH(request: NextRequest) {
       email?: string;
       phone?: string | null;
       theme?: string;
+      biome?: string;
+      islandVisibility?: string;
       passwordHash?: string;
       passwordChangedAt?: Date;
     } = {};
@@ -50,6 +61,14 @@ export async function PATCH(request: NextRequest) {
 
     if (theme) {
       data.theme = theme;
+    }
+
+    if (biome) {
+      data.biome = biome;
+    }
+
+    if (island_visibility) {
+      data.islandVisibility = island_visibility;
     }
 
     if (new_password) {

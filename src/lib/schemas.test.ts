@@ -146,6 +146,26 @@ describe("updateAccountSchema", () => {
   it("rejects an invalid email", () => {
     expect(updateAccountSchema.safeParse({ email: "notanemail" }).success).toBe(false);
   });
+
+  it("accepts a biome-only update for each preset", () => {
+    for (const biome of ["forest", "autumn", "snow", "dusk", "swamp", "scorched"]) {
+      expect(updateAccountSchema.safeParse({ biome }).success).toBe(true);
+    }
+  });
+
+  it("rejects an unknown biome", () => {
+    expect(updateAccountSchema.safeParse({ biome: "desert" }).success).toBe(false);
+  });
+
+  it("accepts an island_visibility-only update for each value", () => {
+    for (const island_visibility of ["anyone", "friends", "nobody"]) {
+      expect(updateAccountSchema.safeParse({ island_visibility }).success).toBe(true);
+    }
+  });
+
+  it("rejects an unknown island_visibility", () => {
+    expect(updateAccountSchema.safeParse({ island_visibility: "everyone" }).success).toBe(false);
+  });
 });
 
 // ── Post schema ──

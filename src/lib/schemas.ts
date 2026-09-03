@@ -1,4 +1,8 @@
 import { z } from "zod";
+import { TINT_PRESETS } from "@/lib/game/terrain-tint";
+import type { IslandVisibility } from "@/lib/types";
+
+const ISLAND_VISIBILITIES: readonly IslandVisibility[] = ["anyone", "friends", "nobody"];
 
 // ── Auth schemas ──
 
@@ -54,12 +58,22 @@ export const updateAccountSchema = z
     // An empty string clears the phone number (phone is optional).
     phone: z.string().max(30, "Phone number is too long.").optional(),
     theme: z.enum(["auto", "platinum", "terminal", "dusk"]).optional(),
+    biome: z.enum(TINT_PRESETS).optional(),
+    island_visibility: z.enum(ISLAND_VISIBILITIES).optional(),
     current_password: z.string().optional(),
     new_password: z.string().min(8, "Password must be at least 8 characters.").optional(),
   })
-  .refine((d) => d.display_name || d.email || d.phone !== undefined || d.theme || d.new_password, {
-    message: "Nothing to update.",
-  })
+  .refine(
+    (d) =>
+      d.display_name ||
+      d.email ||
+      d.phone !== undefined ||
+      d.theme ||
+      d.biome ||
+      d.island_visibility ||
+      d.new_password,
+    { message: "Nothing to update." },
+  )
   .refine((d) => !d.new_password || (d.current_password && d.current_password.length > 0), {
     message: "Your current password is required to set a new one.",
   });

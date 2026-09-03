@@ -6,6 +6,7 @@ import { THEMES, THEME_LABELS, applyTheme, isTheme, type Theme } from "@/lib/the
 import { isAvatarConfig } from "@/lib/game/avatar-recolor";
 import { useAuth } from "@/components/AuthProvider";
 import AvatarPreview from "@/components/AvatarPreview";
+import IslandSettings from "@/components/IslandSettings";
 
 type EditableField = "name" | "email" | "phone" | "password";
 
@@ -383,6 +384,10 @@ export default function AccountSettings() {
             })}
           </div>
         </div>
+        <div className="border-t border-line-soft" />
+
+        {/* Your island */}
+        <IslandSettings />
         <div className="border-t border-line-soft" />
 
         {/* Sign out */}
