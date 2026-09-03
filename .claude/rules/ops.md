@@ -25,7 +25,7 @@ paths:
 
 ## CI (`ci.yml`)
 
-Runs format, lint at zero warnings, tsc, tests, and a production build on every push. The build needs the same throwaway `JWT_SECRET` and `DATABASE_URL` placeholders the Dockerfile sets, because `next build` evaluates module-level code. `.npmrc` disables install scripts, so `npm run db:generate` runs after install. Leave Railway's "Wait for CI" off until CI has been reliably green for a while.
+Runs format, lint at zero warnings, tsc, unit tests, route tests, and a production build on every push. Route tests run against a `postgres:18-alpine` service container (the major must match production, as everywhere else Postgres runs in Actions) through `TEST_DATABASE_URL`; the suite's global setup applies migrations to it first. The build needs the same throwaway `JWT_SECRET` and `DATABASE_URL` placeholders the Dockerfile sets, because `next build` evaluates module-level code. `.npmrc` disables install scripts, so `npm run db:generate` runs after install. Leave Railway's "Wait for CI" off until CI has been reliably green for a while.
 
 ## Backups
 

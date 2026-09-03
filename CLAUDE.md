@@ -32,6 +32,7 @@ Next.js 16 (App Router) + TypeScript, PostgreSQL via Prisma 7, Tailwind, JWT aut
 | `npm run lint`         | ESLint, zero warnings allowed               |
 | `npm run format`       | Prettier (auto-fix); `format:check` in CI   |
 | `npm run test`         | Vitest (single run); `test:watch` for watch |
+| `npm run test:routes`  | API route tests against a real Postgres     |
 | `npm run db:migrate`   | Prisma migrations against the dev database  |
 | `npm run db:generate`  | Regenerate the Prisma client after install  |
 | `npm run db:seed`      | Seed the starter communities                |
@@ -83,7 +84,7 @@ Clear, direct, friendly. Second person, active voice, present tense. Front-load 
 
 ## Before you say something is done
 
-- Run `npm run format:check`, `npm run lint`, `npx tsc --noEmit`, and `npm run test`. All four clean, zero warnings.
+- Run `npm run format:check`, `npm run lint`, `npx tsc --noEmit`, `npm run test`, and `npm run test:routes`. All five clean, zero warnings.
 - Verify UI in a real browser with an ad hoc Playwright script, at realistic data sizes. A 64 KB upload bug once hid for three months behind tiny fixtures.
 - After a deploy, confirm production with `GET /api/version`. Never assume a push landed.
 - Commit or push only when Luke asks. Pushing `main` deploys to real members.
