@@ -18,6 +18,7 @@
 
 import type { IsoWorld, TerrainKind, PlacedObjectData } from "../world-model";
 import { OBJECT_CATALOG } from "../world-model";
+import { ISLAND_SHRINE_ID } from "./island";
 import type { Door, MushroomWarp, Region, WorldLink } from "../types";
 
 const COLS = 56;
@@ -197,8 +198,9 @@ const mushrooms: MushroomWarp[] = [
 ];
 for (const m of mushrooms) objects.push({ kind: "mushroom", col: m.col, row: m.row });
 
-// Every shrine in town offers the way home: the member's own island.
-const links: WorldLink[] = [{ id: "home", label: "Home", place: "me" }];
+// Every shrine in town offers the way home: the member's own island, arriving
+// at its shrine because that is how they traveled.
+const links: WorldLink[] = [{ id: "home", label: "Home", place: "me", spawnAt: ISLAND_SHRINE_ID }];
 
 // ── Region ──
 

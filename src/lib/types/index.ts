@@ -13,7 +13,14 @@ export type {
 } from "./forum";
 export { COMMUNITY_CATEGORIES } from "./forum";
 
-export type { FriendshipStatus, FriendEntry, PublicProfile, PeopleEntry } from "./social";
+export type {
+  FriendshipStatus,
+  FriendEntry,
+  PublicProfile,
+  PeopleEntry,
+  IslandInfo,
+  IslandVisibility,
+} from "./social";
 
 export type { AvatarConfig } from "./game";
 export {

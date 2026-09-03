@@ -1,16 +1,18 @@
-// Per-device world save (localStorage): last position + discovered shrines, for
-// the iso world. The iso analog of world-save.ts — same idea, but positions are
-// world-space tile coords (col,row), not top-down pixels. SAVE_VERSION is bumped
-// to 2 so any old top-down save is ignored cleanly rather than mis-read.
+// Per-device world save (localStorage): last position + discovered shrines,
+// one slot per world so the Capital and a member's island never overwrite
+// each other. Positions are world-space tile coords (col,row). SAVE_VERSION
+// guards the shape: an older save is ignored rather than mis-read.
 //
-// Still a stopgap until player position is bound to identity in the DB (see the
-// README roadmap) — at which point this becomes a server read/write behind the
-// same shape.
+// Still a stopgap until player position is bound to identity in the DB (see
+// the README roadmap) — at which point this becomes a server read/write behind
+// the same shape.
 
 import { isSolidAt, type SolidGrid } from "./iso-collision";
 
-const SAVE_KEY = "ourplace.world.save";
-const SAVE_VERSION = 2;
+const SAVE_KEY_PREFIX = "ourplace.world.save:";
+/** The pre-islands single-slot key; removed on sight so it never lingers. */
+const LEGACY_SAVE_KEY = "ourplace.world.save";
+const SAVE_VERSION = 3;
 
 export interface IsoSave {
   version: number;
@@ -19,10 +21,15 @@ export interface IsoSave {
   discovered: string[];
 }
 
-export function loadIsoSave(): IsoSave | null {
+function saveKey(worldId: string): string {
+  return `${SAVE_KEY_PREFIX}${worldId}`;
+}
+
+export function loadIsoSave(worldId: string): IsoSave | null {
   if (typeof window === "undefined") return null;
   try {
-    const raw = window.localStorage.getItem(SAVE_KEY);
+    window.localStorage.removeItem(LEGACY_SAVE_KEY);
+    const raw = window.localStorage.getItem(saveKey(worldId));
     if (!raw) return null;
     const save = JSON.parse(raw) as IsoSave;
     if (save.version !== SAVE_VERSION) return null;
@@ -34,11 +41,16 @@ export function loadIsoSave(): IsoSave | null {
   }
 }
 
-export function persistIsoSave(col: number, row: number, discovered: Set<string>): void {
+export function persistIsoSave(
+  worldId: string,
+  col: number,
+  row: number,
+  discovered: Set<string>,
+): void {
   if (typeof window === "undefined") return;
   try {
     const save: IsoSave = { version: SAVE_VERSION, col, row, discovered: [...discovered] };
-    window.localStorage.setItem(SAVE_KEY, JSON.stringify(save));
+    window.localStorage.setItem(saveKey(worldId), JSON.stringify(save));
   } catch {
     // Storage full or unavailable — losing the save is acceptable.
   }

@@ -1,14 +1,11 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useState } from "react";
+import { useRef, useEffect, useCallback, useState, useMemo } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { CANVAS_W, CANVAS_H, TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
-import { loadObjectSprite, type ObjectSprite } from "@/lib/game/world-object";
-import { loadCharacterSheet, type CharacterSprites } from "@/lib/game/character-sheet";
 import { isAvatarConfig } from "@/lib/game/avatar-recolor";
-import { OBJECT_CATALOG } from "@/lib/game/world-model";
-import { worldAsset, newWorldImage } from "@/lib/game/asset-url";
+import { loadWorldAssets } from "@/lib/game/world-assets";
 import {
   createIsoState,
   update,
@@ -20,22 +17,44 @@ import {
   type IsoAssets,
 } from "@/lib/game/iso-engine";
 import { loadIsoSave, persistIsoSave, isValidIsoPosition } from "@/lib/game/iso-save";
-import { CAPITAL } from "@/lib/game/worlds/capital";
-import type { Door } from "@/lib/game/types";
+import type { IsoWorld } from "@/lib/game/world-model";
+import type { SolidGrid } from "@/lib/game/iso-collision";
+import type { Door, WorldLink } from "@/lib/game/types";
 
 interface WorldCanvasProps {
+  /** The place to render. Remount (change the key) to move between places. */
+  world: IsoWorld;
   /** Called when the player interacts with a door (at peak of fade). */
   onDoorInteract?: (door: Door) => void;
-  /** Door id to spawn at (Portal deep-link); falls back to saved/default spawn. */
+  /** Called when the player takes a link to another world (at peak of fade). */
+  onWorldLink?: (link: WorldLink) => void;
+  /** Door or shrine id to spawn at (Portal deep-link); falls back to saved/default spawn. */
   spawnAt?: string;
+  /** Remember position and discoveries on this device. Off when visiting
+   * someone else's place, so a visit never overwrites your own trail. */
+  persist?: boolean;
 }
 
 /** Persist position + discoveries every few seconds while playing. */
 const SAVE_INTERVAL_MS = 3000;
 
-// The world to render. The engine reads it as data, so swapping it (a different
-// town, a DB-loaded world later) is a one-line change.
-const WORLD = CAPITAL;
+/** Every traveler's home shrine: always in the warp menu, never needs finding. */
+const ALWAYS_KNOWN_SHRINES = ["capital-gate"];
+
+/** Where a deep link lands: just south of the door or shrine it names. */
+function spawnFor(
+  world: IsoWorld,
+  solid: SolidGrid,
+  spawnAt: string | undefined,
+  saved: { col: number; row: number } | null,
+): { col: number; row: number } | undefined {
+  const door = spawnAt ? world.doors.find((d) => d.id === spawnAt) : undefined;
+  if (door) return { col: door.col, row: door.row + 1 };
+  const shrine = spawnAt ? world.mushrooms.find((m) => m.id === spawnAt) : undefined;
+  if (shrine) return { col: shrine.col, row: shrine.row + 1 };
+  if (saved && isValidIsoPosition(solid, saved.col, saved.row)) return saved;
+  return undefined;
+}
 
 /**
  * <WorldCanvas /> — the isometric overworld.
@@ -43,81 +62,63 @@ const WORLD = CAPITAL;
  * Runs the iso engine (createIsoState / update / render) over an IsoWorld and
  * renders it on a <canvas> with WASD/arrow + touch D-pad movement, a camera that
  * follows and clamps to the world, door interaction with fade transitions,
- * mushroom-shrine fast travel, region toasts, and responsive scaling. Ports:
- * `spawnAt` deep-links you to a building's door; `onDoorInteract` ports you back
- * to that place's forum view.
+ * mushroom-shrine fast travel, links to other worlds, region toasts, and
+ * responsive scaling. Ports: `spawnAt` deep-links you to a building's door;
+ * `onDoorInteract` ports you back to that place's forum view.
  */
-export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProps) {
+export default function WorldCanvas({
+  world,
+  onDoorInteract,
+  onWorldLink,
+  spawnAt,
+  persist = true,
+}: WorldCanvasProps) {
   const { user, loading: authLoading } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const wrapperRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef<IsoState | null>(null);
   const assetsRef = useRef<IsoAssets | null>(null);
   const inputRef = useRef(createInputManager());
-  const grassRef = useRef(terrainToGrass(WORLD));
-  const solidRef = useRef(buildWorldCollision(WORLD));
+  const grass = useMemo(() => terrainToGrass(world), [world]);
+  const solid = useMemo(() => buildWorldCollision(world), [world]);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState("");
 
-  const onDoorInteractRef = useRef(onDoorInteract);
+  const callbacksRef = useRef({ onDoorInteract, onWorldLink });
   useEffect(() => {
-    onDoorInteractRef.current = onDoorInteract;
-  }, [onDoorInteract]);
+    callbacksRef.current = { onDoorInteract, onWorldLink };
+  }, [onDoorInteract, onWorldLink]);
 
-  // ── Spawn resolution (Portal deep-link → saved position → default) ──
+  // ── Spawn resolution (deep-link → saved position → default) ──
+  const playerLabel = user?.display_name;
   useEffect(() => {
-    const save = loadIsoSave();
+    const save = persist ? loadIsoSave(world.id) : null;
     const discovered = new Set(save?.discovered ?? []);
-    // The capital gate is every traveler's home shrine — always unlocked.
-    const capitalGate = WORLD.mushrooms.find((m) => m.nodeId === "capital");
-    if (capitalGate) discovered.add(capitalGate.id);
-
-    let spawnCol: number | undefined;
-    let spawnRow: number | undefined;
-    const portalDoor = spawnAt && WORLD.doors.find((d) => d.id === spawnAt);
-    if (portalDoor) {
-      // Arriving via a Portal: appear just south of that building's door.
-      spawnCol = portalDoor.col;
-      spawnRow = portalDoor.row + 1;
-    } else if (save && isValidIsoPosition(solidRef.current, save.col, save.row)) {
-      spawnCol = save.col;
-      spawnRow = save.row;
+    for (const id of ALWAYS_KNOWN_SHRINES) {
+      if (world.mushrooms.some((m) => m.id === id)) discovered.add(id);
     }
+    const spawn = spawnFor(world, solid, spawnAt, save);
+    stateRef.current = createIsoState(world, {
+      spawnCol: spawn?.col,
+      spawnRow: spawn?.row,
+      discovered,
+      playerLabel,
+      fadeIn: true,
+    });
+  }, [world, solid, spawnAt, persist, playerLabel]);
 
-    stateRef.current = createIsoState(WORLD, { spawnCol, spawnRow, discovered });
-  }, [spawnAt]);
-
-  // ── Load art (character sheet, ground sheet, one sprite per object kind) ──
-  // The character sheet is palette-swapped to the signed-in user's avatar
-  // colors, so we wait for auth to settle; logged-out visitors get the
-  // default paint. `avatarKey` keeps the effect stable across auth refreshes
-  // that return the same avatar.
+  // ── Load art, palette-swapped to the signed-in member's avatar ──
+  // We wait for auth to settle so the recolor uses the right colors; a
+  // logged-out visitor gets the default paint. `avatarKey` keeps the effect
+  // stable across auth refreshes that return the same avatar.
   const avatar = isAvatarConfig(user?.avatar) ? user.avatar : null;
   const avatarKey = JSON.stringify(avatar);
   useEffect(() => {
     if (authLoading) return;
     let cancelled = false;
-    const avatarConfig = avatarKey === "null" ? null : JSON.parse(avatarKey);
-    const kinds = [...new Set(WORLD.objects.map((o) => o.kind))];
-    Promise.all([
-      loadCharacterSheet(worldAsset("/world/characters/long.png"), avatarConfig),
-      loadImage(worldAsset("/world/tiles/forest.png")),
-      loadImage(worldAsset("/world/tiles/water.png")),
-      ...kinds.map((k) =>
-        loadObjectSprite(worldAsset(OBJECT_CATALOG[k].src), OBJECT_CATALOG[k].scale),
-      ),
-    ])
-      .then(([characters, forest, water, ...objs]) => {
+    loadWorldAssets(world, avatarKey === "null" ? null : JSON.parse(avatarKey))
+      .then((assets) => {
         if (cancelled) return;
-        const objects = Object.fromEntries(
-          kinds.map((k, i) => [k, objs[i] as ObjectSprite]),
-        ) as Record<string, ObjectSprite>;
-        assetsRef.current = {
-          characters: characters as CharacterSprites,
-          forest: forest as HTMLImageElement,
-          water: water as HTMLImageElement,
-          objects,
-        };
+        assetsRef.current = assets;
         setReady(true);
       })
       .catch((err) => {
@@ -127,23 +128,23 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
     return () => {
       cancelled = true;
     };
-  }, [authLoading, avatarKey]);
+  }, [world, authLoading, avatarKey]);
 
   // ── Save position + discoveries periodically and on unmount ──
   useEffect(() => {
-    if (!ready) return;
+    if (!ready || !persist) return;
     function save() {
       const state = stateRef.current;
       if (!state) return;
       const player = getLocalEntity(state);
-      persistIsoSave(player.col, player.row, state.discovered);
+      persistIsoSave(world.id, player.col, player.row, state.discovered);
     }
     const interval = setInterval(save, SAVE_INTERVAL_MS);
     return () => {
       clearInterval(interval);
       save();
     };
-  }, [ready]);
+  }, [ready, persist, world.id]);
 
   const [isTouchDevice] = useState(
     () =>
@@ -167,6 +168,8 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
   }, []);
 
   // ── Game loop ──
+  // Fixed timestep. Ticks wait for the art so the arrival fade-in plays over
+  // a drawn world rather than finishing behind the loading screen.
   const gameLoop = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -184,17 +187,13 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
 
       const state = stateRef.current;
       const assets = assetsRef.current;
-      if (state) {
+      if (state && assets) {
         while (accumulator >= TICK_RATE) {
-          update(state, WORLD, solidRef.current, input, {
-            onDoorInteract: onDoorInteractRef.current,
-          });
+          update(state, world, solid, input, callbacksRef.current);
           accumulator -= TICK_RATE;
         }
-        if (assets) {
-          ctx.imageSmoothingEnabled = false;
-          render(ctx, state, WORLD, grassRef.current, assets);
-        }
+        ctx.imageSmoothingEnabled = false;
+        render(ctx, state, world, grass, assets);
       } else {
         accumulator = 0;
       }
@@ -204,7 +203,7 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
 
     rafId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafId);
-  }, []);
+  }, [world, solid, grass]);
 
   useEffect(() => {
     const cleanupInput = inputRef.current.attach();
@@ -232,7 +231,7 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
   }
 
   return (
-    <div ref={wrapperRef} className="flex w-full flex-col items-center">
+    <div className="flex w-full flex-col items-center">
       <div className="relative">
         <canvas
           ref={canvasRef}
@@ -255,71 +254,48 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
       </div>
 
       {/* Touch D-pad — only shown on touch devices */}
-      {isTouchDevice && (
-        <div className="fixed bottom-6 left-0 right-0 z-30 flex items-end justify-between px-6 pointer-events-none">
-          {/* D-pad */}
-          <div className="flex flex-col items-center gap-1 pointer-events-auto">
-            <button
-              className="h-14 w-14 select-none rounded-lg border border-white/20 bg-surface/10 text-xl text-ink-inverse active:bg-surface/25"
-              data-key="ArrowUp"
-              onTouchStart={dpadDown}
-              onTouchEnd={dpadUp}
-              onTouchCancel={dpadUp}
-            >
-              ▲
-            </button>
-            <div className="flex gap-1">
-              <button
-                className="h-14 w-14 select-none rounded-lg border border-white/20 bg-surface/10 text-xl text-ink-inverse active:bg-surface/25"
-                data-key="ArrowLeft"
-                onTouchStart={dpadDown}
-                onTouchEnd={dpadUp}
-                onTouchCancel={dpadUp}
-              >
-                ◄
-              </button>
-              <button
-                className="h-14 w-14 select-none rounded-lg border border-white/20 bg-surface/10 text-xl text-ink-inverse active:bg-surface/25"
-                data-key="ArrowRight"
-                onTouchStart={dpadDown}
-                onTouchEnd={dpadUp}
-                onTouchCancel={dpadUp}
-              >
-                ►
-              </button>
-            </div>
-            <button
-              className="h-14 w-14 select-none rounded-lg border border-white/20 bg-surface/10 text-xl text-ink-inverse active:bg-surface/25"
-              data-key="ArrowDown"
-              onTouchStart={dpadDown}
-              onTouchEnd={dpadUp}
-              onTouchCancel={dpadUp}
-            >
-              ▼
-            </button>
-          </div>
-
-          {/* Interact button */}
-          <button
-            className="h-16 w-16 select-none rounded-full border-2 border-white/25 bg-surface/10 text-lg font-bold text-ink-inverse pointer-events-auto active:bg-surface/25"
-            data-key="Enter"
-            onTouchStart={dpadDown}
-            onTouchEnd={dpadUp}
-            onTouchCancel={dpadUp}
-          >
-            A
-          </button>
-        </div>
-      )}
+      {isTouchDevice && <TouchControls onDown={dpadDown} onUp={dpadUp} />}
     </div>
   );
 }
 
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = newWorldImage(src);
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`Failed to load ${src}`));
-    img.src = src;
-  });
+const DPAD_BUTTON =
+  "h-14 w-14 select-none rounded-lg border border-white/20 bg-surface/10 text-xl text-ink-inverse active:bg-surface/25";
+
+function TouchControls({
+  onDown,
+  onUp,
+}: {
+  onDown: (e: React.TouchEvent<HTMLButtonElement>) => void;
+  onUp: (e: React.TouchEvent<HTMLButtonElement>) => void;
+}) {
+  const handlers = { onTouchStart: onDown, onTouchEnd: onUp, onTouchCancel: onUp };
+  return (
+    <div className="fixed bottom-6 left-0 right-0 z-30 flex items-end justify-between px-6 pointer-events-none">
+      <div className="flex flex-col items-center gap-1 pointer-events-auto">
+        <button className={DPAD_BUTTON} data-key="ArrowUp" {...handlers}>
+          ▲
+        </button>
+        <div className="flex gap-1">
+          <button className={DPAD_BUTTON} data-key="ArrowLeft" {...handlers}>
+            ◄
+          </button>
+          <button className={DPAD_BUTTON} data-key="ArrowRight" {...handlers}>
+            ►
+          </button>
+        </div>
+        <button className={DPAD_BUTTON} data-key="ArrowDown" {...handlers}>
+          ▼
+        </button>
+      </div>
+
+      <button
+        className="h-16 w-16 select-none rounded-full border-2 border-white/25 bg-surface/10 text-lg font-bold text-ink-inverse pointer-events-auto active:bg-surface/25"
+        data-key="Enter"
+        {...handlers}
+      >
+        A
+      </button>
+    </div>
+  );
 }

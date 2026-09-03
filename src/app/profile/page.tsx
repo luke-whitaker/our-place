@@ -261,8 +261,8 @@ export default function ProfilePage() {
                 </p>
               </div>
               <Link
-                href="/world?at=my-place"
-                title="Port into the 8-bit world at your home"
+                href="/world?place=me&at=my-place"
+                title="Port into the 8-bit world at your island's doorstep"
                 className="flex shrink-0 items-center gap-1.5 rounded-xl bg-surface px-3 py-2 text-sm font-medium text-violet-600 shadow-sm transition-colors hover:bg-violet-100"
               >
                 <span aria-hidden>🍄</span> Portal

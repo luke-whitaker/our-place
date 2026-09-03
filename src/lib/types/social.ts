@@ -25,6 +25,16 @@ export interface PublicProfile {
   community_count: number;
 }
 
+/** Who may walk onto a member's island. */
+export type IslandVisibility = "anyone" | "friends" | "nobody";
+
+/** A member's island as GET /api/users/[username]/island describes it to a
+ * visitor the owner has let in. The layout is generated from the owner's id. */
+export interface IslandInfo {
+  owner: { id: string; username: string; display_name: string };
+  biome: string;
+}
+
 /** One row of the member directory, as listed by GET /api/users. */
 export interface PeopleEntry {
   id: string;

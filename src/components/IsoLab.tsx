@@ -4,29 +4,21 @@
 //
 // A throwaway page (/iso-lab) for proving engine work before touching the live
 // world. It is a thin harness over the real iso engine (iso-engine.ts), exactly
-// the shape WorldCanvas takes. It loads the art, builds collision, and runs the
-// engine's createIsoState / update / render loop. The engine owns movement,
-// collision, doors, shrine discovery, region toasts, the warp menu, and fades;
-// this component owns only the canvas, the fixed-timestep loop, and art loading.
+// the shape WorldCanvas takes. It loads the art through the same loader, builds
+// collision, and runs the engine's createIsoState / update / render loop. The
+// engine owns movement, collision, doors, shrine discovery, region toasts, the
+// warp menu, and fades; this component owns only the canvas and the loop.
 //
-// Lab-only query params: `?world=capital` renders the live town instead of the
-// test scatter, and `?tint=<preset>` bakes a biome recolor into every sheet and
-// sprite except the character (see terrain-tint.ts).
+// Lab-only query params: `?world=capital` renders the live town and
+// `?world=island` a sample member island instead of the test scatter, and
+// `?tint=<preset>` overrides the world's biome recolor (see terrain-tint.ts).
 
 import { useEffect, useRef, useState } from "react";
 import { CANVAS_W, CANVAS_H, TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
-import { loadObjectSprite, type ObjectSprite } from "@/lib/game/world-object";
-import { loadCharacterSheet } from "@/lib/game/character-sheet";
-import { OBJECT_CATALOG, type IsoWorld } from "@/lib/game/world-model";
-import { worldAsset, newWorldImage } from "@/lib/game/asset-url";
-import {
-  isTintPreset,
-  tintImage,
-  tintToImage,
-  type TintPreset,
-  type TintTarget,
-} from "@/lib/game/terrain-tint";
+import type { IsoWorld } from "@/lib/game/world-model";
+import { isTintPreset } from "@/lib/game/terrain-tint";
+import { loadWorldAssets } from "@/lib/game/world-assets";
 import {
   createIsoState,
   update,
@@ -38,63 +30,45 @@ import {
 } from "@/lib/game/iso-engine";
 import { LAB_TOWN } from "@/lib/game/worlds/lab-town";
 import { CAPITAL } from "@/lib/game/worlds/capital";
+import { buildIsland } from "@/lib/game/worlds/island";
 
-interface LabOptions {
-  world: IsoWorld;
-  tint: TintPreset;
-}
+const SAMPLE_ISLAND_OWNER = { id: "lab-island", username: "lab", displayName: "Lab" };
 
-function readLabOptions(): LabOptions {
-  if (typeof window === "undefined") return { world: LAB_TOWN, tint: "forest" };
+function readLabWorld(): IsoWorld {
+  if (typeof window === "undefined") return LAB_TOWN;
   const params = new URLSearchParams(window.location.search);
   const tint = params.get("tint");
-  return {
-    world: params.get("world") === "capital" ? CAPITAL : LAB_TOWN,
-    tint: isTintPreset(tint) ? tint : "forest",
-  };
+  const tintOverride = isTintPreset(tint) ? { tint } : {};
+  switch (params.get("world")) {
+    case "capital":
+      return { ...CAPITAL, ...tintOverride };
+    case "island":
+      return {
+        ...buildIsland({ owner: SAMPLE_ISLAND_OWNER, biome: "forest", isOwn: true }),
+        ...tintOverride,
+      };
+    default:
+      return { ...LAB_TOWN, ...tintOverride };
+  }
 }
 
 export default function IsoLab() {
-  const [{ world, tint }] = useState(readLabOptions);
+  const [world] = useState(readLabWorld);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const inputRef = useRef(createInputManager());
   const assetsRef = useRef<IsoAssets | null>(null);
   const grassRef = useRef(terrainToGrass(world));
   const solidRef = useRef(buildWorldCollision(world));
-  const stateRef = useRef<IsoState>(createIsoState(world));
+  const stateRef = useRef<IsoState>(createIsoState(world, { playerLabel: "Lab" }));
   const [ready, setReady] = useState(false);
   const [error, setError] = useState("");
 
-  // Load art (character sheet, ground sheets, one sprite per object kind used),
-  // tinting everything but the character.
   useEffect(() => {
     let cancelled = false;
-    const kinds = [...new Set(world.objects.map((o) => o.kind))];
-    Promise.all([
-      loadCharacterSheet(worldAsset("/world/characters/long.png")),
-      loadImage(worldAsset("/world/tiles/forest.png")).then((img) =>
-        tintToImage(img, tint, "ground"),
-      ),
-      loadImage(worldAsset("/world/tiles/water.png")).then((img) =>
-        tintToImage(img, tint, "ground"),
-      ),
-      ...kinds.map((k) =>
-        loadObjectSprite(worldAsset(OBJECT_CATALOG[k].src), OBJECT_CATALOG[k].scale).then(
-          (sprite) => tintSprite(sprite, tint, OBJECT_CATALOG[k].tint),
-        ),
-      ),
-    ])
-      .then(([characters, forest, water, ...objs]) => {
+    loadWorldAssets(world)
+      .then((assets) => {
         if (cancelled) return;
-        const objects = Object.fromEntries(
-          kinds.map((k, i) => [k, objs[i] as ObjectSprite]),
-        ) as Record<string, ObjectSprite>;
-        assetsRef.current = {
-          characters: characters as Awaited<ReturnType<typeof loadCharacterSheet>>,
-          forest: forest as HTMLImageElement,
-          water: water as HTMLImageElement,
-          objects,
-        };
+        assetsRef.current = assets;
         setReady(true);
       })
       .catch((err) => {
@@ -104,7 +78,7 @@ export default function IsoLab() {
     return () => {
       cancelled = true;
     };
-  }, [world, tint]);
+  }, [world]);
 
   // Fixed-timestep loop (mirrors WorldCanvas).
   useEffect(() => {
@@ -152,23 +126,9 @@ export default function IsoLab() {
         {error
           ? error
           : ready
-            ? `WASD / Arrows to walk · Enter at a door or shrine · tint: ${tint}`
+            ? `WASD / Arrows to walk · Enter at a door or shrine · ${world.id} · tint: ${world.tint ?? "forest"}`
             : "Loading art…"}
       </p>
     </div>
   );
-}
-
-function tintSprite(sprite: ObjectSprite, tint: TintPreset, target: TintTarget): ObjectSprite {
-  if (!(sprite.img instanceof HTMLImageElement)) return sprite;
-  return { ...sprite, img: tintImage(sprite.img, tint, target) };
-}
-
-function loadImage(src: string): Promise<HTMLImageElement> {
-  return new Promise((resolve, reject) => {
-    const img = newWorldImage(src);
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error(`Failed to load ${src}`));
-    img.src = src;
-  });
 }

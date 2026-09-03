@@ -13,6 +13,9 @@ interface User {
   avatar_color: string;
   avatar: Record<string, string> | null;
   theme?: string;
+  /** The member's island: its biome preset and who may visit. */
+  biome?: string;
+  island_visibility?: string;
   is_verified: number;
   role: string;
   community_count?: number;
