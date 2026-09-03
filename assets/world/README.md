@@ -50,7 +50,8 @@ rest on their tile and sort correctly with the player. To add one:
 
 1. Drop the PNG at `public/world/objects/<name>.png` (served out of git).
 2. Add a catalog entry in `OBJECT_CATALOG`: its `src`, a `footprint` (tile offsets
-   it blocks, relative to its anchor tile), and `solid`.
+   it blocks, relative to its anchor tile), `solid`, and a `tint` target (`nature`,
+   `evergreen`, `building`, or `ground`) that says how a biome recolors it.
 3. Reference it as `{ kind: "<name>", col, row }` in a world.
 
 Community buildings use the 6 Evergrow `Town_House` sprites (catalog kinds

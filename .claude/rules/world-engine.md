@@ -19,23 +19,24 @@ The world stays isometric. Luke likes the art and is fine buying more from Pixel
 
 Build order, each step visible to members:
 
-1. Viewport culling. Prerequisite for anything bigger than the Capital.
-2. More space to explore: outskirts around the Capital using owned art.
-3. Floating My Place islands: one house, a biome the member chooses (tint presets), and one mushroom shrine that ports to the Capital gate; the Capital's warp menu gains Home. Generated from a template plus stored choices, not a stored world. The island is a pocket you leave from; the Capital stays the daily loop.
+1. Viewport culling. Done September 2, 2026.
+2. More space to explore: outskirts around the Capital using owned art. Done September 3, 2026.
+3. Floating My Place islands. Done September 3, 2026: `worlds/island.ts` generates a member's island from their user id (seeded PRNG, nothing stored but `users.biome` and `users.island_visibility`). From the Capital the only way home is the mycelium network's Home link (later also PCs); never a town building. The Portal on the profile lands at the island doorstep; arriving by the network lands at the island shrine. The island is a pocket you leave from; the Capital stays the daily loop.
 4. Wilderness with tinted biomes and user-placed content sprites (geocaching for posts: the anti-feed).
 5. Ports v2 interiors with PCs, once interior art exists. The Evergrow pack has none.
-6. Multiplayer presence, last. The seams are already in.
+6. Multiplayer presence, last. The seams are already in; name tags above avatars are the first visible piece.
 
-**Terrain tint** (`terrain-tint.ts`, wired into `/iso-lab?world=capital&tint=autumn`): one HSL pass per image at load turns the forest sheets into autumn, snow, dusk, swamp, and scorched. Pixel color cannot tell a tree from a wall, because Evergrow paints foliage and building shadows in the same cool teal-greens, so tinting takes a target: `ground`, `nature`, `evergreen`, or `building`. Shipping it needs a `category` on `OBJECT_CATALOG` entries and a per-region sheet choice in `drawGround`.
+**Terrain tint** (`terrain-tint.ts`): one HSL pass per image at load turns the forest sheets into autumn, snow, dusk, swamp, and scorched. Pixel color cannot tell a tree from a wall, because Evergrow paints foliage and building shadows in the same cool teal-greens, so every `OBJECT_CATALOG` entry names its `tint` target (`nature`, `evergreen`, `building`, or `ground`) and a world carries an optional `tint` preset. `world-assets.ts` bakes both at load for the world page and the lab (`/iso-lab?world=island&tint=snow`).
 
 ## Architecture
 
 `/world` runs `WorldCanvas` over the engine in `src/lib/game/`:
 
-- `world-model.ts`: the `IsoWorld` document (terrain grid, placed objects, doors, mushrooms, regions), `OBJECT_CATALOG` (sprite, footprint, scale, solid), Zod validation, and a source-agnostic loader.
-- `iso.ts` 2:1 projection (TILE_W 32, TILE_H 16); `forest-autotile.ts` and `water-autotile.ts` 4-edge blob autotilers; `world-object.ts` bottom-centre-anchored sprites; `character-sheet.ts` 8-direction animator; `avatar-recolor.ts` per-part palette swap to the member's avatar colors.
-- `iso-collision.ts` pure collision; `iso-actor.ts` `computeIntent` then `applyMovement`; `iso-engine.ts` `createIsoState`, `update`, `render`, and the camera; `hud.ts` prompt, toast, and warp-menu chrome; `iso-save.ts` per-device localStorage save.
-- `worlds/capital.ts` is the authored town: one building and one Ports door per community slug. `worlds/lab-town.ts` is the sandbox for `/iso-lab`.
+- `world-model.ts`: the `IsoWorld` document (id, optional tint, terrain grid, placed objects, doors, mushrooms, links, regions), `OBJECT_CATALOG` (sprite, footprint, scale, solid, tint target), Zod validation, and a source-agnostic loader. Terrain `void` is never drawn and never walkable: an island's edge is the autotiler's dirt skirt against the dark.
+- `iso.ts` 2:1 projection (TILE_W 32, TILE_H 16); `forest-autotile.ts` and `water-autotile.ts` 4-edge blob autotilers; `world-object.ts` bottom-centre-anchored sprites; `character-sheet.ts` 8-direction animator; `avatar-recolor.ts` per-part palette swap to the member's avatar colors; `world-assets.ts` loads and tints everything a world needs.
+- `iso-collision.ts` pure collision; `iso-actor.ts` `computeIntent` then `applyMovement`; `iso-engine.ts` `createIsoState`, `update`, `render`, and the camera; `hud.ts` prompt, toast, name tag, and warp-menu chrome; `iso-save.ts` per-device localStorage save, one slot per world id; `prng.ts` seeded randomness for generated places.
+- `worlds/capital.ts` is the authored town: one building and one Ports door per community slug. `worlds/island.ts` generates a member's island. `worlds/lab-town.ts` is the sandbox for `/iso-lab`.
+- Links (`IsoWorld.links`) are warp-menu rows that leave the world; they never need discovering. The engine fires `onWorldLink` at the peak of the fade and holds black until the page navigates.
 
 Rules that keep the multiplayer and builder seams intact:
 
@@ -46,7 +47,7 @@ Rules that keep the multiplayer and builder seams intact:
 
 ## Ports contract
 
-Door ids are community slugs. `/world?at=<slug>` spawns at that building's door. Walking into a door ports to `/communities/<slug>`, or to `/profile` for `my-place`. Portal buttons exist only on My Place and community pages.
+Door ids are community slugs. `/world?at=<slug>` spawns at that building's door; `at` also accepts a shrine id and lands one tile south of it. Walking into a door ports to `/communities/<slug>`. `/world?place=me` is the member's island and `/world?place=<username>` a visit (gated by `GET /api/users/[username]/island`); the island door (`my-place`) ports to `/profile` or the owner's `/profile/<username>`. Portal buttons exist only on My Place and community pages.
 
 ## Art and licensing
 
