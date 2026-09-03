@@ -18,6 +18,11 @@ model User {
   avatarColor             String    @default("#6366f1") @map("avatar_color")
   avatar                  Json?
   theme                   String    @default("auto")
+  // The member's floating My Place island: its biome (a terrain-tint preset)
+  // and who may visit it ("anyone" | "friends" | "nobody"). Friends-only by
+  // default, matching My Place posts in the forum.
+  biome                   String    @default("forest")
+  islandVisibility        String    @default("friends") @map("island_visibility")
   role                    String    @default("user")
   isVerified              Boolean   @default(true) @map("is_verified")
   resetCode               String?   @map("reset_code")
@@ -95,7 +100,15 @@ model Post {
   title           String   @default("")
   content         String   @default("")
   commentCount    Int      @default(0) @map("comment_count")
+  // reaction_count counts likes; dislikes are counted apart so they never
+  // inflate a post's likes.
   reactionCount   Int      @default(0) @map("reaction_count")
+  dislikeCount    Int      @default(0) @map("dislike_count")
+  // Interaction controls the author picks at compose time. Reactions and
+  // comments are on unless switched off; dislikes are off unless opted in.
+  allowReactions  Boolean  @default(true) @map("allow_reactions")
+  allowComments   Boolean  @default(true) @map("allow_comments")
+  allowDislikes   Boolean  @default(false) @map("allow_dislikes")
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
 
