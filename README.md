@@ -34,6 +34,7 @@ The forum is fully functional today. The world is actively in development.
 - **Communities** — Create or join communities organized by category (Gaming, Creative, Tech, etc.)
 - **Rich Posts** — Text, photo, video, and rich editor post types
 - **Comments & Reactions** — Threaded comments and emoji reactions on posts
+- **Interaction controls** — The author chooses per post whether it can be liked, disliked, or commented on. Dislikes are off unless the author opts in.
 - **Feed** — Three chronological views (your friends, your communities, everyone), each stating under its heading what it shows and how it is ordered. Nothing is ranked.
 - **People** — A member directory that shows who invited whom, plus friend requests and your friends list
 - **My Place** — Personal profile space for each user, friends-only
@@ -68,6 +69,8 @@ An **isometric 2.5D** overworld you teleport into:
 - **Ports** — walk up to a building's door and step through to its community's forum view; Portal buttons drop you back at its doorstep
 - **Mushroom warp network** — discover shrines to unlock fast travel between them
 - **The Capital** — an authored starter town with a building (and a Ports door) for each community
+- **Floating My Place islands** — Every member has an island generated from their account: a cottage whose door ports to their profile, a garden path, a shrine back to the Capital, and trees in the biome they chose. Members pick who may visit: anyone, friends, or no one.
+- **The mycelium network** — Shrines link places: Home from any shrine in the Capital, the Capital from any island
 - **Avatar builder** — gender-neutral character customization on first login
 
 ## Screenshots
@@ -135,13 +138,14 @@ src/
 │   ├── people/         # Member directory and friends
 │   ├── profile/        # My Place (yours and other members')
 │   ├── avatar-builder/ # First-login character customization
-│   ├── world/          # The isometric overworld
+│   ├── world/          # The isometric overworld: the Capital, your island, or a friend's
 │   └── iso-lab/        # Engine sandbox (dev only)
 ├── components/         # React components (feed/ holds the feed's subcomponents)
+├── test/               # Route-test harness (helpers, setup) for npm run test:routes
 ├── generated/prisma/   # Generated Prisma client (not committed)
 └── lib/
     ├── game/           # The isometric engine (see .claude/rules/world-engine.md)
-    │   └── worlds/     # Authored worlds: the Capital and the lab town
+    │   └── worlds/     # The Capital, the island generator, and the lab town
     ├── types/          # Wire types by domain
     ├── api-client.ts   # apiFetch: the client-side API helper
     ├── auth.ts         # JWT, cookies, session revocation
@@ -197,16 +201,17 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ### Other Commands
 
-| Command              | Purpose                        |
-| -------------------- | ------------------------------ |
-| `npm run build`      | Production build               |
-| `npm run lint`       | ESLint                         |
-| `npm run format`     | Prettier auto-fix              |
-| `npm run test`       | Run unit tests                 |
-| `npm run test:watch` | Run tests in watch mode        |
-| `npm run db:migrate` | Run Prisma migrations          |
-| `npm run db:seed`    | Seed starter communities       |
-| `npm run db:studio`  | Open Prisma Studio (DB viewer) |
+| Command               | Purpose                        |
+| --------------------- | ------------------------------ |
+| `npm run build`       | Production build               |
+| `npm run lint`        | ESLint                         |
+| `npm run format`      | Prettier auto-fix              |
+| `npm run test`        | Run unit tests                 |
+| `npm run test:routes` | Run API route tests (Postgres) |
+| `npm run test:watch`  | Run tests in watch mode        |
+| `npm run db:migrate`  | Run Prisma migrations          |
+| `npm run db:seed`     | Seed starter communities       |
+| `npm run db:studio`   | Open Prisma Studio (DB viewer) |
 
 ## Roadmap
 
@@ -235,16 +240,52 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Terrain tint experiment — autumn, snow, dusk, swamp, and scorched variants from the one forest sheet, in the engine sandbox
 - [x] Viewport culling — the renderer draws only the diagonal bands and sprites the camera can see, with tests proving the output is unchanged
 - [ ] More space to explore — outskirts around the Capital
-- [ ] Floating My Place islands — one house, a biome you choose, and a mushroom shrine back to the Capital
-- [ ] Post interaction controls — the author chooses whether a post can be liked, disliked, or commented on; polls
+- [x] Floating My Place islands — one house, a biome you choose, a mushroom shrine back to the Capital, and a visitor setting
+- [x] Post interaction controls — the author chooses whether a post can be liked, disliked, or commented on
+- [x] API route tests — the reaction, comment, post, and island routes run against a real Postgres in CI
+- [ ] Polls (designed, not built)
 - [ ] Wilderness with tinted biomes and user-placed content sprites
 - [ ] Ports v2 — building interiors with PC sprites, once interior art exists
-- [ ] Player identity bound to world position + username rendered above the avatar
+- [ ] Player identity bound to world position (the name above the avatar is in)
 - [ ] Real-time multiplayer presence (the engine is built with the seams for it)
 
 ---
 
 ## Version History
+
+### v0.8.0 — Islands, the Outskirts, and Interaction Controls (September 2026)
+
+**Why:** The world had one town and nowhere to be alone in it, and a member's "place" in the
+forum had no counterpart in the world beyond a cottage door in the Capital. The forum, meanwhile,
+gave authors no say in how people could respond to a post, and the API had no tests at all.
+
+**What changed:**
+
+- **Floating My Place islands** — every member has an island generated from their account
+  (nothing about its layout is stored): a cottage whose door ports to their profile, a garden
+  path, an island shrine, and trees in a biome they pick in Account settings. The Capital's
+  shrines gain a Home entry that lands you at your island shrine; the island shrine takes you
+  back to the Capital gate. Members choose who may visit (anyone, friends, or no one, friends
+  by default), and a friend's profile shows a "Visit island" Portal when their island is open.
+  The Capital's old My Place cottage is gone: from town, the only way home is the network.
+- **The outskirts** — the Capital now sits inside a map almost twice its size: a forest ring
+  that thins toward town, three dirt trails out (the Old Road south, a west trail to Miller's
+  Clearing, an east trail to Mirror Pond), two shrines out in the woods, and the North Woods
+  with the pack's tall trees. The lot where the My Place cottage stood is a fenced park with a
+  well, lamps, and a bench; the plaza has lamps and crates. Every region is proven reachable.
+- **Post interaction controls** — the author chooses at compose time whether a post can be
+  liked, disliked, or commented on. Dislikes are opt-in, counted apart from likes, and one
+  reaction per member: a dislike replaces a like. Cards show "Comments off" when the author
+  said so.
+- **API route tests** — the first tests at the API boundary: reactions, comments, post
+  creation, and the island visit gate run against a real Postgres, locally and in CI.
+- **Engine** — `void` ground for floating places, a tint target on every catalog entry and a
+  biome tint per world, links between worlds in the warp menu, per-world save slots, an
+  arrival fade-in, and the member's name drawn above their avatar.
+
+**What didn't change:** community, comment, and friendship API shapes. Posts carry four new
+fields (`dislike_count`, `allow_reactions`, `allow_comments`, `allow_dislikes`); the reaction
+response now returns exact counts. `/api/users/[username]/island` is new.
 
 ### v0.7.0 — People, Honest Feeds, and the World Decision (September 2026)
 
