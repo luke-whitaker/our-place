@@ -73,10 +73,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Verify post exists
     const post = await prisma.post.findUnique({
       where: { id },
-      select: { id: true, communityId: true, authorId: true },
+      select: { id: true, communityId: true, authorId: true, allowComments: true },
     });
     if (!post) {
       return NextResponse.json({ error: "Post not found." }, { status: 404 });
+    }
+    if (!post.allowComments) {
+      return NextResponse.json(
+        { error: "The author turned off comments for this post." },
+        { status: 403 },
+      );
     }
 
     // Check authorization: community posts require membership, profile posts are open

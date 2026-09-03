@@ -115,12 +115,21 @@ const mediaItemSchema = z.object({
   file_size: z.number().optional().nullable(),
 });
 
+// Interaction controls the author picks at compose time. Reactions and
+// comments are on unless switched off; dislikes are off unless opted in.
+const interactionControlFields = {
+  allow_reactions: z.boolean().default(true),
+  allow_comments: z.boolean().default(true),
+  allow_dislikes: z.boolean().default(false),
+};
+
 export const createPostSchema = z.object({
   post_type: postTypeEnum.default("text"),
   title: z.string().max(200, "Title must be under 200 characters.").default(""),
   content: z.string().max(50000, "Post content must be under 50,000 characters.").default(""),
   media: z.array(mediaItemSchema).default([]),
   post_to_profile: z.union([z.boolean(), z.number()]).optional(),
+  ...interactionControlFields,
 });
 
 export const createMyPlacePostSchema = z.object({
@@ -128,6 +137,7 @@ export const createMyPlacePostSchema = z.object({
   title: z.string().max(200, "Title must be under 200 characters.").default(""),
   content: z.string().max(50000, "Post content must be under 50,000 characters.").default(""),
   media: z.array(mediaItemSchema).default([]),
+  ...interactionControlFields,
 });
 
 export const createCommentSchema = z.object({
@@ -142,7 +152,7 @@ export const createCommentSchema = z.object({
     ),
 });
 
-export const REACTION_TYPES = ["like", "love", "laugh", "wow", "sad", "angry"] as const;
+export const REACTION_TYPES = ["like", "love", "laugh", "wow", "sad", "angry", "dislike"] as const;
 
 export const createReactionSchema = z.object({
   type: z.enum(REACTION_TYPES).default("like"),

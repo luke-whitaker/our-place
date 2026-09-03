@@ -3,7 +3,7 @@ import prisma from "@/lib/db";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 import { createPostLimiter } from "@/lib/rate-limit";
 import { createPostSchema, getZodErrorMessage } from "@/lib/schemas";
-import { enrichPostsWithMedia, validatePostContent } from "@/lib/post-helpers";
+import { enrichPostsWithMedia, mapPostRow, validatePostContent } from "@/lib/post-helpers";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 import { v4 as uuidv4 } from "uuid";
 
@@ -34,27 +34,12 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       skip: offset,
     });
 
-    const mapped = posts.map((p) => ({
-      id: p.id,
-      author_id: p.authorId,
-      community_id: p.communityId,
-      post_type: p.postType,
-      posted_to_profile: p.postedToProfile ? 1 : 0,
-      title: p.title,
-      content: p.content,
-      comment_count: p.commentCount,
-      reaction_count: p.reactionCount,
-      created_at: p.createdAt.toISOString(),
-      updated_at: p.updatedAt.toISOString(),
-      author_name: p.author.displayName,
-      author_username: p.author.username,
-      author_avatar_color: p.author.avatarColor,
-      community_name: p.community?.name ?? null,
-      community_slug: p.community?.slug ?? null,
-      community_icon: p.community?.icon ?? null,
-      user_reaction:
+    const mapped = posts.map((p) =>
+      mapPostRow(
+        p,
         Array.isArray(p.reactions) && p.reactions.length > 0 ? p.reactions[0].type : null,
-    }));
+      ),
+    );
 
     const { data, hasMore } = paginateResults(mapped, limit, page);
     const enrichedPosts = await enrichPostsWithMedia(data);
@@ -128,6 +113,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         postedToProfile: postToProfile,
         title,
         content,
+        allowReactions: parsed.data.allow_reactions,
+        allowComments: parsed.data.allow_comments,
+        allowDislikes: parsed.data.allow_dislikes,
       },
     });
 

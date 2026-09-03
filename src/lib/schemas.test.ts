@@ -4,6 +4,7 @@ import {
   loginSchema,
   updateAccountSchema,
   createPostSchema,
+  createMyPlacePostSchema,
   createCommentSchema,
   createReactionSchema,
   getZodErrorMessage,
@@ -171,6 +172,50 @@ describe("createPostSchema", () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it("defaults interaction controls to reactions and comments on, dislikes off", () => {
+    const result = createPostSchema.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.allow_reactions).toBe(true);
+      expect(result.data.allow_comments).toBe(true);
+      expect(result.data.allow_dislikes).toBe(false);
+    }
+  });
+
+  it("accepts explicit interaction control overrides", () => {
+    const result = createPostSchema.safeParse({
+      allow_reactions: false,
+      allow_comments: false,
+      allow_dislikes: true,
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.allow_reactions).toBe(false);
+      expect(result.data.allow_comments).toBe(false);
+      expect(result.data.allow_dislikes).toBe(true);
+    }
+  });
+});
+
+// ── My Place post schema ──
+
+describe("createMyPlacePostSchema", () => {
+  it("defaults interaction controls to reactions and comments on, dislikes off", () => {
+    const result = createMyPlacePostSchema.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.allow_reactions).toBe(true);
+      expect(result.data.allow_comments).toBe(true);
+      expect(result.data.allow_dislikes).toBe(false);
+    }
+  });
+
+  it("accepts explicit interaction control overrides", () => {
+    const result = createMyPlacePostSchema.safeParse({ allow_dislikes: true });
+    expect(result.success).toBe(true);
+    if (result.success) expect(result.data.allow_dislikes).toBe(true);
+  });
 });
 
 // ── Comment schema ──
@@ -198,14 +243,13 @@ describe("createReactionSchema", () => {
     if (result.success) expect(result.data.type).toBe("like");
   });
 
-  it("accepts valid reaction types", () => {
-    for (const type of ["like", "love", "laugh", "wow", "sad", "angry"]) {
+  it("accepts valid reaction types, including dislike", () => {
+    for (const type of ["like", "love", "laugh", "wow", "sad", "angry", "dislike"]) {
       expect(createReactionSchema.safeParse({ type }).success).toBe(true);
     }
   });
 
   it("rejects invalid reaction types", () => {
-    expect(createReactionSchema.safeParse({ type: "dislike" }).success).toBe(false);
     expect(createReactionSchema.safeParse({ type: "custom" }).success).toBe(false);
   });
 });

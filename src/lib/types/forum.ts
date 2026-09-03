@@ -52,6 +52,10 @@ export interface Post {
   content: string;
   comment_count: number;
   reaction_count: number;
+  dislike_count: number;
+  allow_reactions: boolean;
+  allow_comments: boolean;
+  allow_dislikes: boolean;
   created_at: string;
   updated_at: string;
   author_name?: string;
@@ -60,6 +64,7 @@ export interface Post {
   community_name?: string;
   community_slug?: string;
   community_icon?: string;
+  // "like", "dislike", another reaction type, or null when the viewer hasn't reacted.
   user_reaction?: string | null;
   media?: PostMedia[];
 }

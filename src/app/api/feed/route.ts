@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { enrichPostsWithMedia } from "@/lib/post-helpers";
+import { enrichPostsWithMedia, mapPostRow } from "@/lib/post-helpers";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
@@ -33,26 +33,9 @@ export async function GET(request: NextRequest) {
       skip: offset,
     });
 
-    const mapped = posts.map((p) => ({
-      id: p.id,
-      author_id: p.authorId,
-      community_id: p.communityId,
-      post_type: p.postType,
-      posted_to_profile: p.postedToProfile ? 1 : 0,
-      title: p.title,
-      content: p.content,
-      comment_count: p.commentCount,
-      reaction_count: p.reactionCount,
-      created_at: p.createdAt.toISOString(),
-      updated_at: p.updatedAt.toISOString(),
-      author_name: p.author.displayName,
-      author_username: p.author.username,
-      author_avatar_color: p.author.avatarColor,
-      community_name: p.community?.name ?? null,
-      community_slug: p.community?.slug ?? null,
-      community_icon: p.community?.icon ?? null,
-      user_reaction: p.reactions.length > 0 ? p.reactions[0].type : null,
-    }));
+    const mapped = posts.map((p) =>
+      mapPostRow(p, p.reactions.length > 0 ? p.reactions[0].type : null),
+    );
 
     const { data, hasMore } = paginateResults(mapped, limit, page);
     const enrichedPosts = await enrichPostsWithMedia(data);

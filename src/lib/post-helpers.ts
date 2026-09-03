@@ -5,6 +5,64 @@ interface PostWithId {
   [key: string]: unknown;
 }
 
+/**
+ * Shape every post-listing route selects: the Prisma row plus its author and
+ * (nullable) community. Structural, not imported from the generated client,
+ * so any route's `include` shape satisfies it without an extra import.
+ */
+interface PostRow {
+  id: string;
+  authorId: string;
+  communityId: string | null;
+  postType: string;
+  postedToProfile: boolean;
+  title: string;
+  content: string;
+  commentCount: number;
+  reactionCount: number;
+  dislikeCount: number;
+  allowReactions: boolean;
+  allowComments: boolean;
+  allowDislikes: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+  author: { displayName: string; username: string; avatarColor: string };
+  community: { name: string; slug: string; icon: string } | null;
+}
+
+/**
+ * Maps a Prisma post row (with author/community included) to the snake_case
+ * wire shape every post-listing route returns. `userReaction` is passed in
+ * rather than read off the row because routes vary in how they select the
+ * viewer's reaction (some skip the join entirely for logged-out requests).
+ */
+export function mapPostRow(p: PostRow, userReaction: string | null) {
+  return {
+    id: p.id,
+    author_id: p.authorId,
+    community_id: p.communityId,
+    post_type: p.postType,
+    posted_to_profile: p.postedToProfile ? 1 : 0,
+    title: p.title,
+    content: p.content,
+    comment_count: p.commentCount,
+    reaction_count: p.reactionCount,
+    dislike_count: p.dislikeCount,
+    allow_reactions: p.allowReactions,
+    allow_comments: p.allowComments,
+    allow_dislikes: p.allowDislikes,
+    created_at: p.createdAt.toISOString(),
+    updated_at: p.updatedAt.toISOString(),
+    author_name: p.author.displayName,
+    author_username: p.author.username,
+    author_avatar_color: p.author.avatarColor,
+    community_name: p.community?.name ?? null,
+    community_slug: p.community?.slug ?? null,
+    community_icon: p.community?.icon ?? null,
+    user_reaction: userReaction,
+  };
+}
+
 interface MediaItem {
   media_type?: string;
   media_source?: string;
