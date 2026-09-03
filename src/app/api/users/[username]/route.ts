@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { findFriendshipBetween, friendshipStatusFor } from "@/lib/friends";
+import { islandAccess } from "@/lib/islands";
 
 // GET: Another member's public profile — the header-card data everyone can
 // see (name, avatar color, counts, member since) plus the viewer's friendship
@@ -23,6 +24,7 @@ export async function GET(
         displayName: true,
         avatarColor: true,
         createdAt: true,
+        islandVisibility: true,
       },
     });
     if (!user) {
@@ -36,6 +38,11 @@ export async function GET(
       prisma.communityMember.count({ where: { userId: user.id } }),
       findFriendshipBetween(auth.user.userId, user.id),
     ]);
+    const friendship = {
+      status: friendshipStatusFor(auth.user.userId, user.id, friendshipRow),
+      id: friendshipRow?.id ?? null,
+    };
+    const isOpen = islandAccess(auth.user.userId, user, friendship.status === "friends") === "open";
 
     return NextResponse.json({
       user: {
@@ -46,11 +53,9 @@ export async function GET(
         created_at: user.createdAt.toISOString(),
         my_place_post_count: myPlacePostCount,
         community_count: communityCount,
+        island_open: isOpen,
       },
-      friendship: {
-        status: friendshipStatusFor(auth.user.userId, user.id, friendshipRow),
-        id: friendshipRow?.id ?? null,
-      },
+      friendship,
     });
   } catch (error) {
     console.error("Public profile error:", error);

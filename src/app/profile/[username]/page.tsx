@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
+import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import PostCard from "@/components/PostCard";
 import FriendActionButton from "@/components/FriendActionButton";
@@ -111,7 +112,16 @@ export default function PublicProfilePage() {
             >
               {profile.display_name.charAt(0).toUpperCase()}
             </div>
-            <div className="mt-4">
+            <div className="mt-4 flex items-center gap-2">
+              {profile.island_open && (
+                <Link
+                  href={`/world?place=${encodeURIComponent(profile.username)}&at=my-place`}
+                  title={`Port into ${profile.display_name}'s island`}
+                  className="flex shrink-0 items-center gap-1.5 rounded-xl bg-surface px-3 py-2 text-sm font-medium text-violet-600 shadow-sm transition-colors hover:bg-violet-100"
+                >
+                  <span aria-hidden>🍄</span> Visit island
+                </Link>
+              )}
               <FriendActionButton
                 status={friendship.status}
                 friendshipId={friendship.id}

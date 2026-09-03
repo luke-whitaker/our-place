@@ -23,6 +23,8 @@ export interface PublicProfile {
   created_at: string;
   my_place_post_count: number;
   community_count: number;
+  /** Whether the viewer may visit this member's floating island right now. */
+  island_open: boolean;
 }
 
 /** Who may walk onto a member's island. */
