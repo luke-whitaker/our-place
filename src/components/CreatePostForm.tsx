@@ -7,6 +7,10 @@ import RichContentEditor, { EditorBlock, createEmptyTextBlock } from "./RichCont
 import PhotoUploader from "./PhotoUploader";
 import VideoUploader from "./VideoUploader";
 import type { UploadedMedia } from "./PhotoUploader";
+import InteractionControls, {
+  DEFAULT_INTERACTION_CONTROLS,
+  InteractionControlsValue,
+} from "./feed/InteractionControls";
 
 const POST_TYPE_TABS: { type: PostType; label: string; icon: React.ReactNode }[] = [
   {
@@ -102,6 +106,9 @@ export default function CreatePostForm({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [postToMyPlace, setPostToMyPlace] = useState(false);
+  const [interactionControls, setInteractionControls] = useState<InteractionControlsValue>(
+    DEFAULT_INTERACTION_CONTROLS,
+  );
 
   const [photos, setPhotos] = useState<UploadedMedia[]>([]);
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
@@ -116,6 +123,7 @@ export default function CreatePostForm({
     setVideo(null);
     setRichBlocks([createEmptyTextBlock()]);
     setPostToMyPlace(false);
+    setInteractionControls(DEFAULT_INTERACTION_CONTROLS);
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -124,7 +132,12 @@ export default function CreatePostForm({
     setError("");
 
     try {
-      const body: Record<string, unknown> = { post_type: postType };
+      const body: Record<string, unknown> = {
+        post_type: postType,
+        allow_reactions: interactionControls.allowReactions,
+        allow_comments: interactionControls.allowComments,
+        allow_dislikes: interactionControls.allowDislikes,
+      };
 
       if (postType === "text") {
         if (!title.trim() || !content.trim()) {
@@ -421,6 +434,10 @@ export default function CreatePostForm({
 
       {/* Footer */}
       <div className="border-t border-line-soft bg-surface-muted px-5 py-3">
+        <div className="mb-3">
+          <InteractionControls value={interactionControls} onChange={setInteractionControls} />
+        </div>
+
         {!isProfileMode && (
           <div className="mb-3 flex items-center gap-2.5">
             <button
