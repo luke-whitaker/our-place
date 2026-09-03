@@ -99,6 +99,29 @@ function townHouse(src: string, wc: number, wr: number): ObjectDef {
   };
 }
 
+/** A one-tile non-solid ground decoration (grass tufts, flower beds) that
+ * recolors with the terrain instead of foliage. */
+function groundDecor(src: string): ObjectDef {
+  return { src: `/world/objects/${src}.png`, footprint: SINGLE, solid: false, tint: "ground" };
+}
+
+/** A one-tile solid town prop (lamps, crates, fences…) that keeps its paint
+ * regardless of biome, drawn at its native size (scale 1). */
+function townProp(src: string): ObjectDef {
+  return { src: `/world/objects/${src}.png`, footprint: SINGLE, solid: true, tint: "building" };
+}
+
+/** A two-tile fallen log or trunk, lying along the column axis from its
+ * anchor. */
+function natureLog(src: string): ObjectDef {
+  return {
+    src: `/world/objects/${src}.png`,
+    footprint: baseRect(2, 1),
+    solid: true,
+    tint: "nature",
+  };
+}
+
 export const OBJECT_CATALOG: Record<string, ObjectDef> = {
   house: {
     src: "/world/objects/house.png",
@@ -124,6 +147,63 @@ export const OBJECT_CATALOG: Record<string, ObjectDef> = {
   bush: nature("bush"),
   rock: nature("rock"),
   mushroom: nature("mushroom"),
+
+  // ── Outskirts nature (Evergrow Nature_Assets_Separated) ──
+  // Source: Forest_Deccoration_Assets_FallenLog{1,2}_48x48.png.
+  log1: natureLog("log1"),
+  log2: natureLog("log2"),
+  // Source: Forest_Deccoration_Assets_TreeTrunk{1,2}_32x32.png.
+  stump1: nature("stump1"),
+  stump2: nature("stump2"),
+  // Source: Forest_Deccoration_Assets_Rock{1,2}_32x32.png and Rock_48x48.png.
+  rock1: nature("rock1"),
+  rock2: nature("rock2"),
+  boulder: nature("boulder"),
+  // Source: Forest_Deccoration_Assets_FlowerBed1_32x32.png and GrassPatch{1..5}_32x32.png.
+  flower_bed: groundDecor("flower_bed"),
+  grass_patch1: groundDecor("grass_patch1"),
+  grass_patch2: groundDecor("grass_patch2"),
+  grass_patch3: groundDecor("grass_patch3"),
+  grass_patch4: groundDecor("grass_patch4"),
+  grass_patch5: groundDecor("grass_patch5"),
+  // Source: Forest_Tree_Assets_{Oak,Pine}{1,2}_80x128.png — single-tile
+  // footprint like oak_big: the canopy overhangs neighbouring tiles, but the
+  // anchor is one tile, matching how the town's existing big oak already sits.
+  oak_tall1: nature("oak_tall1"),
+  oak_tall2: nature("oak_tall2"),
+  pine_tall1: nature("pine_tall1", "evergreen"),
+  pine_tall2: nature("pine_tall2", "evergreen"),
+
+  // ── Outskirts town props (Evergrow Town_Assets_Separated) ──
+  // Source: Town_Lamps{1..4}_48x112.png.
+  lamp1: townProp("lamp1"),
+  lamp2: townProp("lamp2"),
+  lamp3: townProp("lamp3"),
+  lamp4: townProp("lamp4"),
+  // Source: Town_Assets_WaterWell_64x80.png.
+  well: {
+    src: "/world/objects/well.png",
+    footprint: baseRect(2, 2),
+    solid: true,
+    tint: "building",
+  },
+  // Source: Town_Assets_Barrel_48x48.png and Crate{1..3}_32x32.png.
+  barrel: townProp("barrel"),
+  crate1: townProp("crate1"),
+  crate2: townProp("crate2"),
+  crate3: townProp("crate3"),
+  // Source: Town_Assets_FlowerBox{1..4}_48x32.png.
+  flower_box1: townProp("flower_box1"),
+  flower_box2: townProp("flower_box2"),
+  flower_box3: townProp("flower_box3"),
+  flower_box4: townProp("flower_box4"),
+  // Source: Town_Assets_Chair_32x32.png.
+  chair: townProp("chair"),
+  // Source: Town_Fences3_32x32.png (col-run) and Town_Fences4_32x32.png
+  // (row-run) — the park border's two straight runs; picked by eye from the
+  // 12 directional pieces after test-rendering the park (see capital.ts).
+  fence_col: townProp("fence_col"),
+  fence_row: townProp("fence_row"),
 };
 
 // ── World ──

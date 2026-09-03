@@ -7,6 +7,7 @@ import {
   type IsoWorld,
 } from "./world-model";
 import { LAB_TOWN } from "./worlds/lab-town";
+import { CAPITAL } from "./worlds/capital";
 
 describe("terrain", () => {
   it("exposes the ground kinds and marks only water and void solid", () => {
@@ -20,6 +21,12 @@ describe("terrain", () => {
 describe("OBJECT_CATALOG", () => {
   it("defines every kind the lab fixture places", () => {
     for (const obj of LAB_TOWN.objects) {
+      expect(OBJECT_CATALOG[obj.kind]).toBeDefined();
+    }
+  });
+
+  it("defines every kind the Capital places", () => {
+    for (const obj of CAPITAL.objects) {
       expect(OBJECT_CATALOG[obj.kind]).toBeDefined();
     }
   });
