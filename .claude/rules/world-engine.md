@@ -58,4 +58,4 @@ Door ids are community slugs. `/world?at=<slug>` spawns at that building's door;
 
 ## Verifying world work
 
-Unit tests for the pure modules first. Then a Playwright screenshot of `/world` (log in as admin first) or `/iso-lab`. For renderer changes compare before and after; the pond animates on the frame counter, so allow a small tolerance confined to the water.
+Unit tests for the pure modules first. Then a Playwright screenshot of `/world` (log in as admin first) or `/iso-lab` (`?world=capital|island&tint=<preset>`). For renderer changes compare before and after; the pond animates on the frame counter, so allow a small tolerance confined to the water. Playwright's `keyboard.press` releases a key before a game tick can read it: hold with `keyboard.down`, wait about 120 ms, then `keyboard.up`. Deep-link with `?at=<door or shrine id>` instead of walking; keyboard walking drifts in iso.

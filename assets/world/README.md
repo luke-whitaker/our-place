@@ -54,7 +54,10 @@ rest on their tile and sort correctly with the player. To add one:
    `evergreen`, `building`, or `ground`) that says how a biome recolors it.
 3. Reference it as `{ kind: "<name>", col, row }` in a world.
 
-Community buildings use the 6 Evergrow `Town_House` sprites (catalog kinds
+The outskirts and the park use the pack's nature decorations (logs, stumps, rocks,
+flower beds, grass tufts, the 80x128 trees) and `Town_Assets` (lamps, the well, crates,
+flower boxes, a chair, two fence runs) at scale 1; see the catalog comments for each
+source file. Community buildings use the 6 Evergrow `Town_House` sprites (catalog kinds
 `cottage_blue`, `tower_green`, `house_purple`, `cottage_awning`, `manor_blue`,
 `hall_red`), drawn at half size via the catalog's `scale` so each spans 5-7
 tiles. Oversized art can set `scale` (keep to powers of ½ for crisp
@@ -70,8 +73,8 @@ South. A drop-in alternate (e.g. short hair) just needs the same geometry.
 ## Authoring a town
 
 Towns are composed in code as `IsoWorld` documents under
-`src/lib/game/worlds/` (see `capital.ts` for the live starter town —
-streets, a plaza, two rows of community buildings, framing trees, and the warp
-network). `WorldCanvas` renders whichever world its `WORLD` constant points at, so
-swapping or DB-loading a world later is a one-line change. Author tests assert the
-schema is valid and that every door + shrine is reachable on foot from spawn.
+`src/lib/game/worlds/` (see `capital.ts` for the live town and its outskirts, and
+`island.ts` for the generator behind every member's floating island). `WorldCanvas`
+renders whatever world the `/world` page resolves from `?place=`, so a DB-loaded world
+later is a page change, not an engine change. Author tests assert the schema is valid
+and that every door + shrine is reachable on foot from spawn.

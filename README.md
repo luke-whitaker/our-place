@@ -244,6 +244,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Post interaction controls — the author chooses whether a post can be liked, disliked, or commented on
 - [x] API route tests — the reaction, comment, post, and island routes run against a real Postgres in CI
 - [ ] Polls (designed, not built)
+- [ ] Welcome tour — a once-per-version walkthrough for new members on their first visit and everyone else on their next (designed, not built)
 - [ ] Wilderness with tinted biomes and user-placed content sprites
 - [ ] Ports v2 — building interiors with PC sprites, once interior art exists
 - [ ] Player identity bound to world position (the name above the avatar is in)
