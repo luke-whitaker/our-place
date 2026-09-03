@@ -32,6 +32,23 @@ export function drawPrompt(ctx: CanvasRenderingContext2D, text: string): void {
   ctx.textAlign = "start";
 }
 
+/** A member's name floating above their sprite: light text with a dark outline
+ * so it reads over grass, water, and roofs alike. (x, y) is the tag's
+ * bottom-centre in native pixels. */
+export function drawNameTag(ctx: CanvasRenderingContext2D, text: string, x: number, y: number) {
+  ctx.font = "bold 11px monospace";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "bottom";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = PAL.textBg;
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = PAL.white;
+  ctx.fillText(text, x, y);
+  ctx.textAlign = "start";
+  ctx.textBaseline = "alphabetic";
+}
+
 /** Top-centre banner (region entries, shrine discoveries, warp arrivals). */
 export function drawToast(
   ctx: CanvasRenderingContext2D,

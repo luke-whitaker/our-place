@@ -12,7 +12,7 @@ import { drawObject, objectDrawRect, type ObjectSprite } from "./world-object";
 import { pickFrame, type CharacterSprites } from "./character-sheet";
 import { computeIntent, applyMovement, createEntity, type IsoEntity } from "./iso-actor";
 import { buildSolidGrid, type SolidGrid } from "./iso-collision";
-import { drawPrompt, drawToast, drawWarpMenu } from "./hud";
+import { drawPrompt, drawToast, drawWarpMenu, drawNameTag } from "./hud";
 import {
   CELL,
   ENTITY_CULL_MARGIN,
@@ -22,7 +22,7 @@ import {
   type ViewRect,
 } from "./iso-cull";
 import { CANVAS_W, CANVAS_H, FADE_SPEED, PAL } from "./constants";
-import type { GameMode, Door, MushroomWarp } from "./types";
+import type { GameMode, Door, MushroomWarp, WorldLink } from "./types";
 import type { IsoWorld } from "./world-model";
 import type { InputManager } from "./input";
 
@@ -65,6 +65,8 @@ export interface IsoState {
   pendingDoor: Door | null;
   nearbyMushroom: MushroomWarp | null;
   pendingWarp: MushroomWarp | null;
+  /** A chosen link to another world, fired at the peak of the fade like a door. */
+  pendingLink: WorldLink | null;
   discovered: Set<string>;
   warpMenuIndex: number;
   currentRegionId: string | null;
@@ -77,6 +79,10 @@ export interface IsoStateOptions {
   spawnRow?: number;
   /** Shrines already discovered (from a saved game). */
   discovered?: Iterable<string>;
+  /** The local player's name tag. */
+  playerLabel?: string;
+  /** Start black and fade in, for arriving from another world. */
+  fadeIn?: boolean;
 }
 
 export function getLocalEntity(state: IsoState): IsoEntity {
@@ -90,20 +96,22 @@ export function createIsoState(world: IsoWorld, options: IsoStateOptions = {}): 
     "local",
     options.spawnCol ?? world.spawn.col,
     options.spawnRow ?? world.spawn.row,
+    options.playerLabel,
   );
 
   const state: IsoState = {
-    mode: "overworld",
+    mode: options.fadeIn ? "fading" : "overworld",
     entities: [player],
     localId: "local",
     camera: { x: 0, y: 0 },
     frameTick: 0,
-    fade: 0,
-    fadeDir: 0,
+    fade: options.fadeIn ? 1 : 0,
+    fadeDir: options.fadeIn ? -1 : 0,
     nearbyDoor: null,
     pendingDoor: null,
     nearbyMushroom: null,
     pendingWarp: null,
+    pendingLink: null,
     discovered: new Set(options.discovered ?? []),
     warpMenuIndex: 0,
     // Left null so the first update fires the spawn region's entry toast.
@@ -152,6 +160,24 @@ export function warpMenuOptions(state: IsoState, world: IsoWorld): MushroomWarp[
   return world.mushrooms.filter(
     (m) => state.discovered.has(m.id) && m.id !== state.nearbyMushroom?.id,
   );
+}
+
+/** One selectable row of the warp menu: a shrine here, or a link elsewhere. */
+export type WarpEntry =
+  | { kind: "shrine"; label: string; warp: MushroomWarp }
+  | { kind: "link"; label: string; link: WorldLink };
+
+/** The full warp menu: discovered shrines first, then the world's links (which
+ * never need discovering). The caller appends its own Cancel row. */
+export function warpMenuEntries(state: IsoState, world: IsoWorld): WarpEntry[] {
+  return [
+    ...warpMenuOptions(state, world).map((warp): WarpEntry => ({
+      kind: "shrine",
+      label: warp.label,
+      warp,
+    })),
+    ...world.links.map((link): WarpEntry => ({ kind: "link", label: link.label, link })),
+  ];
 }
 
 /** The world's projected screen extent (tile centres), in pre-zoom pixels. */
@@ -209,13 +235,20 @@ function updateCamera(state: IsoState, world: IsoWorld): void {
 
 /** Fired at the peak of a door fade — the caller ports to that place's forum view. */
 export type OnDoorInteract = (door: Door) => void;
+/** Fired at the peak of a link fade — the caller navigates to the other world. */
+export type OnWorldLink = (link: WorldLink) => void;
+
+export interface UpdateCallbacks {
+  onDoorInteract?: OnDoorInteract;
+  onWorldLink?: OnWorldLink;
+}
 
 export function update(
   state: IsoState,
   world: IsoWorld,
   solid: SolidGrid,
   input: InputManager,
-  onDoorInteract?: OnDoorInteract,
+  callbacks: UpdateCallbacks = {},
 ): void {
   state.frameTick++;
 
@@ -229,8 +262,21 @@ export function update(
     state.fade = Math.max(0, Math.min(1, state.fade + state.fadeDir * FADE_SPEED));
 
     if (state.fade >= 1 && state.fadeDir === 1) {
-      if (state.pendingDoor && onDoorInteract) {
-        onDoorInteract(state.pendingDoor);
+      if (state.pendingDoor && callbacks.onDoorInteract) {
+        callbacks.onDoorInteract(state.pendingDoor);
+      }
+      if (state.pendingLink) {
+        const link = state.pendingLink;
+        state.pendingLink = null;
+        state.pendingDoor = null;
+        if (callbacks.onWorldLink) {
+          // The caller navigates away. Freeze black (fadeDir 0 while still
+          // "fading") so the old world never flashes back in before the new
+          // one mounts; without a handler, fall through and fade back in.
+          state.fadeDir = 0;
+          callbacks.onWorldLink(link);
+          return;
+        }
       }
       if (state.pendingWarp) {
         const warp = state.pendingWarp;
@@ -257,8 +303,8 @@ export function update(
 
   // ── Warp menu ──
   if (state.mode === "warp-menu") {
-    const options = warpMenuOptions(state, world);
-    const total = options.length + 1; // + Cancel
+    const entries = warpMenuEntries(state, world);
+    const total = entries.length + 1; // + Cancel
 
     if (input.consume("Escape")) {
       state.mode = "overworld";
@@ -271,13 +317,15 @@ export function update(
       state.warpMenuIndex = (state.warpMenuIndex + 1) % total;
     }
     if (input.consume("Enter") || input.consume("Space")) {
-      if (state.warpMenuIndex < options.length) {
-        state.pendingWarp = options[state.warpMenuIndex];
-        state.mode = "fading";
-        state.fadeDir = 1;
-      } else {
+      const chosen = entries[state.warpMenuIndex];
+      if (!chosen) {
         state.mode = "overworld";
+        return;
       }
+      if (chosen.kind === "shrine") state.pendingWarp = chosen.warp;
+      else state.pendingLink = chosen.link;
+      state.mode = "fading";
+      state.fadeDir = 1;
     }
     return;
   }
@@ -401,6 +449,7 @@ export function render(
   ctx.restore();
 
   // ── HUD (native resolution) ──
+  drawNameTags(ctx, state, assets.characters, view);
   if (state.fade === 0 && state.mode === "overworld") {
     if (state.nearbyDoor) {
       drawPrompt(ctx, `Press Enter — ${state.nearbyDoor.label}`);
@@ -410,7 +459,7 @@ export function render(
   }
 
   if (state.mode === "warp-menu") {
-    const entries = [...warpMenuOptions(state, world).map((o) => o.label), "Cancel"];
+    const entries = [...warpMenuEntries(state, world).map((e) => e.label), "Cancel"];
     drawWarpMenu(ctx, "Mycelium Network", entries, state.warpMenuIndex);
   }
 
@@ -442,10 +491,12 @@ function drawGround(
   // actually see (see iso-cull.ts) instead of the whole grid — it yields tiles
   // in the same order the old unculled double loop did, so output is unchanged.
   for (const { col, row } of visibleGroundTiles(camX, camY, ISO_VIEW_W, ISO_VIEW_H, cols, rows)) {
+    const kind = terrain[row][col];
+    if (kind === "void") continue;
     const s = tileToScreen(col, row);
     const dx = Math.round(s.x - 16 - camX);
     const dy = Math.round(s.y - 8 - camY);
-    if (terrain[row][col] === "water") {
+    if (kind === "water") {
       const [bc, br] = waterCell(terrain, col, row);
       const sc = bc + waterFrame * WATER_FRAME_COLS;
       ctx.drawImage(assets.water, sc * CELL, br * CELL, CELL, CELL, dx, dy, CELL, CELL);
@@ -476,4 +527,32 @@ function drawEntity(
     Math.round(pos.x - frame.width / 2 - camX),
     Math.round(pos.y - frame.height + FOOT_OFFSET - camY),
   );
+}
+
+/** Gap between a sprite's head and its name tag, in native pixels. */
+const NAME_TAG_GAP = 4;
+
+/** Name tags for every labelled entity in view, drawn at native resolution
+ * (after the zoomed world layer) so the text stays crisp. Sprites are one
+ * height per sheet, so the idle frame's height places the tag for any pose. */
+function drawNameTags(
+  ctx: CanvasRenderingContext2D,
+  state: IsoState,
+  characters: CharacterSprites,
+  view: ViewRect,
+): void {
+  const { x: camX, y: camY } = state.camera;
+  for (const entity of state.entities) {
+    if (!entity.label) continue;
+    const pos = tileToScreen(entity.col, entity.row);
+    if (!rectsOverlap({ x: pos.x - 1, y: pos.y - 1, w: 2, h: 2 }, view)) continue;
+    const head =
+      pos.y - pickFrame(characters, entity.dir, false, 0, ANIM_TICKS).height + FOOT_OFFSET;
+    drawNameTag(
+      ctx,
+      entity.label,
+      Math.round((pos.x - camX) * ISO_ZOOM),
+      Math.round((head - camY) * ISO_ZOOM) - NAME_TAG_GAP,
+    );
+  }
 }

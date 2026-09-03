@@ -80,7 +80,7 @@ export default function IsoLab() {
       ),
       ...kinds.map((k) =>
         loadObjectSprite(worldAsset(OBJECT_CATALOG[k].src), OBJECT_CATALOG[k].scale).then(
-          (sprite) => tintSprite(sprite, tint, tintTargetFor(k)),
+          (sprite) => tintSprite(sprite, tint, OBJECT_CATALOG[k].tint),
         ),
       ),
     ])
@@ -157,14 +157,6 @@ export default function IsoLab() {
       </p>
     </div>
   );
-}
-
-// Lab-only classification of catalog kinds. When tinting ships, this becomes
-// a `category` field on OBJECT_CATALOG entries instead of name matching.
-function tintTargetFor(kind: string): TintTarget {
-  if (kind.startsWith("pine")) return "evergreen";
-  if (/^(oak|bush|rock|mushroom)/.test(kind)) return "nature";
-  return "building";
 }
 
 function tintSprite(sprite: ObjectSprite, tint: TintPreset, target: TintTarget): ObjectSprite {

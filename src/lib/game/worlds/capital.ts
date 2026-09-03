@@ -11,10 +11,14 @@
 // neighbours differ. The player spawns south of the town and approaches
 // northward, so buildings sit "above" their doors and read cleanly in the 2:1
 // projection.
+//
+// A member's own place is not a building here: it is their floating island,
+// reached only through the mycelium network (the "Home" link at every shrine).
+// The north row's west lot, once a "My Place" cottage, is open ground for a park.
 
 import type { IsoWorld, TerrainKind, PlacedObjectData } from "../world-model";
 import { OBJECT_CATALOG } from "../world-model";
-import type { Door, MushroomWarp, Region } from "../types";
+import type { Door, MushroomWarp, Region, WorldLink } from "../types";
 
 const COLS = 56;
 const ROWS = 48;
@@ -29,13 +33,13 @@ interface BuildingSpec {
   row: number;
 }
 
-// Two rows of five. Doors open onto the street one tile south of each building.
+// Two rows of lots, five per street; the north-west lot (col 6) is the park.
+// Doors open onto the street one tile south of each building.
 const NORTH_ROW = 12;
 const SOUTH_ROW = 30;
 const BUILDING_COLS = [6, 17, 28, 39, 50];
 
 const BUILDINGS: ReadonlyArray<BuildingSpec> = [
-  { id: "my-place", label: "My Place", kind: "cottage_blue", col: 6, row: NORTH_ROW },
   { id: "welcome-center", label: "Welcome Center", kind: "manor_blue", col: 17, row: NORTH_ROW },
   { id: "creative", label: "Creative", kind: "house_purple", col: 28, row: NORTH_ROW },
   {
@@ -193,6 +197,9 @@ const mushrooms: MushroomWarp[] = [
 ];
 for (const m of mushrooms) objects.push({ kind: "mushroom", col: m.col, row: m.row });
 
+// Every shrine in town offers the way home: the member's own island.
+const links: WorldLink[] = [{ id: "home", label: "Home", place: "me" }];
+
 // ── Region ──
 
 const regions: Region[] = [
@@ -200,6 +207,7 @@ const regions: Region[] = [
 ];
 
 export const CAPITAL: IsoWorld = {
+  id: "capital",
   cols: COLS,
   rows: ROWS,
   spawn: SPAWN,
@@ -207,5 +215,6 @@ export const CAPITAL: IsoWorld = {
   objects,
   doors,
   mushrooms,
+  links,
   regions,
 };

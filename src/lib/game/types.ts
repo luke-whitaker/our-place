@@ -28,6 +28,18 @@ export interface MushroomWarp {
   reachableOnFoot: boolean;
 }
 
+// ── World links (the mycelium network between places) ──
+
+/** A warp-menu entry that leaves this world for another place. Always listed,
+ * never needs discovering: Home from the Capital, the Capital from an island.
+ * `place` is the `/world?place=` value; `spawnAt` a door or shrine id there. */
+export interface WorldLink {
+  id: string;
+  label: string;
+  place: string;
+  spawnAt?: string;
+}
+
 // ── Named regions (for entry toasts) ──
 
 export interface Region {

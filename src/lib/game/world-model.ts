@@ -11,18 +11,21 @@
 //   • Door ids are community slugs, so Ports keeps working (`?at=<slug>`).
 
 import { z } from "zod";
-import type { Door, MushroomWarp, Region } from "./types";
+import { TINT_PRESETS, type TintPreset, type TintTarget } from "./terrain-tint";
+import type { Door, MushroomWarp, Region, WorldLink } from "./types";
 
 // ── Terrain ──
 // Iso ground is a small set of surface types — in iso, structures (walls, roofs,
 // houses) are objects, not tiles, so the 30-value top-down tile enum collapses to
-// just the ground a player walks on.
-export const terrainKindSchema = z.enum(["grass", "dirt", "path", "water", "sand"]);
+// just the ground a player walks on. `void` is the absence of ground: never
+// drawn and never walkable, so a floating island's edge is the autotiler's dirt
+// skirt against the dark.
+export const terrainKindSchema = z.enum(["grass", "dirt", "path", "water", "sand", "void"]);
 export type TerrainKind = z.infer<typeof terrainKindSchema>;
 export const TERRAIN_KINDS = terrainKindSchema.options;
 
 /** Terrain the player cannot cross. */
-export const SOLID_TERRAIN = new Set<TerrainKind>(["water"]);
+export const SOLID_TERRAIN = new Set<TerrainKind>(["water", "void"]);
 
 // ── Object catalog ──
 // Placement data is only `{ kind, col, row }` (serializable). The kind resolves
@@ -43,6 +46,10 @@ export interface ObjectDef {
   footprint: ReadonlyArray<FootprintCell>;
   /** Whether the footprint blocks movement. */
   solid: boolean;
+  /** How a biome tint recolors this art (see terrain-tint.ts): `nature` shifts
+   * foliage, `evergreen` keeps pines green in autumn, `building` only takes the
+   * scene lighting so paint and props keep their colors. */
+  tint: TintTarget;
   /** Draw-time scale (default 1) for art authored oversized for the 32×16 tile.
    * Keep to powers of ½ so nearest-neighbour downscaling stays crisp. */
   scale?: number;
@@ -75,57 +82,48 @@ function baseRect(wc: number, wr: number): ReadonlyArray<FootprintCell> {
   return cells;
 }
 
+/** A one-tile solid nature sprite (trees, bushes, rocks, the warp shrine). */
+function nature(src: string, tint: TintTarget = "nature"): ObjectDef {
+  return { src: `/world/objects/${src}.png`, footprint: SINGLE, solid: true, tint };
+}
+
+/** One of the Evergrow Town_House sheets, drawn at half size so a building
+ * spans 5–7 tiles (the Capital's lots sit 11 columns apart). */
+function townHouse(src: string, wc: number, wr: number): ObjectDef {
+  return {
+    src: `/world/objects/${src}.png`,
+    footprint: baseRect(wc, wr),
+    solid: true,
+    tint: "building",
+    scale: 0.5,
+  };
+}
+
 export const OBJECT_CATALOG: Record<string, ObjectDef> = {
-  house: { src: "/world/objects/house.png", footprint: HOUSE_FOOTPRINT, solid: true },
-  // The six Evergrow Town_House sheets, drawn at half size so a building spans
-  // 5–7 tiles (the Capital's lots sit 11 columns apart). Source sheets:
-  // cottage_blue=320x320, tower_green=320x480, house_purple=352x384,
-  // cottage_awning=384x320, manor_blue=384x448, hall_red=448x448.
-  cottage_blue: {
-    src: "/world/objects/cottage_blue.png",
-    footprint: baseRect(5, 5),
+  house: {
+    src: "/world/objects/house.png",
+    footprint: HOUSE_FOOTPRINT,
     solid: true,
-    scale: 0.5,
+    tint: "building",
   },
-  tower_green: {
-    src: "/world/objects/tower_green.png",
-    footprint: baseRect(5, 5),
-    solid: true,
-    scale: 0.5,
-  },
-  house_purple: {
-    src: "/world/objects/house_purple.png",
-    footprint: baseRect(6, 5),
-    solid: true,
-    scale: 0.5,
-  },
-  cottage_awning: {
-    src: "/world/objects/cottage_awning.png",
-    footprint: baseRect(6, 6),
-    solid: true,
-    scale: 0.5,
-  },
-  manor_blue: {
-    src: "/world/objects/manor_blue.png",
-    footprint: baseRect(6, 6),
-    solid: true,
-    scale: 0.5,
-  },
-  hall_red: {
-    src: "/world/objects/hall_red.png",
-    footprint: baseRect(7, 7),
-    solid: true,
-    scale: 0.5,
-  },
-  oak_big: { src: "/world/objects/oak_big.png", footprint: SINGLE, solid: true },
-  oak1: { src: "/world/objects/oak1.png", footprint: SINGLE, solid: true },
-  oak2: { src: "/world/objects/oak2.png", footprint: SINGLE, solid: true },
-  pine1: { src: "/world/objects/pine1.png", footprint: SINGLE, solid: true },
-  pine2: { src: "/world/objects/pine2.png", footprint: SINGLE, solid: true },
-  bush_large: { src: "/world/objects/bush_large.png", footprint: SINGLE, solid: true },
-  bush: { src: "/world/objects/bush.png", footprint: SINGLE, solid: true },
-  rock: { src: "/world/objects/rock.png", footprint: SINGLE, solid: true },
-  mushroom: { src: "/world/objects/mushroom.png", footprint: SINGLE, solid: true },
+  // Source sheets: cottage_blue=320x320, tower_green=320x480,
+  // house_purple=352x384, cottage_awning=384x320, manor_blue=384x448,
+  // hall_red=448x448.
+  cottage_blue: townHouse("cottage_blue", 5, 5),
+  tower_green: townHouse("tower_green", 5, 5),
+  house_purple: townHouse("house_purple", 6, 5),
+  cottage_awning: townHouse("cottage_awning", 6, 6),
+  manor_blue: townHouse("manor_blue", 6, 6),
+  hall_red: townHouse("hall_red", 7, 7),
+  oak_big: nature("oak_big"),
+  oak1: nature("oak1"),
+  oak2: nature("oak2"),
+  pine1: nature("pine1", "evergreen"),
+  pine2: nature("pine2", "evergreen"),
+  bush_large: nature("bush_large"),
+  bush: nature("bush"),
+  rock: nature("rock"),
+  mushroom: nature("mushroom"),
 };
 
 // ── World ──
@@ -138,6 +136,10 @@ export interface PlacedObjectData {
 }
 
 export interface IsoWorld {
+  /** Stable identity: the save-slot key and the `/world?place=` value. */
+  id: string;
+  /** Biome recolor baked into the art at load; absent means the forest as painted. */
+  tint?: TintPreset;
   cols: number;
   rows: number;
   /** Default spawn tile (world-space). */
@@ -150,6 +152,8 @@ export interface IsoWorld {
   doors: Door[];
   /** Mushroom warp shrines (the mycelium fast-travel network). */
   mushrooms: MushroomWarp[];
+  /** Warp-menu destinations in other worlds, offered at every shrine here. */
+  links: WorldLink[];
   /** Named regions, for entry toasts. */
   regions: Region[];
 }
@@ -177,6 +181,13 @@ const mushroomSchema = z.object({
   reachableOnFoot: z.boolean(),
 });
 
+const linkSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  place: z.string().min(1),
+  spawnAt: z.string().optional(),
+});
+
 const regionSchema = z.object({
   id: z.string(),
   label: z.string(),
@@ -189,6 +200,8 @@ const regionSchema = z.object({
 });
 
 export const isoWorldSchema = z.object({
+  id: z.string().min(1),
+  tint: z.enum(TINT_PRESETS).optional(),
   cols: z.number().int().positive(),
   rows: z.number().int().positive(),
   spawn: tileCoordSchema,
@@ -196,6 +209,7 @@ export const isoWorldSchema = z.object({
   objects: z.array(z.object({ kind: z.string(), col: z.number().int(), row: z.number().int() })),
   doors: z.array(doorSchema),
   mushrooms: z.array(mushroomSchema),
+  links: z.array(linkSchema),
   regions: z.array(regionSchema),
 });
 

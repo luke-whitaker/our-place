@@ -9,9 +9,10 @@ import {
 import { LAB_TOWN } from "./worlds/lab-town";
 
 describe("terrain", () => {
-  it("exposes the ground kinds and marks only water solid", () => {
+  it("exposes the ground kinds and marks only water and void solid", () => {
     expect(TERRAIN_KINDS).toContain("grass");
     expect(SOLID_TERRAIN.has("water")).toBe(true);
+    expect(SOLID_TERRAIN.has("void")).toBe(true);
     expect(SOLID_TERRAIN.has("grass")).toBe(false);
   });
 });
@@ -23,10 +24,13 @@ describe("OBJECT_CATALOG", () => {
     }
   });
 
-  it("gives each object a non-empty footprint", () => {
+  it("gives each object a non-empty footprint and a tint target", () => {
     for (const def of Object.values(OBJECT_CATALOG)) {
       expect(def.footprint.length).toBeGreaterThan(0);
+      expect(["nature", "evergreen", "building", "ground"]).toContain(def.tint);
     }
+    expect(OBJECT_CATALOG.pine1.tint).toBe("evergreen");
+    expect(OBJECT_CATALOG.cottage_blue.tint).toBe("building");
   });
 });
 
@@ -57,5 +61,19 @@ describe("parseIsoWorld", () => {
 
   it("rejects a malformed shape", () => {
     expect(() => parseIsoWorld({ cols: 4 })).toThrow();
+  });
+
+  it("accepts a known tint preset and rejects an unknown one", () => {
+    expect(parseIsoWorld({ ...LAB_TOWN, tint: "autumn" }).tint).toBe("autumn");
+    expect(() => parseIsoWorld({ ...LAB_TOWN, tint: "lava" })).toThrow();
+  });
+
+  it("requires an id and validates links", () => {
+    const { id: _id, ...noId } = LAB_TOWN;
+    void _id;
+    expect(() => parseIsoWorld(noId)).toThrow();
+    const linked = { ...LAB_TOWN, links: [{ id: "home", label: "Home", place: "me" }] };
+    expect(parseIsoWorld(linked).links[0].place).toBe("me");
+    expect(() => parseIsoWorld({ ...LAB_TOWN, links: [{ id: "x", label: "X" }] })).toThrow();
   });
 });

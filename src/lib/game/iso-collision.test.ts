@@ -4,6 +4,7 @@ import type { IsoWorld, TerrainKind } from "./world-model";
 
 function grassWorld(cols: number, rows: number): IsoWorld {
   return {
+    id: "grass",
     cols,
     rows,
     spawn: { col: 0, row: 0 },
@@ -13,6 +14,7 @@ function grassWorld(cols: number, rows: number): IsoWorld {
     objects: [],
     doors: [],
     mushrooms: [],
+    links: [],
     regions: [],
   };
 }

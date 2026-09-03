@@ -54,6 +54,7 @@ const regions: Region[] = [
 ];
 
 export const LAB_TOWN: IsoWorld = {
+  id: "lab-town",
   cols: COLS,
   rows: ROWS,
   spawn: { col: 12, row: 12 },
@@ -76,5 +77,6 @@ export const LAB_TOWN: IsoWorld = {
   ],
   doors,
   mushrooms,
+  links: [],
   regions,
 };

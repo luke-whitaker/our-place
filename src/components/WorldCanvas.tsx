@@ -186,7 +186,9 @@ export default function WorldCanvas({ onDoorInteract, spawnAt }: WorldCanvasProp
       const assets = assetsRef.current;
       if (state) {
         while (accumulator >= TICK_RATE) {
-          update(state, WORLD, solidRef.current, input, onDoorInteractRef.current);
+          update(state, WORLD, solidRef.current, input, {
+            onDoorInteract: onDoorInteractRef.current,
+          });
           accumulator -= TICK_RATE;
         }
         if (assets) {

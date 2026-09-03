@@ -4,7 +4,6 @@ import { parseIsoWorld } from "../world-model";
 import { buildSolidGrid, isSolidAt, type SolidGrid } from "../iso-collision";
 
 const EXPECTED_SLUGS = [
-  "my-place",
   "welcome-center",
   "creative",
   "community-support",
@@ -39,6 +38,11 @@ describe("CAPITAL", () => {
 
   it("has one door per community, matching the real slugs", () => {
     expect(CAPITAL.doors.map((d) => d.id).sort()).toEqual([...EXPECTED_SLUGS].sort());
+  });
+
+  it("offers the way home from every shrine, and has no My Place building", () => {
+    expect(CAPITAL.links.map((l) => l.place)).toEqual(["me"]);
+    expect(CAPITAL.doors.some((d) => d.id === "my-place")).toBe(false);
   });
 
   it("spawns the player on a walkable tile", () => {

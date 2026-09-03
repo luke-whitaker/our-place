@@ -30,10 +30,12 @@ export interface IsoEntity {
   dir: Dir8;
   moving: boolean;
   animTimer: number;
+  /** Name drawn above the sprite; absent for an anonymous actor. */
+  label?: string;
 }
 
-export function createEntity(id: string, col: number, row: number): IsoEntity {
-  return { id, col, row, dir: "S", moving: false, animTimer: 0 };
+export function createEntity(id: string, col: number, row: number, label?: string): IsoEntity {
+  return { id, col, row, dir: "S", moving: false, animTimer: 0, label };
 }
 
 /** What an actor wants to do this tick, as a screen-space direction. Each
