@@ -469,8 +469,9 @@ const doors: Door[] = BUILDINGS.map((b) => ({
   row: b.row + 1,
 }));
 
-// Every shrine in town offers the way home: the member's own island.
-const links: WorldLink[] = [{ id: "home", label: "Home", place: "me" }];
+// Every shrine in town offers the way home: the member's own island, arriving
+// at its shrine because that is how they traveled.
+const links: WorldLink[] = [{ id: "home", label: "Home", place: "me", spawnAt: ISLAND_SHRINE_ID }];
 
 // ── Regions ──
 // Willow Grove is listed before the Capital so its smaller, nested bounds win
