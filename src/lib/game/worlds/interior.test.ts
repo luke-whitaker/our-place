@@ -6,13 +6,14 @@ import { buildSolidGrid, isSolidAt, type SolidGrid } from "../iso-collision";
 const BASE_SPEC: InteriorSpec = {
   id: "test-room-inside",
   label: "Test Room",
+  floor: [{ col: 1, row: 1, w: 11, h: 11 }],
   doorCol: 6,
   exit: { warpTo: "capital", spawnAt: "test-room" },
   pc: { col: 2, row: 2 },
   pcHref: "/communities/test-room",
 };
 
-// Default 13×13 document: floorBounds gives a floor rectangle of [1,11]×[1,11].
+// An 11×11 floor at (1,1) makes a 13×13 document (one void tile all round).
 // The north wall sits on row 1, the west wall on column 1, leaving a 10×10
 // walkable floor starting at (2,2).
 const FLOOR = { c0: 1, r0: 1, c1: 11, r1: 11 };
@@ -119,7 +120,7 @@ describe("buildInterior", () => {
   });
 
   it("paints flagstones as dirt inside the rectangle and grass outside it, both walkable", () => {
-    const flagged = buildInterior({ ...BASE_SPEC, flagstones: [3, 3, 5, 5] });
+    const flagged = buildInterior({ ...BASE_SPEC, flagstones: [{ col: 3, row: 3, w: 3, h: 3 }] });
     const grid = buildSolidGrid(flagged);
 
     expect(flagged.terrain[3][3]).toBe("dirt");
