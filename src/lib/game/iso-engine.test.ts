@@ -292,3 +292,91 @@ describe("interaction priority", () => {
     expect(state.pendingDoor).toEqual(door);
   });
 });
+
+/** An input manager reporting a set of held keys, for movement-driven tests. */
+function keysHeld(...codes: string[]): InputManager {
+  const held = new Set(codes);
+  return {
+    isDown: (c) => held.has(c),
+    consume: () => false,
+    press: () => {},
+    release: () => {},
+    attach: () => () => {},
+  };
+}
+
+describe("walking into a door", () => {
+  const door: Door = {
+    col: 5,
+    row: 5,
+    id: "welcome-center",
+    label: "Welcome Center",
+    warpTo: "welcome-center-inside",
+    spawnAt: "exit",
+  };
+  const world: IsoWorld = { ...LAB_TOWN, doors: [door], links: [] };
+  const solid = buildWorldCollision(world);
+
+  /** Spawn clear of the door and walk back to it, so auto-warp is armed — which
+   * is what happens to a player who was not just deposited by that same door. */
+  function armedAtDoor() {
+    const state = createIsoState(world, { spawnCol: 5, spawnRow: 9 });
+    update(state, world, solid, keysHeld()); // no door in reach: arms
+    expect(state.doorArmed).toBe(true);
+    getLocalEntity(state).row = 6; // now standing just south of the door
+    return state;
+  }
+
+  it("warps when the player heads up-screen into it", () => {
+    const state = armedAtDoor();
+    update(state, world, solid, keysHeld("ArrowUp"));
+    expect(state.mode).toBe("fading");
+    expect(state.pendingDoor).toEqual(door);
+  });
+
+  it("does not warp when the player walks past it", () => {
+    // Down-right is east along a street in tile space: the row axis alone would
+    // read that as northward, which is why the test is on screen direction.
+    for (const keys of [["ArrowRight", "ArrowDown"], ["ArrowDown"], ["ArrowLeft"]]) {
+      const state = armedAtDoor();
+      update(state, world, solid, keysHeld(...keys));
+      expect(state.mode).toBe("overworld");
+      expect(state.pendingDoor).toBeNull();
+    }
+  });
+
+  it("does not fire the door it just deposited you at, even holding the key", () => {
+    // Arriving through a door leaves you inside its reach; without disarming,
+    // a held key would bounce you straight back out in a loop.
+    const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
+    for (let tick = 0; tick < 10; tick++) {
+      update(state, world, solid, keysHeld("ArrowUp"));
+      expect(state.mode).toBe("overworld");
+    }
+    expect(state.doorArmed).toBe(false);
+  });
+
+  it("re-arms once the player is clear of every door, and works again", () => {
+    const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
+    update(state, world, solid, keysHeld("ArrowUp"));
+    expect(state.doorArmed).toBe(false);
+
+    getLocalEntity(state).row = 9; // walked away
+    update(state, world, solid, keysHeld());
+    expect(state.doorArmed).toBe(true);
+
+    getLocalEntity(state).row = 6; // came back
+    update(state, world, solid, keysHeld("ArrowUp"));
+    expect(state.mode).toBe("fading");
+    expect(state.pendingDoor).toEqual(door);
+  });
+
+  it("still opens on Enter, which the touch controls rely on", () => {
+    const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
+    update(state, world, solid, keyOnce(null));
+    expect(state.doorArmed).toBe(false); // Enter is not gated on arming
+    update(state, world, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("fading");
+    expect(state.pendingDoor).toEqual(door);
+  });
+});

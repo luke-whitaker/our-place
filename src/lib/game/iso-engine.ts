@@ -10,7 +10,13 @@ import { groundCell, type Terrain } from "./forest-autotile";
 import { waterCell, WATER_FRAMES, WATER_FRAME_COLS } from "./water-autotile";
 import { drawObject, objectDrawRect, type ObjectSprite } from "./world-object";
 import { pickFrame, type CharacterSprites } from "./character-sheet";
-import { computeIntent, applyMovement, createEntity, type IsoEntity } from "./iso-actor";
+import {
+  computeIntent,
+  applyMovement,
+  createEntity,
+  type IsoEntity,
+  type MoveIntent,
+} from "./iso-actor";
 import { buildSolidGrid, type SolidGrid } from "./iso-collision";
 import { drawPrompt, drawToast, drawWarpMenu, drawNameTag } from "./hud";
 import {
@@ -63,6 +69,10 @@ export interface IsoState {
   fadeDir: -1 | 0 | 1;
   nearbyDoor: Door | null;
   pendingDoor: Door | null;
+  /** Whether walking into `nearbyDoor` may warp. Cleared when a door fires and
+   * when the player spawns already standing at one, so arriving through a door
+   * never bounces straight back out; set again once no door is in reach. */
+  doorArmed: boolean;
   nearbyMushroom: MushroomWarp | null;
   pendingWarp: MushroomWarp | null;
   /** A chosen link to another world, fired at the peak of the fade like a door. */
@@ -113,6 +123,8 @@ export function createIsoState(world: IsoWorld, options: IsoStateOptions = {}): 
     fadeDir: options.fadeIn ? -1 : 0,
     nearbyDoor: null,
     pendingDoor: null,
+    // You always arrive next to the door you came through, so start disarmed.
+    doorArmed: false,
     nearbyMushroom: null,
     pendingWarp: null,
     pendingLink: null,
@@ -292,6 +304,25 @@ function updateCamera(state: IsoState, world: IsoWorld): void {
 
 // ── Update ──
 
+/** Whether an intent heads up-screen, which is what walking into a door looks
+ * like: doors sit on the north face of whatever they open (a building's front
+ * onto the street, a room's exit in its north wall), and the camera looks at
+ * that face. Screen space, not tile space, is the right test here — the tile
+ * axes run diagonally, so "east along the street" is screen down-right and would
+ * read as northward on the row axis alone. */
+function headingIntoDoor(intent: MoveIntent): boolean {
+  return intent.sy < 0;
+}
+
+/** Stage a door and start the fade. Disarms auto-warp so the door you arrive at
+ * on the other side cannot immediately fire in return. */
+function enterDoor(state: IsoState, door: Door): void {
+  state.mode = "fading";
+  state.fadeDir = 1;
+  state.pendingDoor = door;
+  state.doorArmed = false;
+}
+
 /** Fired at the peak of a door fade — the caller ports to that place's forum view. */
 export type OnDoorInteract = (door: Door) => void;
 /** Fired at the peak of a link fade — the caller navigates to the other world. */
@@ -400,11 +431,21 @@ export function update(
     state.toast = { text: `${state.nearbyMushroom.label} discovered!`, ticksLeft: TOAST_TICKS };
   }
 
+  // Re-arm as soon as the player is clear of every door.
+  if (!state.nearbyDoor) state.doorArmed = true;
+
+  const intent = computeIntent(input);
+
   // ── Interaction (doors take priority over shrines) ──
+  // A door opens two ways: walk up into it, or press Enter. Enter is not gated
+  // on arming, because pressing it is already deliberate; it also keeps doors
+  // usable from the touch controls, where there is no "walk into" gesture.
+  if (state.nearbyDoor && state.doorArmed && headingIntoDoor(intent)) {
+    enterDoor(state, state.nearbyDoor);
+    return;
+  }
   if (state.nearbyDoor && (input.consume("Enter") || input.consume("Space"))) {
-    state.mode = "fading";
-    state.fadeDir = 1;
-    state.pendingDoor = state.nearbyDoor;
+    enterDoor(state, state.nearbyDoor);
     return;
   }
   if (state.nearbyPc && (input.consume("Enter") || input.consume("Space"))) {
@@ -419,7 +460,7 @@ export function update(
   }
 
   // ── Movement (local entity only; remote actors come from the network later) ──
-  applyMovement(solid, player, computeIntent(input));
+  applyMovement(solid, player, intent);
   updateCamera(state, world);
 
   // ── Region entry toasts ──
