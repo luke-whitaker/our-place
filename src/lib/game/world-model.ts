@@ -12,7 +12,7 @@
 
 import { z } from "zod";
 import { TINT_PRESETS, type TintPreset, type TintTarget } from "./terrain-tint";
-import type { Door, MushroomWarp, Region, WorldLink } from "./types";
+import type { Door, MushroomWarp, Pc, Region, WorldLink } from "./types";
 
 // ── Terrain ──
 // Iso ground is a small set of surface types — in iso, structures (walls, roofs,
@@ -122,6 +122,14 @@ function natureLog(src: string): ObjectDef {
   };
 }
 
+/** One segment of an interior wall, or the computer: 32×48 art on a single solid
+ * tile. Bottom-centre anchoring pins the wall's lowest base pixel to the tile
+ * centre, so wall segments belong on the room's own edge tiles — one tile outside
+ * and they float half a tile clear of the floor. */
+function interiorFixture(src: string): ObjectDef {
+  return { src: `/world/objects/${src}.png`, footprint: SINGLE, solid: true, tint: "building" };
+}
+
 export const OBJECT_CATALOG: Record<string, ObjectDef> = {
   house: {
     src: "/world/objects/house.png",
@@ -204,6 +212,47 @@ export const OBJECT_CATALOG: Record<string, ObjectDef> = {
   // 12 directional pieces after test-rendering the park (see capital.ts).
   fence_col: townProp("fence_col"),
   fence_row: townProp("fence_row"),
+
+  // ── Interiors (drawn for Our Place; see assets/world/README.md) ──
+  // Walls come in two runs because a 2:1 iso room has two visible back faces:
+  // `wall_col` runs along a row of columns (the north wall), `wall_row` down a
+  // column of rows (the west wall). `wall_corner` joins them at the north corner.
+  wall_col: interiorFixture("wall_col"),
+  wall_col_door: interiorFixture("wall_col_door"),
+  wall_col_window: interiorFixture("wall_col_window"),
+  wall_row: interiorFixture("wall_row"),
+  wall_row_door: interiorFixture("wall_row_door"),
+  wall_row_window: interiorFixture("wall_row_window"),
+  wall_corner: interiorFixture("wall_corner"),
+  /** The Ports terminal. Its screen faces south-east, so it reads into the room
+   * when the desk sits against the north or west wall. */
+  computer: interiorFixture("computer"),
+
+  // ── Interior furniture (Evergrow Town_Assets_Separated, previously unused) ──
+  // Source: Town_Assets_{Anvil,Bucket1,Grindstone,Tools1,WoodenLogs,FruitCrate1}_32x32.png
+  // and Jar{Blue,Red,Yellow}_32x32.png and AxeOnTrunk_32x32.png.
+  anvil: townProp("anvil"),
+  bucket: townProp("bucket"),
+  grindstone: townProp("grindstone"),
+  tools: townProp("tools"),
+  logs: townProp("logs"),
+  fruit_crate: townProp("fruit_crate"),
+  jar_blue: townProp("jar_blue"),
+  jar_red: townProp("jar_red"),
+  jar_yellow: townProp("jar_yellow"),
+  axe_trunk: townProp("axe_trunk"),
+  // Source: Town_Assets_{Tub1,GardenCar}_48x48.png.
+  tub: townProp("tub"),
+  garden_cart: townProp("garden_cart"),
+  // Source: Town_Assets_ClothingRack_64x80.png — 64px of art spans two tiles, so
+  // it blocks a 2×2 base. Tall enough to hide a wall behind it: keep it on an
+  // edge tile, never mid-room (see .claude/rules/world-engine.md).
+  wardrobe: {
+    src: "/world/objects/wardrobe.png",
+    footprint: baseRect(2, 2),
+    solid: true,
+    tint: "building",
+  },
 };
 
 // ── World ──
@@ -220,6 +269,10 @@ export interface IsoWorld {
   id: string;
   /** Biome recolor baked into the art at load; absent means the forest as painted. */
   tint?: TintPreset;
+  /** Ground tile sheet, painted in the Forest_Tiles cell layout so the autotiler
+   * needs no change. Absent means the forest sheet: an interior names the wooden
+   * one, where `grass` reads as floorboards and `dirt` as stone flags. */
+  groundSheet?: string;
   cols: number;
   rows: number;
   /** Default spawn tile (world-space). */
@@ -230,6 +283,8 @@ export interface IsoWorld {
   objects: PlacedObjectData[];
   /** Building entrances; `id` is the community slug for Ports. */
   doors: Door[];
+  /** Ports terminals: log on to a forum view, or travel PC to PC. */
+  pcs?: Pc[];
   /** Mushroom warp shrines (the mycelium fast-travel network). */
   mushrooms: MushroomWarp[];
   /** Warp-menu destinations in other worlds, offered at every shrine here. */
@@ -249,6 +304,16 @@ const doorSchema = z.object({
   row: z.number().int(),
   id: z.string(),
   label: z.string(),
+  warpTo: z.string().optional(),
+  spawnAt: z.string().optional(),
+});
+
+const pcSchema = z.object({
+  col: z.number().int(),
+  row: z.number().int(),
+  id: z.string(),
+  label: z.string(),
+  href: z.string(),
 });
 
 const mushroomSchema = z.object({
@@ -282,12 +347,14 @@ const regionSchema = z.object({
 export const isoWorldSchema = z.object({
   id: z.string().min(1),
   tint: z.enum(TINT_PRESETS).optional(),
+  groundSheet: z.string().min(1).optional(),
   cols: z.number().int().positive(),
   rows: z.number().int().positive(),
   spawn: tileCoordSchema,
   terrain: z.array(z.array(terrainKindSchema)),
   objects: z.array(z.object({ kind: z.string(), col: z.number().int(), row: z.number().int() })),
   doors: z.array(doorSchema),
+  pcs: z.array(pcSchema).optional(),
   mushrooms: z.array(mushroomSchema),
   links: z.array(linkSchema),
   regions: z.array(regionSchema),

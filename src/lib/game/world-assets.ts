@@ -18,12 +18,13 @@ export async function loadWorldAssets(
 ): Promise<IsoAssets> {
   const tint: TintPreset = world.tint ?? "forest";
   const kinds = [...new Set(world.objects.map((o) => o.kind))];
+  // An interior names its own ground sheet, painted in the same cell layout, so
+  // the autotiler reads it unchanged: `grass` becomes floorboards, `dirt` flags.
+  const ground = world.groundSheet ?? "/world/tiles/forest.png";
 
   const [characters, forest, water, ...sprites] = await Promise.all([
     loadCharacterSheet(worldAsset("/world/characters/long.png"), avatar),
-    loadImage(worldAsset("/world/tiles/forest.png")).then((img) =>
-      tintToImage(img, tint, "ground"),
-    ),
+    loadImage(worldAsset(ground)).then((img) => tintToImage(img, tint, "ground")),
     loadImage(worldAsset("/world/tiles/water.png")).then((img) => tintToImage(img, tint, "ground")),
     ...kinds.map((kind) => {
       const def = OBJECT_CATALOG[kind];

@@ -11,6 +11,25 @@ export interface Door {
   /** Identifier passed to the onInteract callback (e.g., community slug). */
   id: string;
   label: string;
+  /** When set, Enter warps into this world (a `/world?place=` value) instead of
+   * porting to the forum view. Mirrors WorldLink's shape. */
+  warpTo?: string;
+  /** Where to arrive there: a door or shrine id in the destination world. */
+  spawnAt?: string;
+}
+
+// ── PCs (the Ports terminals) ──
+
+/** A computer inside a building. Interacting opens a menu with one "log on" row
+ * that ports to the forum view of the place it stands in, plus the world's links
+ * as PC-to-PC destinations. The third interaction kind, beside doors and shrines. */
+export interface Pc {
+  col: number;
+  row: number;
+  id: string;
+  label: string;
+  /** Where "log on" goes. Empty means this PC only offers travel. */
+  href: string;
 }
 
 // ── Mushroom warp network (mycelium fast-travel) ──
@@ -50,4 +69,4 @@ export interface Region {
 
 // ── Game Mode ──
 
-export type GameMode = "overworld" | "dialogue" | "fading" | "warp-menu";
+export type GameMode = "overworld" | "dialogue" | "fading" | "warp-menu" | "pc-menu";
