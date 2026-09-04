@@ -31,9 +31,15 @@ describe("hexToRgb", () => {
 describe("buildRecolorMap", () => {
   const map = buildRecolorMap(CONFIG);
 
-  it("maps every sheet ramp color (21 total minus fixed outline/eyes)", () => {
-    // 6 hair + 3 skin + 5 shirt + 2 pants + 3 shoes = 19 remapped colors
-    expect(map.size).toBe(19);
+  it("maps every sheet ramp color (21 total minus fixed outline/eyes/blush)", () => {
+    // 6 hair + 3 skin + 4 shirt + 2 pants + 3 shoes = 18 remapped colors
+    expect(map.size).toBe(18);
+  });
+
+  it("never recolors the blush, so cheeks stay pink whatever shirt is picked", () => {
+    // #eabcd6 is painted only on faces. It was once listed in the shirt ramp,
+    // which made cheeks follow the shirt color — a blue shirt gave blue cheeks.
+    expect(map.has(pack("#eabcd6"))).toBe(false);
   });
 
   it("maps each ramp's dominant (base) step to the exact target color", () => {

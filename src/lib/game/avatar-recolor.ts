@@ -19,7 +19,12 @@ type RecolorablePart = "hair" | "skin" | "shirt" | "pants" | "shoes";
 const SHEET_RAMPS: Record<RecolorablePart, readonly string[]> = {
   hair: ["#592d07", "#280b03", "#390d01", "#824c1e", "#b56732", "#621904"],
   skin: ["#ecd9b8", "#d39b5f", "#ffd5bf"],
-  shirt: ["#e9a5e2", "#bf7bd3", "#eabcd6", "#885dc1", "#cebccb"],
+  // #eabcd6 is deliberately absent: it is painted only on cheeks (216 px, none
+  // on a torso), so listing it here made blush track the shirt colour — pick a
+  // blue shirt, get blue cheeks. Off every ramp it is never recoloured, which
+  // leaves cheeks pink for everyone. Moving it to `skin` would not work: a ramp
+  // forces hue to the target, so it would become a plain skin shade.
+  shirt: ["#e9a5e2", "#bf7bd3", "#885dc1", "#cebccb"],
   pants: ["#3654bf", "#0f0996"],
   shoes: ["#4d4d4d", "#2d2c2c", "#574949"],
 };
