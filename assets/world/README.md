@@ -101,6 +101,19 @@ Two more things worth knowing before furnishing a room:
   for the nine community rooms and `island-house.ts` for the generated per-member
   one.
 
+A room is a **union of rectangles**, and the walls fall out of the resulting
+outline: a floor tile takes a wall on whichever of its north and west sides is
+not also floor. That gives L-shaped rooms and wings for free, but it constrains
+the shape: **every face a notch creates must point north or west**, because the
+south and east faces are the cutaway and nothing is drawn there. Cut the notch
+from the room's north-west corner (a north wing flush to the east edge, or a
+west wing flush to the south edge) and it renders correctly; cut it from the
+north-east and you open an east face mid-room, which reads as a hole in the
+building.
+
+Interior partitions need no support: a run of `wall_col` or `wall_row` in
+`props` is already solid and already depth-sorted.
+
 ## Authoring a town
 
 Towns are composed in code as `IsoWorld` documents under
