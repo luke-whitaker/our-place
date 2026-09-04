@@ -13,6 +13,7 @@ import type { TintPreset } from "../terrain-tint";
 import { buildSolidGrid, isSolidAt, type SolidGrid } from "../iso-collision";
 import { createRng, type Rng } from "../prng";
 import type { Door, MushroomWarp, Region, WorldLink } from "../types";
+import { EXIT_DOOR_ID } from "./interior";
 
 export interface IslandOwner {
   id: string;
@@ -33,6 +34,20 @@ export const ISLAND_SHRINE_ID = "island-shrine";
 /** The world id (and save slot) of a member's island. */
 export function islandWorldId(ownerId: string): string {
   return `island:${ownerId}`;
+}
+
+/** The `?place=` value for the house on a member's island: `me-inside` when it
+ * is your own, `<username>-inside` when visiting. Mirrors how the island itself
+ * resolves. Lives here, not in island-house.ts, so the door below can warp
+ * inside without the two modules importing each other. */
+export function housePlace(who: string): string {
+  return `${who}-inside`;
+}
+
+/** Save slot for a house, distinct from its island's so each remembers where you
+ * last stood in it. */
+export function houseWorldId(ownerId: string): string {
+  return `${islandWorldId(ownerId)}:inside`;
 }
 
 const SIZE = 32;
@@ -162,8 +177,16 @@ export function buildIsland({ owner, biome, isOwn }: IslandOptions): IsoWorld {
   const rng = createRng(owner.id);
   const possessive = `${owner.displayName}'s`;
 
+  // The cottage door opens the house rather than porting to the forum: the PC
+  // inside is the way through to a profile now (Ports v2).
   const doors: Door[] = [
-    { id: ISLAND_DOOR_ID, label: isOwn ? "My Place" : `${possessive} Place`, ...DOOR },
+    {
+      id: ISLAND_DOOR_ID,
+      label: isOwn ? "My Place" : `${possessive} Place`,
+      ...DOOR,
+      warpTo: housePlace(isOwn ? "me" : owner.username),
+      spawnAt: EXIT_DOOR_ID,
+    },
   ];
   const mushrooms: MushroomWarp[] = [
     {
