@@ -70,6 +70,37 @@ The player is a BossNelNel 8-direction sheet (`long.png` ships first; see
 23×36 cells, column 0 idle + columns 1–8 walk, rows = the 8 facings clockwise from
 South. A drop-in alternate (e.g. short hair) just needs the same geometry.
 
+### Interiors — the wooden ground sheet, walls, and furniture
+
+An interior is an ordinary `IsoWorld`. It needs no new terrain kind: a world can
+name its own `groundSheet`, and `public/world/tiles/interior_wood.png` is painted
+in the same cell layout `Forest_Tiles` uses, so `forest-autotile.ts` reads it
+unchanged. `grass` becomes floorboards and `dirt` stone flags; both stay walkable,
+so a room can mix two floor materials for free.
+
+Walls are objects, not terrain — which the model already implies, since in iso
+every structure is an object. There are two runs, because a 2:1 room has two
+visible back faces: `wall_col` along the north row, `wall_row` down the west
+column, `wall_corner` where they meet, plus `_window` and `_door` variants of
+each run. The south and east sides are left open and closed off with `void`, the
+standard iso cheat that keeps a room readable.
+
+**Wall placement has one rule that is not adjustable from inside the art.**
+`world-object.ts` anchors a sprite at the bottom-centre of its opaque content and
+draws that on the tile centre, so a wall's lowest base pixel pins to the tile it
+sits on. Put walls on the room's own edge tiles, never on the void outside them,
+or the art floats half a tile clear of the floor.
+
+Two more things worth knowing before furnishing a room:
+
+- **Oversized props occlude.** Depth sorts by anchor tile, so `wardrobe` (64x80,
+  two tiles) placed mid-room covers the wall behind it. Big pieces go against a
+  wall.
+- Don't hand-type a room. `src/lib/game/worlds/interior.ts` generates the floor,
+  the walls, the doorway, and the computer from a short spec; see `interiors.ts`
+  for the nine community rooms and `island-house.ts` for the generated per-member
+  one.
+
 ## Authoring a town
 
 Towns are composed in code as `IsoWorld` documents under

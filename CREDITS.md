@@ -30,3 +30,13 @@ redistributed, even if modified** — which is why the raw source files are kept
 out of this repository.
 
 > Credit is a courtesy here (the license does not require it), included gladly.
+
+## Interior art
+
+The interior ground sheet, the wall runs (with their window and doorway
+variants), and the computer were **drawn for Our Place** and are not from any
+pack. The floor tile's diamond silhouette is generated rather than lifted, so
+none of the pack's grass fringe comes with it.
+
+The furniture inside those rooms is the Evergrow pack's `Town_Assets` set above,
+which the town outside had not used.
