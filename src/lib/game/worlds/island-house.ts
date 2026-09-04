@@ -97,8 +97,7 @@ export function buildIslandHouse({ owner, isOwn }: HouseOptions): IsoWorld {
   return buildInterior({
     id: houseWorldId(owner.id),
     label: isOwn ? "Home" : `${owner.displayName}'s Place`,
-    cols: SIZE,
-    rows: SIZE,
+    floor: [{ col: 1, row: 1, w: SIZE - 2, h: SIZE - 2 }],
     doorCol: DOOR_COL,
     exit: { warpTo: place, spawnAt: ISLAND_DOOR_ID },
     pc: PC,
