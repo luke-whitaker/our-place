@@ -22,7 +22,7 @@ import {
   type ViewRect,
 } from "./iso-cull";
 import { CANVAS_W, CANVAS_H, FADE_SPEED, PAL } from "./constants";
-import type { GameMode, Door, MushroomWarp, WorldLink } from "./types";
+import type { GameMode, Door, MushroomWarp, Pc, WorldLink } from "./types";
 import type { IsoWorld } from "./world-model";
 import type { InputManager } from "./input";
 
@@ -67,8 +67,12 @@ export interface IsoState {
   pendingWarp: MushroomWarp | null;
   /** A chosen link to another world, fired at the peak of the fade like a door. */
   pendingLink: WorldLink | null;
+  nearbyPc: Pc | null;
+  /** A chosen "log on" target, fired at the peak of the fade like a link. */
+  pendingPort: string | null;
   discovered: Set<string>;
-  warpMenuIndex: number;
+  /** Cursor into whichever modal list is open — the shrine network or a PC. */
+  menuIndex: number;
   currentRegionId: string | null;
   toast: { text: string; ticksLeft: number } | null;
 }
@@ -112,8 +116,10 @@ export function createIsoState(world: IsoWorld, options: IsoStateOptions = {}): 
     nearbyMushroom: null,
     pendingWarp: null,
     pendingLink: null,
+    nearbyPc: null,
+    pendingPort: null,
     discovered: new Set(options.discovered ?? []),
-    warpMenuIndex: 0,
+    menuIndex: 0,
     // Left null so the first update fires the spawn region's entry toast.
     currentRegionId: null,
     toast: null,
@@ -143,6 +149,13 @@ function findNearbyMushroom(world: IsoWorld, col: number, row: number): Mushroom
   return null;
 }
 
+function findNearbyPc(world: IsoWorld, col: number, row: number): Pc | null {
+  for (const pc of world.pcs ?? []) {
+    if (isNear(col, row, pc.col, pc.row)) return pc;
+  }
+  return null;
+}
+
 export function findRegionId(world: IsoWorld, col: number, row: number): string | null {
   const c = Math.floor(col);
   const r = Math.floor(row);
@@ -162,22 +175,68 @@ export function warpMenuOptions(state: IsoState, world: IsoWorld): MushroomWarp[
   );
 }
 
-/** One selectable row of the warp menu: a shrine here, or a link elsewhere. */
-export type WarpEntry =
+/** One selectable row of a terminal menu: a shrine in this world, a link to
+ * another world, or a port out of the world entirely (a PC logging on). */
+export type MenuEntry =
   | { kind: "shrine"; label: string; warp: MushroomWarp }
-  | { kind: "link"; label: string; link: WorldLink };
+  | { kind: "link"; label: string; link: WorldLink }
+  | { kind: "port"; label: string; href: string };
 
-/** The full warp menu: discovered shrines first, then the world's links (which
+/** The shrine menu: discovered shrines first, then the world's links (which
  * never need discovering). The caller appends its own Cancel row. */
-export function warpMenuEntries(state: IsoState, world: IsoWorld): WarpEntry[] {
+export function warpMenuEntries(state: IsoState, world: IsoWorld): MenuEntry[] {
   return [
-    ...warpMenuOptions(state, world).map((warp): WarpEntry => ({
+    ...warpMenuOptions(state, world).map((warp): MenuEntry => ({
       kind: "shrine",
       label: warp.label,
       warp,
     })),
-    ...world.links.map((link): WarpEntry => ({ kind: "link", label: link.label, link })),
+    ...world.links.map((link): MenuEntry => ({ kind: "link", label: link.label, link })),
   ];
+}
+
+/** A PC's menu: log on to the forum view of the place it stands in, then the
+ * world's links as the rest of the terminal network. A PC with no href offers
+ * travel only. Links are what any terminal here can reach — a shrine draws on
+ * the same list, which is why an interior keeps its network in `links`. */
+export function pcMenuEntries(pc: Pc, world: IsoWorld): MenuEntry[] {
+  const logOn: MenuEntry[] = pc.href ? [{ kind: "port", label: "Log on", href: pc.href }] : [];
+  return [
+    ...logOn,
+    ...world.links.map((link): MenuEntry => ({ kind: "link", label: link.label, link })),
+  ];
+}
+
+/** Drive an open modal list. Returns the chosen row, "cancel" when the player
+ * backs out or picks the Cancel row, or null while the menu is still open.
+ * Shared by both menus so their key handling can never drift apart. */
+function stepMenu(
+  state: IsoState,
+  input: InputManager,
+  entries: MenuEntry[],
+): MenuEntry | "cancel" | null {
+  const total = entries.length + 1; // + Cancel
+  if (input.consume("Escape")) return "cancel";
+  if (input.consume("ArrowUp") || input.consume("KeyW")) {
+    state.menuIndex = (state.menuIndex - 1 + total) % total;
+  }
+  if (input.consume("ArrowDown") || input.consume("KeyS")) {
+    state.menuIndex = (state.menuIndex + 1) % total;
+  }
+  if (input.consume("Enter") || input.consume("Space")) {
+    return entries[state.menuIndex] ?? "cancel";
+  }
+  return null;
+}
+
+/** Commit a chosen row: stage it and start the fade. The pending value is acted
+ * on at the fade's peak, so every transition looks the same as a door's. */
+function chooseEntry(state: IsoState, entry: MenuEntry): void {
+  if (entry.kind === "shrine") state.pendingWarp = entry.warp;
+  else if (entry.kind === "link") state.pendingLink = entry.link;
+  else state.pendingPort = entry.href;
+  state.mode = "fading";
+  state.fadeDir = 1;
 }
 
 /** The world's projected screen extent (tile centres), in pre-zoom pixels. */
@@ -237,10 +296,13 @@ function updateCamera(state: IsoState, world: IsoWorld): void {
 export type OnDoorInteract = (door: Door) => void;
 /** Fired at the peak of a link fade — the caller navigates to the other world. */
 export type OnWorldLink = (link: WorldLink) => void;
+/** Fired at the peak of a PC "log on" fade — the caller ports to that href. */
+export type OnPcPort = (href: string) => void;
 
 export interface UpdateCallbacks {
   onDoorInteract?: OnDoorInteract;
   onWorldLink?: OnWorldLink;
+  onPcPort?: OnPcPort;
 }
 
 export function update(
@@ -278,6 +340,18 @@ export function update(
           return;
         }
       }
+      if (state.pendingPort) {
+        const href = state.pendingPort;
+        state.pendingPort = null;
+        state.pendingDoor = null;
+        if (callbacks.onPcPort) {
+          // Same contract as a link: the caller navigates, so hold black rather
+          // than fading a world back in that is about to be replaced.
+          state.fadeDir = 0;
+          callbacks.onPcPort(href);
+          return;
+        }
+      }
       if (state.pendingWarp) {
         const warp = state.pendingWarp;
         const player = getLocalEntity(state);
@@ -301,32 +375,15 @@ export function update(
     return; // no input during a fade
   }
 
-  // ── Warp menu ──
-  if (state.mode === "warp-menu") {
-    const entries = warpMenuEntries(state, world);
-    const total = entries.length + 1; // + Cancel
-
-    if (input.consume("Escape")) {
-      state.mode = "overworld";
-      return;
-    }
-    if (input.consume("ArrowUp") || input.consume("KeyW")) {
-      state.warpMenuIndex = (state.warpMenuIndex - 1 + total) % total;
-    }
-    if (input.consume("ArrowDown") || input.consume("KeyS")) {
-      state.warpMenuIndex = (state.warpMenuIndex + 1) % total;
-    }
-    if (input.consume("Enter") || input.consume("Space")) {
-      const chosen = entries[state.warpMenuIndex];
-      if (!chosen) {
-        state.mode = "overworld";
-        return;
-      }
-      if (chosen.kind === "shrine") state.pendingWarp = chosen.warp;
-      else state.pendingLink = chosen.link;
-      state.mode = "fading";
-      state.fadeDir = 1;
-    }
+  // ── Terminal menus (the shrine network, and a PC) ──
+  if (state.mode === "warp-menu" || state.mode === "pc-menu") {
+    const entries =
+      state.mode === "pc-menu" && state.nearbyPc
+        ? pcMenuEntries(state.nearbyPc, world)
+        : warpMenuEntries(state, world);
+    const chosen = stepMenu(state, input, entries);
+    if (chosen === "cancel") state.mode = "overworld";
+    else if (chosen) chooseEntry(state, chosen);
     return;
   }
 
@@ -336,6 +393,7 @@ export function update(
 
   // ── Door / shrine proximity ──
   state.nearbyDoor = findNearbyDoor(world, player.col, player.row);
+  state.nearbyPc = findNearbyPc(world, player.col, player.row);
   state.nearbyMushroom = findNearbyMushroom(world, player.col, player.row);
   if (state.nearbyMushroom && !state.discovered.has(state.nearbyMushroom.id)) {
     state.discovered.add(state.nearbyMushroom.id);
@@ -349,9 +407,14 @@ export function update(
     state.pendingDoor = state.nearbyDoor;
     return;
   }
+  if (state.nearbyPc && (input.consume("Enter") || input.consume("Space"))) {
+    state.mode = "pc-menu";
+    state.menuIndex = 0;
+    return;
+  }
   if (state.nearbyMushroom && (input.consume("Enter") || input.consume("Space"))) {
     state.mode = "warp-menu";
-    state.warpMenuIndex = 0;
+    state.menuIndex = 0;
     return;
   }
 
@@ -453,6 +516,8 @@ export function render(
   if (state.fade === 0 && state.mode === "overworld") {
     if (state.nearbyDoor) {
       drawPrompt(ctx, `Press Enter — ${state.nearbyDoor.label}`);
+    } else if (state.nearbyPc) {
+      drawPrompt(ctx, `Press Enter — ${state.nearbyPc.label}`);
     } else if (state.nearbyMushroom) {
       drawPrompt(ctx, `Press Enter — ${state.nearbyMushroom.label}`);
     }
@@ -460,7 +525,12 @@ export function render(
 
   if (state.mode === "warp-menu") {
     const entries = [...warpMenuEntries(state, world).map((e) => e.label), "Cancel"];
-    drawWarpMenu(ctx, "Mycelium Network", entries, state.warpMenuIndex);
+    drawWarpMenu(ctx, "Mycelium Network", entries, state.menuIndex);
+  }
+
+  if (state.mode === "pc-menu" && state.nearbyPc) {
+    const entries = [...pcMenuEntries(state.nearbyPc, world).map((e) => e.label), "Cancel"];
+    drawWarpMenu(ctx, state.nearbyPc.label, entries, state.menuIndex);
   }
 
   if (state.toast) {

@@ -5,6 +5,7 @@ import {
   findRegionId,
   warpMenuOptions,
   warpMenuEntries,
+  pcMenuEntries,
   cameraFor,
   update,
   buildWorldCollision,
@@ -13,7 +14,7 @@ import {
 import { LAB_TOWN } from "./worlds/lab-town";
 import type { IsoWorld } from "./world-model";
 import type { InputManager } from "./input";
-import type { WorldLink } from "./types";
+import type { Door, Pc, WorldLink } from "./types";
 
 /** An input manager that reports one key press, once, and nothing else. */
 function keyOnce(code: string | null): InputManager {
@@ -129,7 +130,7 @@ describe("choosing a link in the warp menu", () => {
     const state = createIsoState(LINKED_TOWN);
     state.nearbyMushroom = LINKED_TOWN.mushrooms[0];
     state.mode = "warp-menu";
-    state.warpMenuIndex = 0; // nothing discovered, so row 0 is the link
+    state.menuIndex = 0; // nothing discovered, so row 0 is the link
     return state;
   }
 
@@ -166,7 +167,7 @@ describe("choosing a link in the warp menu", () => {
     const state = createIsoState(LINKED_TOWN, { discovered: ["mushroom-lab-ridge"] });
     state.nearbyMushroom = LINKED_TOWN.mushrooms[0];
     state.mode = "warp-menu";
-    state.warpMenuIndex = 0; // Ridge Shrine
+    state.menuIndex = 0; // Ridge Shrine
     update(state, LINKED_TOWN, buildWorldCollision(LINKED_TOWN), keyOnce("Enter"));
     expect(state.pendingWarp?.id).toBe("mushroom-lab-ridge");
     expect(state.pendingLink).toBeNull();
@@ -197,5 +198,97 @@ describe("cameraFor", () => {
     };
     // Same camera regardless of where the entity stands — the world is centered.
     expect(cameraFor(tiny, 1, 1).x).toBe(cameraFor(tiny, 3, 3).x);
+  });
+});
+
+describe("pcMenuEntries", () => {
+  it("puts a labelled Log on port first when the PC has an href, then the world's links", () => {
+    const pc: Pc = { col: 5, row: 5, id: "pc", label: "Terminal", href: "/communities/test" };
+    const entries = pcMenuEntries(pc, LINKED_TOWN);
+    expect(entries[0]).toEqual({ kind: "port", label: "Log on", href: "/communities/test" });
+    expect(entries.slice(1)).toEqual([{ kind: "link", label: "The Capital", link: CAPITAL_LINK }]);
+  });
+
+  it("omits the Log on row when the PC has no href", () => {
+    const pc: Pc = { col: 5, row: 5, id: "pc", label: "Terminal", href: "" };
+    expect(pcMenuEntries(pc, LINKED_TOWN)).toEqual([
+      { kind: "link", label: "The Capital", link: CAPITAL_LINK },
+    ]);
+  });
+});
+
+describe("PC proximity and the pc-menu mode", () => {
+  const pc: Pc = { col: 5, row: 5, id: "pc", label: "Terminal", href: "/communities/test" };
+  const world: IsoWorld = { ...LAB_TOWN, pcs: [pc], links: [CAPITAL_LINK] };
+
+  it("notices a nearby PC while walking, and opens the pc-menu on Enter", () => {
+    const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
+    const solid = buildWorldCollision(world);
+
+    update(state, world, solid, keyOnce(null));
+    expect(state.nearbyPc).toEqual(pc);
+
+    update(state, world, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("pc-menu");
+    expect(state.menuIndex).toBe(0);
+  });
+});
+
+describe("choosing Log on in a PC's menu", () => {
+  const pc: Pc = { col: 5, row: 5, id: "pc", label: "Terminal", href: "/communities/test" };
+  const world: IsoWorld = { ...LAB_TOWN, pcs: [pc], links: [CAPITAL_LINK] };
+
+  function openPcMenu() {
+    const state = createIsoState(world);
+    state.nearbyPc = pc;
+    state.mode = "pc-menu";
+    state.menuIndex = 0; // Log on is row 0 whenever the PC has an href
+    return state;
+  }
+
+  it("fades out, fires onPcPort at the peak with the href, and then holds black", () => {
+    const state = openPcMenu();
+    const solid = buildWorldCollision(world);
+    const onPcPort = vi.fn();
+
+    update(state, world, solid, keyOnce("Enter"), { onPcPort });
+    expect(state.pendingPort).toBe("/communities/test");
+    expect(state.mode).toBe("fading");
+    expect(state.fadeDir).toBe(1);
+    expect(onPcPort).not.toHaveBeenCalled();
+
+    for (let i = 0; i < 30; i++) update(state, world, solid, keyOnce(null), { onPcPort });
+    expect(onPcPort).toHaveBeenCalledTimes(1);
+    expect(onPcPort).toHaveBeenCalledWith("/communities/test");
+    expect(state.fade).toBe(1);
+    expect(state.fadeDir).toBe(0);
+    expect(state.mode).toBe("fading");
+    expect(state.pendingPort).toBeNull();
+  });
+
+  it("closes back to overworld on Escape, without porting", () => {
+    const state = openPcMenu();
+    const solid = buildWorldCollision(world);
+    update(state, world, solid, keyOnce("Escape"));
+    expect(state.mode).toBe("overworld");
+    expect(state.pendingPort).toBeNull();
+  });
+});
+
+describe("interaction priority", () => {
+  it("prefers a door over a PC when both are in reach", () => {
+    const door: Door = { col: 5, row: 5, id: "welcome-center", label: "Welcome Center" };
+    const pc: Pc = { col: 5, row: 5, id: "pc", label: "Terminal", href: "/communities/test" };
+    const world: IsoWorld = { ...LAB_TOWN, doors: [door], pcs: [pc], links: [] };
+    const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
+    const solid = buildWorldCollision(world);
+
+    update(state, world, solid, keyOnce(null));
+    expect(state.nearbyDoor).toEqual(door);
+    expect(state.nearbyPc).toEqual(pc);
+
+    update(state, world, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("fading");
+    expect(state.pendingDoor).toEqual(door);
   });
 });

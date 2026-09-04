@@ -28,6 +28,8 @@ interface WorldCanvasProps {
   onDoorInteract?: (door: Door) => void;
   /** Called when the player takes a link to another world (at peak of fade). */
   onWorldLink?: (link: WorldLink) => void;
+  /** Called when the player logs on at a PC (at peak of fade). */
+  onPcPort?: (href: string) => void;
   /** Door or shrine id to spawn at (Portal deep-link); falls back to saved/default spawn. */
   spawnAt?: string;
   /** Remember position and discoveries on this device. Off when visiting
@@ -41,7 +43,7 @@ const SAVE_INTERVAL_MS = 3000;
 /** Every traveler's home shrine: always in the warp menu, never needs finding. */
 const ALWAYS_KNOWN_SHRINES = ["capital-gate"];
 
-/** Where a deep link lands: just south of the door or shrine it names. */
+/** Where a deep link lands: just south of the door, shrine, or PC it names. */
 function spawnFor(
   world: IsoWorld,
   solid: SolidGrid,
@@ -52,6 +54,9 @@ function spawnFor(
   if (door) return { col: door.col, row: door.row + 1 };
   const shrine = spawnAt ? world.mushrooms.find((m) => m.id === spawnAt) : undefined;
   if (shrine) return { col: shrine.col, row: shrine.row + 1 };
+  // PC-to-PC travel names a terminal; arrive standing at it, as at a shrine.
+  const pc = spawnAt ? world.pcs?.find((p) => p.id === spawnAt) : undefined;
+  if (pc) return { col: pc.col, row: pc.row + 1 };
   if (saved && isValidIsoPosition(solid, saved.col, saved.row)) return saved;
   return undefined;
 }
@@ -63,13 +68,15 @@ function spawnFor(
  * renders it on a <canvas> with WASD/arrow + touch D-pad movement, a camera that
  * follows and clamps to the world, door interaction with fade transitions,
  * mushroom-shrine fast travel, links to other worlds, region toasts, and
- * responsive scaling. Ports: `spawnAt` deep-links you to a building's door;
- * `onDoorInteract` ports you back to that place's forum view.
+ * responsive scaling. Ports: `spawnAt` deep-links you to a door, shrine, or PC;
+ * `onDoorInteract` ports you back to that place's forum view, or warps you into
+ * the room behind the door when it names one.
  */
 export default function WorldCanvas({
   world,
   onDoorInteract,
   onWorldLink,
+  onPcPort,
   spawnAt,
   persist = true,
 }: WorldCanvasProps) {
@@ -83,10 +90,10 @@ export default function WorldCanvas({
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState("");
 
-  const callbacksRef = useRef({ onDoorInteract, onWorldLink });
+  const callbacksRef = useRef({ onDoorInteract, onWorldLink, onPcPort });
   useEffect(() => {
-    callbacksRef.current = { onDoorInteract, onWorldLink };
-  }, [onDoorInteract, onWorldLink]);
+    callbacksRef.current = { onDoorInteract, onWorldLink, onPcPort };
+  }, [onDoorInteract, onWorldLink, onPcPort]);
 
   // ── Spawn resolution (deep-link → saved position → default) ──
   const playerLabel = user?.display_name;
