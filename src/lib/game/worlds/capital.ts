@@ -19,6 +19,8 @@
 import type { IsoWorld, TerrainKind, PlacedObjectData } from "../world-model";
 import { OBJECT_CATALOG } from "../world-model";
 import { ISLAND_SHRINE_ID } from "./island";
+import { EXIT_DOOR_ID } from "./interior";
+import { interiorPlace } from "./interiors";
 import type { Door, MushroomWarp, Region, WorldLink } from "../types";
 
 // ── Map + the town's offset within it ──
@@ -462,11 +464,16 @@ plantForest();
 
 // ── Doors (one per community building) ──
 
+// Each door warps into that building's room (Ports v2) rather than porting
+// straight to the forum; the PC inside is what reaches the community page. The
+// room's own `exit` door warps back here, arriving at this door's id.
 const doors: Door[] = BUILDINGS.map((b) => ({
   id: b.id,
   label: b.label,
   col: b.col,
   row: b.row + 1,
+  warpTo: interiorPlace(b.id),
+  spawnAt: EXIT_DOOR_ID,
 }));
 
 // Every shrine in town offers the way home: the member's own island, arriving
