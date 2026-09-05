@@ -1,10 +1,12 @@
 // The nine community building interiors, and the PC network that links them.
 //
 // Each room is one short spec (see interior.ts); the generator lays the floor,
-// the two back walls, the doorway, and the computer. Rooms differ by size, by
-// where the light falls (windows), by the stone patch on the floor, and by what
-// is standing in them — a music hall reads as a music hall because of its chairs
-// and its stage crates, not because its geometry is special.
+// the two back walls, the doorway, and the computer. Rooms are deliberately
+// bare. A room reads as its own place through its size and shape, where the
+// light falls (windows), and the stone patch on the floor — not through
+// scattered furniture, which crowded the rooms and, in four of them, boxed in
+// the computer. The only objects a spec places now are the partitions that
+// divide a room, so nothing can stand between a member and the terminal.
 //
 // Room size follows the building's exterior footprint, so the hall you walk into
 // is the size the hall outside promised.
@@ -42,21 +44,7 @@ const ROOMS: ReadonlyArray<Omit<InteriorSpec, "id" | "exit" | "pcHref" | "links"
     windowCols: [7, 8, 14, 15],
     windowRows: [3, 4, 9, 10],
     flagstones: [{ col: 9, row: 5, w: 5, h: 5 }],
-    props: [
-      { kind: "chair", col: 9, row: 3 },
-      { kind: "chair", col: 13, row: 3 },
-      { kind: "flower_box1", col: 6, row: 2 },
-      { kind: "flower_box2", col: 16, row: 2 },
-      { kind: "wardrobe", col: 6, row: 13 },
-      { kind: "jar_blue", col: 17, row: 2 },
-      { kind: "jar_red", col: 17, row: 3 },
-      { kind: "barrel", col: 17, row: 5 },
-      { kind: "crate1", col: 17, row: 12 },
-      // The annex: a small sign-in nook, set back from the hall.
-      { kind: "bucket", col: 3, row: 12 },
-      { kind: "jar_yellow", col: 2, row: 8 },
-      { kind: "chair", col: 3, row: 9 },
-    ],
+    props: [],
   },
   {
     label: "Creative",
@@ -73,44 +61,20 @@ const ROOMS: ReadonlyArray<Omit<InteriorSpec, "id" | "exit" | "pcHref" | "links"
     windowRows: [7, 8],
     // The side workspace, entirely stone-floored to read as its own area.
     flagstones: [{ col: 6, row: 1, w: 6, h: 3 }],
-    props: [
-      { kind: "chair", col: 4, row: 5 },
-      { kind: "tools", col: 2, row: 6 },
-      { kind: "jar_blue", col: 2, row: 8 },
-      { kind: "jar_red", col: 2, row: 9 },
-      { kind: "jar_yellow", col: 2, row: 10 },
-      { kind: "crate1", col: 3, row: 12 },
-      { kind: "crate2", col: 4, row: 12 },
-      // The workspace.
-      { kind: "grindstone", col: 9, row: 2 },
-      { kind: "barrel", col: 11, row: 2 },
-      { kind: "chair", col: 8, row: 3 },
-    ],
+    props: [],
   },
   {
     label: "Community Support",
-    // Deliberately the plainest room: a single wide, shallow rectangle for a
-    // circle of chairs. It earns its distinctness from proportion and
-    // seating, not shape.
+    // Deliberately the plainest room: a single wide, shallow rectangle. It
+    // earns its distinctness from proportion alone, and the stone patch marks
+    // the middle of it, where a circle would form.
     floor: [{ col: 1, row: 1, w: 17, h: 7 }],
     doorCol: 9,
     pc: { col: 2, row: 2 },
     windowCols: [4, 5, 7, 8, 10, 11, 13, 14],
     windowRows: [3, 4],
     flagstones: [{ col: 5, row: 3, w: 9, h: 3 }],
-    props: [
-      // Chairs ringed around the stone floor: the room is for sitting down
-      // together, so the furniture says so before anyone reads a word.
-      { kind: "chair", col: 7, row: 3 },
-      { kind: "chair", col: 11, row: 3 },
-      { kind: "chair", col: 5, row: 4 },
-      { kind: "chair", col: 13, row: 4 },
-      { kind: "chair", col: 7, row: 5 },
-      { kind: "chair", col: 11, row: 5 },
-      { kind: "flower_box3", col: 2, row: 6 },
-      { kind: "bucket", col: 17, row: 6 },
-      { kind: "jar_yellow", col: 17, row: 2 },
-    ],
+    props: [],
   },
   {
     label: "Technology",
@@ -125,12 +89,6 @@ const ROOMS: ReadonlyArray<Omit<InteriorSpec, "id" | "exit" | "pcHref" | "links"
     windowRows: [3, 4, 11, 12],
     flagstones: [{ col: 2, row: 9, w: 9, h: 5 }],
     props: [
-      { kind: "chair", col: 3, row: 3 },
-      { kind: "crate1", col: 9, row: 3 },
-      { kind: "crate2", col: 9, row: 4 },
-      { kind: "crate3", col: 9, row: 5 },
-      { kind: "barrel", col: 10, row: 7 },
-      // The partition: front room above, back workshop below, gap at col 6.
       { kind: "wall_col", col: 2, row: 8 },
       { kind: "wall_col", col: 3, row: 8 },
       { kind: "wall_col", col: 4, row: 8 },
@@ -140,11 +98,6 @@ const ROOMS: ReadonlyArray<Omit<InteriorSpec, "id" | "exit" | "pcHref" | "links"
       { kind: "wall_col", col: 9, row: 8 },
       { kind: "wall_col", col: 10, row: 8 },
       { kind: "wall_col", col: 11, row: 8 },
-      // The back workshop.
-      { kind: "anvil", col: 3, row: 10 },
-      { kind: "grindstone", col: 5, row: 11 },
-      { kind: "logs", col: 2, row: 12 },
-      { kind: "axe_trunk", col: 9, row: 11 },
     ],
   },
   {
@@ -160,25 +113,16 @@ const ROOMS: ReadonlyArray<Omit<InteriorSpec, "id" | "exit" | "pcHref" | "links"
     windowRows: [5, 6, 9],
     flagstones: [{ col: 5, row: 10, w: 3, h: 4 }],
     props: [
-      { kind: "flower_box1", col: 2, row: 3 },
-      { kind: "flower_box4", col: 2, row: 6 },
-      { kind: "tub", col: 4, row: 4 },
-      { kind: "bucket", col: 6, row: 4 },
-      { kind: "jar_blue", col: 7, row: 2 },
-      { kind: "jar_yellow", col: 7, row: 3 },
-      // The alcove: walled on north and west, open at (5,12) as its doorway.
       { kind: "wall_col", col: 5, row: 10 },
       { kind: "wall_col", col: 6, row: 10 },
       { kind: "wall_col", col: 7, row: 10 },
       { kind: "wall_row", col: 5, row: 11 },
       { kind: "wall_row", col: 5, row: 13 },
-      { kind: "tub", col: 7, row: 11 },
-      { kind: "flower_box2", col: 7, row: 13 },
     ],
   },
   {
     label: "Music",
-    // A hall with a recessed stage alcove at the north end, seats facing it.
+    // A hall with a recessed stage alcove at the north end.
     // North wing flush to the east edge, same safe family as Food and
     // Creative: the stage's own west flank picks up a wall for free, reading
     // as the proscenium.
@@ -190,22 +134,9 @@ const ROOMS: ReadonlyArray<Omit<InteriorSpec, "id" | "exit" | "pcHref" | "links"
     pc: { col: 2, row: 5 },
     windowCols: [2, 4, 6, 7, 9, 10],
     windowRows: [7, 8],
-    // The stage: a stone platform, crates for risers.
+    // The stage: a stone platform, raised out of the hall by its flagstones.
     flagstones: [{ col: 5, row: 1, w: 7, h: 3 }],
-    props: [
-      { kind: "crate1", col: 7, row: 2 },
-      { kind: "crate2", col: 9, row: 2 },
-      { kind: "barrel", col: 11, row: 2 },
-      { kind: "chair", col: 4, row: 6 },
-      { kind: "chair", col: 6, row: 6 },
-      { kind: "chair", col: 8, row: 6 },
-      { kind: "chair", col: 10, row: 6 },
-      { kind: "chair", col: 4, row: 9 },
-      { kind: "chair", col: 6, row: 9 },
-      { kind: "chair", col: 8, row: 9 },
-      { kind: "chair", col: 10, row: 9 },
-      { kind: "barrel", col: 11, row: 11 },
-    ],
+    props: [],
   },
   {
     label: "Food",
@@ -222,24 +153,7 @@ const ROOMS: ReadonlyArray<Omit<InteriorSpec, "id" | "exit" | "pcHref" | "links"
     windowCols: [9, 10],
     windowRows: [7, 8],
     flagstones: [{ col: 6, row: 1, w: 9, h: 3 }],
-    props: [
-      // The kitchen, in the wing.
-      { kind: "barrel", col: 9, row: 2 },
-      { kind: "fruit_crate", col: 11, row: 2 },
-      { kind: "jar_red", col: 12, row: 2 },
-      { kind: "jar_yellow", col: 13, row: 2 },
-      { kind: "logs", col: 14, row: 2 },
-      { kind: "tub", col: 14, row: 3 },
-      // The long table, as two runs of seats down the hall.
-      { kind: "chair", col: 5, row: 7 },
-      { kind: "chair", col: 5, row: 9 },
-      { kind: "chair", col: 5, row: 11 },
-      { kind: "chair", col: 9, row: 7 },
-      { kind: "chair", col: 9, row: 9 },
-      { kind: "chair", col: 9, row: 11 },
-      { kind: "barrel", col: 13, row: 12 },
-      { kind: "crate1", col: 14, row: 6 },
-    ],
+    props: [],
   },
   {
     label: "Gaming",
@@ -253,7 +167,6 @@ const ROOMS: ReadonlyArray<Omit<InteriorSpec, "id" | "exit" | "pcHref" | "links"
     windowRows: [4, 11],
     flagstones: [{ col: 2, row: 9, w: 9, h: 5 }],
     props: [
-      // The partition: two bays, open past column 8 at the east end.
       { kind: "wall_col", col: 2, row: 8 },
       { kind: "wall_col", col: 3, row: 8 },
       { kind: "wall_col", col: 4, row: 8 },
@@ -261,17 +174,6 @@ const ROOMS: ReadonlyArray<Omit<InteriorSpec, "id" | "exit" | "pcHref" | "links"
       { kind: "wall_col", col: 6, row: 8 },
       { kind: "wall_col", col: 7, row: 8 },
       { kind: "wall_col", col: 8, row: 8 },
-      // Bay one.
-      { kind: "chair", col: 4, row: 4 },
-      { kind: "chair", col: 4, row: 6 },
-      { kind: "crate1", col: 9, row: 3 },
-      { kind: "crate3", col: 10, row: 4 },
-      // Bay two.
-      { kind: "chair", col: 4, row: 10 },
-      { kind: "chair", col: 4, row: 12 },
-      { kind: "jar_blue", col: 9, row: 11 },
-      { kind: "barrel", col: 9, row: 12 },
-      { kind: "logs", col: 10, row: 13 },
     ],
   },
   {
@@ -287,17 +189,7 @@ const ROOMS: ReadonlyArray<Omit<InteriorSpec, "id" | "exit" | "pcHref" | "links"
     windowCols: [6, 7, 12, 13],
     windowRows: [6, 7, 11],
     flagstones: [{ col: 7, row: 6, w: 6, h: 4 }],
-    props: [
-      { kind: "garden_cart", col: 6, row: 5 },
-      { kind: "tub", col: 5, row: 7 },
-      { kind: "bucket", col: 5, row: 9 },
-      { kind: "crate2", col: 14, row: 5 },
-      { kind: "barrel", col: 14, row: 7 },
-      { kind: "chair", col: 13, row: 10 },
-      { kind: "logs", col: 14, row: 11 },
-      // The equipment store, off the west end of the hall.
-      { kind: "wardrobe", col: 3, row: 12 },
-    ],
+    props: [],
   },
 ];
 

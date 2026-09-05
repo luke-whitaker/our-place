@@ -69,6 +69,11 @@ describe("INTERIORS", () => {
         expect(approach.some(([c, r]) => seen.has(`${c},${r}`))).toBe(true);
       }
 
+      // Two open sides, not one. Every PC sits in a corner, so its north and
+      // west neighbours are the room's own back walls and only east and south
+      // can ever be free. One free side means something is standing in the
+      // other, which is how four rooms once boxed their terminal in behind
+      // furniture while still passing a "some approach is reachable" check.
       for (const pc of world.pcs ?? []) {
         const approach = [
           [pc.col + 1, pc.row],
@@ -76,7 +81,8 @@ describe("INTERIORS", () => {
           [pc.col, pc.row + 1],
           [pc.col, pc.row - 1],
         ];
-        expect(approach.some(([c, r]) => seen.has(`${c},${r}`))).toBe(true);
+        const open = approach.filter(([c, r]) => seen.has(`${c},${r}`));
+        expect(open.length).toBeGreaterThanOrEqual(2);
       }
 
       for (const region of world.regions) {
