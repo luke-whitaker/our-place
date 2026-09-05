@@ -66,10 +66,12 @@ An **isometric 2.5D** overworld you teleport into:
 
 - **Isometric engine** — React + HTML Canvas, a 2:1 diamond projection with an autotiled ground, depth-sorted free-standing objects, and an 8-direction animated character
 - Player movement (WASD/arrows + mobile touch D-pad), a camera that follows and clamps to the map, and per-tile collision
-- **Ports** — walk up to a building's door and step through to its community's forum view; Portal buttons drop you back at its doorstep
+- **Ports** — walk into a building's door and you are inside it; sit at the computer to log on to that community's forum view. Portal buttons drop you back at its doorstep
 - **Mushroom warp network** — discover shrines to unlock fast travel between them
 - **The Capital** — an authored starter town with a building (and a Ports door) for each community
-- **Floating My Place islands** — Every member has an island generated from their account: a cottage whose door ports to their profile, a garden path, a shrine back to the Capital, and trees in the biome they chose. Members pick who may visit: anyone, friends, or no one.
+- **Interiors** — every community building has a room behind its door, and every island house one inside it, each furnished to suit the place
+- **PCs** — the terminal in each room: log on to that community's page, or travel PC to PC across the network
+- **Floating My Place islands** — Every member has an island generated from their account: a cottage you can walk into, a garden path, a shrine back to the Capital, and trees in the biome they chose. Members pick who may visit: anyone, friends, or no one.
 - **The mycelium network** — Shrines link places: Home from any shrine in the Capital, the Capital from any island
 - **Avatar builder** — gender-neutral character customization on first login
 
@@ -239,20 +241,60 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] People page and honest feeds — a member directory with the web of trust visible, friend requests in one place, and chronological feeds that say what they show
 - [x] Terrain tint experiment — autumn, snow, dusk, swamp, and scorched variants from the one forest sheet, in the engine sandbox
 - [x] Viewport culling — the renderer draws only the diagonal bands and sprites the camera can see, with tests proving the output is unchanged
-- [ ] More space to explore — outskirts around the Capital
+- [x] More space to explore — outskirts around the Capital
 - [x] Floating My Place islands — one house, a biome you choose, a mushroom shrine back to the Capital, and a visitor setting
 - [x] Post interaction controls — the author chooses whether a post can be liked, disliked, or commented on
 - [x] API route tests — the reaction, comment, post, and island routes run against a real Postgres in CI
 - [ ] Polls (designed, not built)
 - [ ] Welcome tour — a once-per-version walkthrough for new members on their first visit and everyone else on their next (designed, not built)
 - [ ] Wilderness with tinted biomes and user-placed content sprites
-- [ ] Ports v2 — building interiors with PC sprites, once interior art exists
+- [x] Ports v2 — building interiors with PC sprites
 - [ ] Player identity bound to world position (the name above the avatar is in)
 - [ ] Real-time multiplayer presence (the engine is built with the seams for it)
 
 ---
 
 ## Version History
+
+### v0.9.0 — Ports v2: Interiors and PCs (September 2026)
+
+**Why:** A door that teleported you to a web page made the world a menu. Buildings had no
+inside, so the Capital was a facade you walked past. Ports has always meant that the forum and
+the world are two views of one place, with PCs as the travel points between them — that needed
+rooms to put the PCs in, and the art for them did not exist until now.
+
+**What changed:**
+
+- **Nine building interiors** — every community building opens into a room sized to the
+  building outside it, and each one has its own floor plan. A room is a union of rectangles
+  rather than a single box, so a hall can have a set-back annex, a recessed stage, or a wing,
+  and a run of wall pieces can partition it into a front room and a back workshop.
+- **Doors open two ways** — walk up into one and you are inside, or press Enter. The test is
+  on the screen direction of your movement, not the tile row, because the tile axes run
+  diagonally: walking east along a street is screen down-right, and reading the row axis alone
+  would make both town streets impassable, since every building door sits on one.
+- **Rooms are bare on purpose** — a room reads as its own place through its size and shape,
+  where the light falls, and the stone patch on its floor. Scattered furniture crowded them
+  and, in four rooms, boxed the computer into a corner. Empty and unfinished is the better
+  starting point, and furniture has to earn its way back in.
+- **Island houses** — the cottage on a member's island opens too. The room is generated from
+  their account like the island itself, so a new member has a home the moment they exist, and
+  no two houses are furnished alike. Who may come in follows the island: if you can stand on
+  the doorstep, you can come inside.
+- **PCs** — the computer in every room is the third thing you can interact with, beside doors
+  and shrines. Press Enter at one to log on (a community's page from its building, your
+  profile from your house) or to travel to another building's PC. A house PC reaches all nine
+  buildings; a building PC reaches the other eight and home.
+- **Engine** — a world can name its own ground sheet, so an interior paints `grass` as
+  floorboards and `dirt` as stone flags with no new terrain kind and no autotiler change. Doors
+  gained an optional `warpTo`/`spawnAt`, so a door can open a world instead of porting to a
+  page, and the round trip closes itself with no new spawn machinery.
+- **A live art bug fixed** — the blush color was listed in the shirt palette ramp but painted
+  only on cheeks, so picking a blue shirt gave you blue cheeks. Cheeks are pink again.
+
+**What didn't change:** no API, schema, or migration. Every existing door keeps working —
+`warpTo` is optional — and the Ports deep link (`/world?at=<slug>`) still lands you at a
+building's door.
 
 ### v0.8.0 — Islands, the Outskirts, and Interaction Controls (September 2026)
 
