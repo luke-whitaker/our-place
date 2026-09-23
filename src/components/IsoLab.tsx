@@ -110,6 +110,7 @@ export default function IsoLab() {
       accumulator = Math.min(accumulator + elapsed, MAX_ACCUMULATOR);
       while (accumulator >= TICK_RATE) {
         update(stateRef.current, world, solidRef.current, input);
+        input.endTick();
         accumulator -= TICK_RATE;
       }
       const assets = assetsRef.current;

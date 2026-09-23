@@ -37,6 +37,7 @@ function keyOnce(code: string | null): InputManager {
     press: () => {},
     release: () => {},
     attach: () => () => {},
+    endTick: () => {},
   };
 }
 
@@ -313,6 +314,7 @@ function keysHeld(...codes: string[]): InputManager {
     press: () => {},
     release: () => {},
     attach: () => () => {},
+    endTick: () => {},
   };
 }
 

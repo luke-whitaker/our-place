@@ -245,6 +245,7 @@ export default function WorldCanvas({
         }
         while (accumulator >= TICK_RATE) {
           update(state, world, solid, input, callbacksRef.current);
+          input.endTick();
           accumulator -= TICK_RATE;
         }
         ctx.imageSmoothingEnabled = false;
