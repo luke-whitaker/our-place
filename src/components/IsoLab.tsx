@@ -115,7 +115,10 @@ export default function IsoLab() {
       const assets = assetsRef.current;
       if (assets) {
         ctx.imageSmoothingEnabled = false;
-        render(ctx, stateRef.current, world, grassRef.current, assets, { viewport });
+        render(ctx, stateRef.current, world, grassRef.current, assets, {
+          viewport,
+          promptKey: "Enter",
+        });
       }
       rafId = requestAnimationFrame(loop);
     }

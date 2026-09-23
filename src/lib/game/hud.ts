@@ -15,27 +15,71 @@ export interface HudSize {
   h: number;
 }
 
-/** Bottom-centre "Press Enter — …" interaction prompt. */
-export function drawPrompt(ctx: CanvasRenderingContext2D, text: string, size: HudSize): void {
-  ctx.font = "10px monospace";
-  const textW = ctx.measureText(text).width + 16;
-  const boxX = Math.round(size.w / 2 - textW / 2);
-  const boxY = size.h - 28;
+/** Prompt pill fill colors: bright yellow while an interaction is just in
+ * reach, green for the moment it flashes to confirm before the action fires. */
+const PROMPT_BG = "#ffd84a";
+const PROMPT_CONFIRM_BG = "#62d26f";
 
-  ctx.fillStyle = PAL.textBg;
-  ctx.globalAlpha = 0.85;
-  ctx.fillRect(boxX, boxY, textW, 20);
-  ctx.globalAlpha = 1;
+function clamp(value: number, lo: number, hi: number): number {
+  return Math.max(lo, Math.min(value, hi));
+}
 
-  ctx.strokeStyle = PAL.textBorder;
-  ctx.lineWidth = 1;
-  ctx.strokeRect(boxX, boxY, textW, 20);
+/**
+ * The interaction prompt: a bright pill above the local player with a small
+ * dark key badge ("Enter" or "A") and the door/PC/shrine's own label — no
+ * "Press", no dash, so it reads at a glance. `anchor` is the CSS-px point its
+ * bottom edge sits above (see headHudPos in iso-engine.ts); the pill is then
+ * clamped 8px inside every canvas edge so it never clips off-screen near a
+ * corner. `confirming` turns it green for the beat before the action fires.
+ */
+export function drawPrompt(
+  ctx: CanvasRenderingContext2D,
+  promptKey: string,
+  label: string,
+  anchor: { x: number; y: number },
+  size: HudSize,
+  confirming: boolean,
+): void {
+  const bg = confirming ? PROMPT_CONFIRM_BG : PROMPT_BG;
+  const padX = 8;
+  const padY = 5;
+  const gap = 6;
+  const badgePadX = 6;
+  const height = 22;
 
-  ctx.fillStyle = PAL.textColor;
+  ctx.font = "bold 12px monospace";
+  const badgeW = Math.ceil(ctx.measureText(promptKey).width) + badgePadX * 2;
+  ctx.font = "bold 16px monospace";
+  const labelW = Math.ceil(ctx.measureText(label).width);
+  const width = padX * 2 + badgeW + gap + labelW;
+
+  const x = clamp(Math.round(anchor.x - width / 2), 8, size.w - width - 8);
+  const bottom = clamp(Math.round(anchor.y), 8 + height, size.h - 8);
+  const y = bottom - height;
+
+  ctx.fillStyle = bg;
+  ctx.fillRect(x, y, width, height);
+  ctx.strokeStyle = PAL.darkest;
+  ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, width, height);
+
+  const badgeX = x + padX;
+  const badgeY = y + padY;
+  const badgeH = height - padY * 2;
+  ctx.fillStyle = PAL.darkest;
+  ctx.fillRect(badgeX, badgeY, badgeW, badgeH);
+
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText(text, size.w / 2, boxY + 10);
+  ctx.font = "bold 12px monospace";
+  ctx.fillStyle = bg;
+  ctx.fillText(promptKey, badgeX + badgeW / 2, badgeY + badgeH / 2 + 1);
+
+  ctx.font = "bold 16px monospace";
+  ctx.fillStyle = PAL.darkest;
+  ctx.fillText(label, badgeX + badgeW + gap + labelW / 2, y + height / 2 + 1);
   ctx.textAlign = "start";
+  ctx.textBaseline = "alphabetic";
 }
 
 /** A member's name floating above their sprite: light text with a dark outline

@@ -231,7 +231,10 @@ export default function WorldCanvas({
           accumulator -= TICK_RATE;
         }
         ctx.imageSmoothingEnabled = false;
-        render(ctx, state, world, grass, assets, { viewport });
+        render(ctx, state, world, grass, assets, {
+          viewport,
+          promptKey: isTouchDevice ? "A" : "Enter",
+        });
       } else {
         accumulator = 0;
       }
@@ -241,7 +244,7 @@ export default function WorldCanvas({
 
     rafId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafId);
-  }, [world, solid, grass]);
+  }, [world, solid, grass, isTouchDevice]);
 
   useEffect(() => {
     const cleanupInput = inputRef.current.attach();

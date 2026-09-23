@@ -50,6 +50,11 @@ const SHADOW_RY = 3;
 const TOAST_TICKS = 180; // ~3s at 60tps
 const INTERACT_TILES = 1.5; // door/shrine reach, in tiles
 
+/** How long the interaction prompt flashes green before its action fires: 200ms
+ * at the 60-tick simulation rate. Long enough to read as a deliberate commit,
+ * short enough not to feel like a delay. */
+export const CONFIRM_TICKS = 12;
+
 // Camera padding (pre-zoom px). Sides/bottom get a half-tile of breathing room;
 // the top gets more so tall sprites (houses, trees) at the north edge aren't
 // clipped. Tunable with the real town's camera feel in Phase 4.
@@ -57,6 +62,9 @@ const CAM_EDGE_PAD = HALF_W;
 const CAM_TOP_PAD = 112;
 
 // ── State ──
+
+/** What an armed interaction prompt will do once its confirm flash finishes. */
+export type ConfirmAction = { kind: "door"; door: Door } | { kind: "pc" } | { kind: "shrine" };
 
 export interface IsoState {
   mode: GameMode;
@@ -92,6 +100,9 @@ export interface IsoState {
   menuIndex: number;
   currentRegionId: string | null;
   toast: { text: string; ticksLeft: number } | null;
+  /** An interaction the player has committed to: the prompt pill flashes green
+   * for CONFIRM_TICKS, then the action fires. Null when nothing is armed. */
+  confirm: { text: string; ticksLeft: number; action: ConfirmAction } | null;
 }
 
 export interface IsoStateOptions {
@@ -143,6 +154,7 @@ export function createIsoState(world: IsoWorld, options: IsoStateOptions = {}): 
     // Left null so the first update fires the spawn region's entry toast.
     currentRegionId: null,
     toast: null,
+    confirm: null,
   };
 
   updateCamera(state, world);
@@ -336,6 +348,13 @@ function enterDoor(state: IsoState, door: Door): void {
   state.doorArmed = false;
 }
 
+/** Arm an interaction: the prompt pill flashes green for CONFIRM_TICKS before
+ * `action` actually fires (see the confirm handling in update()). `text` is
+ * the target's own label, since the pill drops "Press" and the key name. */
+function startConfirm(state: IsoState, text: string, action: ConfirmAction): void {
+  state.confirm = { text, ticksLeft: CONFIRM_TICKS, action };
+}
+
 /** Fired at the peak of a door fade — the caller ports to that place's forum view. */
 export type OnDoorInteract = (door: Door) => void;
 /** Fired at the peak of a link fade — the caller navigates to the other world. */
@@ -433,6 +452,35 @@ export function update(
 
   if (state.mode !== "overworld") return;
 
+  // ── Confirming an interaction (the prompt pill's green flash) ──
+  // The player has committed; freeze them in place for CONFIRM_TICKS so the
+  // flash reads as a deliberate beat rather than an instant cut, then perform
+  // the action. Draining Enter/Space every tick (not just on the last one)
+  // stops a second press made mid-flash from being read as the first keypress
+  // of the menu that opens right after — which would pick its row 0 instantly.
+  if (state.confirm) {
+    const player = getLocalEntity(state);
+    player.moving = false;
+    player.animTimer = 0;
+    input.consume("Enter");
+    input.consume("Space");
+
+    state.confirm.ticksLeft--;
+    if (state.confirm.ticksLeft <= 0) {
+      const { action } = state.confirm;
+      state.confirm = null;
+      if (action.kind === "door") enterDoor(state, action.door);
+      else if (action.kind === "pc") {
+        state.mode = "pc-menu";
+        state.menuIndex = 0;
+      } else {
+        state.mode = "warp-menu";
+        state.menuIndex = 0;
+      }
+    }
+    return;
+  }
+
   const player = getLocalEntity(state);
 
   // ── Door / shrine proximity ──
@@ -453,22 +501,21 @@ export function update(
   // A door opens two ways: walk up into it, or press Enter. Enter is not gated
   // on arming, because pressing it is already deliberate; it also keeps doors
   // usable from the touch controls, where there is no "walk into" gesture.
+  // Every path here arms a confirm rather than acting immediately (see above).
   if (state.nearbyDoor && state.doorArmed && headingIntoDoor(intent)) {
-    enterDoor(state, state.nearbyDoor);
+    startConfirm(state, state.nearbyDoor.label, { kind: "door", door: state.nearbyDoor });
     return;
   }
   if (state.nearbyDoor && (input.consume("Enter") || input.consume("Space"))) {
-    enterDoor(state, state.nearbyDoor);
+    startConfirm(state, state.nearbyDoor.label, { kind: "door", door: state.nearbyDoor });
     return;
   }
   if (state.nearbyPc && (input.consume("Enter") || input.consume("Space"))) {
-    state.mode = "pc-menu";
-    state.menuIndex = 0;
+    startConfirm(state, state.nearbyPc.label, { kind: "pc" });
     return;
   }
   if (state.nearbyMushroom && (input.consume("Enter") || input.consume("Space"))) {
-    state.mode = "warp-menu";
-    state.menuIndex = 0;
+    startConfirm(state, state.nearbyMushroom.label, { kind: "shrine" });
     return;
   }
 
@@ -518,7 +565,7 @@ export function render(
   world: IsoWorld,
   grass: Terrain,
   assets: IsoAssets,
-  frame: { viewport: Viewport },
+  frame: { viewport: Viewport; promptKey: string },
 ): void {
   const { worldScale, dpr, cssW, cssH } = frame.viewport;
 
@@ -581,12 +628,18 @@ export function render(
   const hudSize = { w: cssW, h: cssH };
   drawNameTags(ctx, state, assets.characters, view, frame.viewport);
   if (state.fade === 0 && state.mode === "overworld") {
-    if (state.nearbyDoor) {
-      drawPrompt(ctx, `Press Enter — ${state.nearbyDoor.label}`, hudSize);
-    } else if (state.nearbyPc) {
-      drawPrompt(ctx, `Press Enter — ${state.nearbyPc.label}`, hudSize);
-    } else if (state.nearbyMushroom) {
-      drawPrompt(ctx, `Press Enter — ${state.nearbyMushroom.label}`, hudSize);
+    // Yellow while just in reach, green for the confirm flash right before the
+    // action fires; door > PC > shrine when more than one is in reach, as today.
+    const label =
+      state.confirm?.text ??
+      state.nearbyDoor?.label ??
+      state.nearbyPc?.label ??
+      state.nearbyMushroom?.label;
+    if (label) {
+      const player = getLocalEntity(state);
+      const head = headHudPos(player, assets.characters, state.camera, frame.viewport);
+      const anchor = { x: head.x, y: head.y - NAME_TAG_GAP - NAME_TAG_TEXT_H - PROMPT_GAP };
+      drawPrompt(ctx, frame.promptKey, label, anchor, hudSize, state.confirm !== null);
     }
   }
 
@@ -669,10 +722,35 @@ function drawEntity(
 
 /** Gap between a sprite's head and its name tag, in CSS px. */
 const NAME_TAG_GAP = 4;
+/** Approximate visual height of a name tag's text (drawNameTag's bold 12px
+ * monospace). Only used to clear the tag when placing the prompt pill above
+ * it, not as exact glyph metrics — the pill just needs to sit above the tag,
+ * not hug it. */
+const NAME_TAG_TEXT_H = 12;
+/** Gap between the top of a name tag and the bottom of the prompt pill above it. */
+const PROMPT_GAP = 6;
+
+/** A sprite's head anchor in the HUD's CSS-px layer: where drawNameTags hangs a
+ * name tag below it, and where render() hangs the interaction prompt pill
+ * further above it. Shared so the two can never drift apart. Sprites are one
+ * height per sheet, so the idle frame's height places the anchor for any pose. */
+function headHudPos(
+  entity: Pick<IsoEntity, "col" | "row" | "dir">,
+  characters: CharacterSprites,
+  camera: { x: number; y: number },
+  viewport: Viewport,
+): { x: number; y: number } {
+  const pos = tileToScreen(entity.col, entity.row);
+  const headY =
+    pos.y - pickFrame(characters, entity.dir, false, 0, ANIM_TICKS).height + FOOT_OFFSET;
+  return {
+    x: ((pos.x - camera.x) * viewport.worldScale) / viewport.dpr,
+    y: ((headY - camera.y) * viewport.worldScale) / viewport.dpr,
+  };
+}
 
 /** Name tags for every labelled entity in view, drawn in the HUD's CSS-px layer
- * (after the zoomed world layer) so the text stays crisp. Sprites are one
- * height per sheet, so the idle frame's height places the tag for any pose. */
+ * (after the zoomed world layer) so the text stays crisp. */
 function drawNameTags(
   ctx: CanvasRenderingContext2D,
   state: IsoState,
@@ -680,19 +758,11 @@ function drawNameTags(
   view: ViewRect,
   viewport: Viewport,
 ): void {
-  const { x: camX, y: camY } = state.camera;
-  const { worldScale, dpr } = viewport;
   for (const entity of state.entities) {
     if (!entity.label) continue;
     const pos = tileToScreen(entity.col, entity.row);
     if (!rectsOverlap({ x: pos.x - 1, y: pos.y - 1, w: 2, h: 2 }, view)) continue;
-    const head =
-      pos.y - pickFrame(characters, entity.dir, false, 0, ANIM_TICKS).height + FOOT_OFFSET;
-    drawNameTag(
-      ctx,
-      entity.label,
-      Math.round(((pos.x - camX) * worldScale) / dpr),
-      Math.round(((head - camY) * worldScale) / dpr) - NAME_TAG_GAP,
-    );
+    const hud = headHudPos(entity, characters, state.camera, viewport);
+    drawNameTag(ctx, entity.label, Math.round(hud.x), Math.round(hud.y) - NAME_TAG_GAP);
   }
 }

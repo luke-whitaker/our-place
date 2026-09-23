@@ -12,13 +12,15 @@ import {
   terrainToGrass,
   ISO_VIEW_W,
   ISO_VIEW_H,
+  CONFIRM_TICKS,
 } from "./iso-engine";
-
-const DESKTOP_VIEW = { w: ISO_VIEW_W, h: ISO_VIEW_H };
 import { LAB_TOWN } from "./worlds/lab-town";
+import { createInputManager } from "./input";
 import type { IsoWorld } from "./world-model";
 import type { InputManager } from "./input";
 import type { Door, Pc, WorldLink } from "./types";
+
+const DESKTOP_VIEW = { w: ISO_VIEW_W, h: ISO_VIEW_H };
 
 /** An input manager that reports one key press, once, and nothing else. */
 function keyOnce(code: string | null): InputManager {
@@ -233,6 +235,8 @@ describe("PC proximity and the pc-menu mode", () => {
     expect(state.nearbyPc).toEqual(pc);
 
     update(state, world, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("overworld"); // confirming first
+    for (let i = 0; i < CONFIRM_TICKS; i++) update(state, world, solid, keyOnce(null));
     expect(state.mode).toBe("pc-menu");
     expect(state.menuIndex).toBe(0);
   });
@@ -292,6 +296,9 @@ describe("interaction priority", () => {
     expect(state.nearbyPc).toEqual(pc);
 
     update(state, world, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("overworld"); // confirming first
+    expect(state.confirm?.action).toEqual({ kind: "door", door });
+    for (let i = 0; i < CONFIRM_TICKS; i++) update(state, world, solid, keyOnce(null));
     expect(state.mode).toBe("fading");
     expect(state.pendingDoor).toEqual(door);
   });
@@ -331,11 +338,24 @@ describe("walking into a door", () => {
     return state;
   }
 
-  it("warps when the player heads up-screen into it", () => {
+  it("goes through the same confirm as Enter, then warps", () => {
     const state = armedAtDoor();
+    update(state, world, solid, keysHeld("ArrowUp"));
+    expect(state.mode).toBe("overworld"); // confirming first
+    expect(state.confirm?.action).toEqual({ kind: "door", door });
+
+    // Holding the key through the flash must not move the player or re-fire
+    // the walk-into check; the confirm block returns before either runs.
+    const { col, row } = getLocalEntity(state);
+    for (let i = 1; i < CONFIRM_TICKS; i++) {
+      update(state, world, solid, keysHeld("ArrowUp"));
+      expect(getLocalEntity(state)).toMatchObject({ col, row, moving: false });
+    }
+
     update(state, world, solid, keysHeld("ArrowUp"));
     expect(state.mode).toBe("fading");
     expect(state.pendingDoor).toEqual(door);
+    expect(state.confirm).toBeNull();
   });
 
   it("does not warp when the player walks past it", () => {
@@ -371,6 +391,8 @@ describe("walking into a door", () => {
 
     getLocalEntity(state).row = 6; // came back
     update(state, world, solid, keysHeld("ArrowUp"));
+    expect(state.mode).toBe("overworld"); // confirming first
+    for (let i = 0; i < CONFIRM_TICKS; i++) update(state, world, solid, keyOnce(null));
     expect(state.mode).toBe("fading");
     expect(state.pendingDoor).toEqual(door);
   });
@@ -380,7 +402,73 @@ describe("walking into a door", () => {
     update(state, world, solid, keyOnce(null));
     expect(state.doorArmed).toBe(false); // Enter is not gated on arming
     update(state, world, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("overworld"); // confirming first
+    for (let i = 0; i < CONFIRM_TICKS; i++) update(state, world, solid, keyOnce(null));
     expect(state.mode).toBe("fading");
     expect(state.pendingDoor).toEqual(door);
+  });
+});
+
+describe("confirming an interaction (the prompt pill's green flash)", () => {
+  const door: Door = {
+    col: 5,
+    row: 5,
+    id: "welcome-center",
+    label: "Welcome Center",
+    warpTo: "welcome-center-inside",
+    spawnAt: "exit",
+  };
+  const world: IsoWorld = { ...LAB_TOWN, doors: [door], links: [] };
+  const solid = buildWorldCollision(world);
+
+  it("arms a door confirm and keeps mode at overworld", () => {
+    const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
+    update(state, world, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("overworld");
+    expect(state.confirm).toEqual({
+      text: "Welcome Center",
+      ticksLeft: CONFIRM_TICKS,
+      action: { kind: "door", door },
+    });
+  });
+
+  it("holds an arrow key during the confirm without moving the player", () => {
+    const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
+    update(state, world, solid, keyOnce("Enter"));
+    const { col, row } = getLocalEntity(state);
+
+    for (let i = 0; i < CONFIRM_TICKS - 1; i++) {
+      update(state, world, solid, keysHeld("ArrowDown"));
+      expect(getLocalEntity(state)).toMatchObject({ col, row, moving: false });
+    }
+  });
+});
+
+describe("a repeated Enter during a shrine confirm", () => {
+  it("is drained rather than picked up as the warp menu's own first keypress", () => {
+    // Grove Shrine sits at (9,13); spawn one tile south, in its reach, like a
+    // deep link to a shrine would.
+    const grove = LINKED_TOWN.mushrooms[0];
+    const state = createIsoState(LINKED_TOWN, {
+      spawnCol: grove.col,
+      spawnRow: grove.row + 1,
+      discovered: ["mushroom-lab-ridge"],
+    });
+    const solid = buildWorldCollision(LINKED_TOWN);
+    const input = createInputManager();
+
+    input.press("Enter");
+    update(state, LINKED_TOWN, solid, input); // starts the shrine confirm
+    expect(state.mode).toBe("overworld");
+    expect(state.confirm?.action).toEqual({ kind: "shrine" });
+
+    // A second physical press lands mid-flash. Without draining it, the warp
+    // menu that opens right after would read it as its own first keypress and
+    // pick row 0 before the player ever sees the list.
+    input.press("Enter");
+    for (let i = 0; i < CONFIRM_TICKS; i++) update(state, LINKED_TOWN, solid, input);
+
+    expect(state.mode).toBe("warp-menu");
+    expect(state.menuIndex).toBe(0);
   });
 });
