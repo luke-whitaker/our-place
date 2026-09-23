@@ -499,8 +499,8 @@ export function update(
 
   // ── Interaction (doors take priority over shrines) ──
   // A door opens two ways: walk up into it, or press Enter. Enter is not gated
-  // on arming, because pressing it is already deliberate; it also keeps doors
-  // usable from the touch controls, where there is no "walk into" gesture.
+  // on arming, because pressing it is already deliberate; it is also how a
+  // player deep-linked onto a doorstep goes straight in.
   // Every path here arms a confirm rather than acting immediately (see above).
   if (state.nearbyDoor && state.doorArmed && headingIntoDoor(intent)) {
     startConfirm(state, state.nearbyDoor.label, { kind: "door", door: state.nearbyDoor });

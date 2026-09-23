@@ -53,10 +53,11 @@ export function computeViewport(cssW: number, cssH: number, dpr: number): Viewpo
 /**
  * The canvas's CSS size given the space available for it.
  *
- * Touch devices (`fill`) use as much of the screen as the world's fixed 3:2
- * aspect allows, so the world fills a phone in either orientation instead of
- * letterboxing. Mouse/keyboard devices keep the classic letterboxed look,
- * capped at the original 960x640 so desktop is unchanged.
+ * Touch devices (`fill`) take all the space offered, in either orientation,
+ * limited only to between 1:2 and 5:2 so a phone never gets a sliver. The world
+ * has no fixed aspect, so a tall canvas just shows more rows. Mouse/keyboard
+ * devices keep the classic 3:2 letterbox, capped at the original 960x640 so
+ * desktop is unchanged.
  */
 export function fitCanvas(
   availW: number,

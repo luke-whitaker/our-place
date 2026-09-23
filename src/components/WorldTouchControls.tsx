@@ -104,13 +104,15 @@ export default function WorldTouchControls({ onPress, onRelease }: WorldTouchCon
     releaseAll();
   }
 
-  function pressA(e: React.TouchEvent<HTMLButtonElement>) {
-    e.preventDefault();
+  // Pointer events, like the stick: React registers touch listeners as passive,
+  // so the old touch handlers' preventDefault did nothing but log a warning.
+  // `touch-none` on the button is what stops double-tap zoom.
+  function pressA(e: React.PointerEvent<HTMLButtonElement>) {
+    e.currentTarget.setPointerCapture(e.pointerId);
     callbacksRef.current.onPress("Enter");
   }
 
-  function releaseA(e: React.TouchEvent<HTMLButtonElement>) {
-    e.preventDefault();
+  function releaseA() {
     callbacksRef.current.onRelease("Enter");
   }
 
@@ -138,10 +140,12 @@ export default function WorldTouchControls({ onPress, onRelease }: WorldTouchCon
       </div>
 
       <button
-        className="h-16 w-16 select-none rounded-full border-2 border-white/25 bg-surface/10 text-lg font-bold text-ink-inverse pointer-events-auto active:bg-surface/25"
-        onTouchStart={pressA}
-        onTouchEnd={releaseA}
-        onTouchCancel={releaseA}
+        className="h-16 w-16 touch-none select-none rounded-full border-2 border-white/25 bg-surface/10 text-lg font-bold text-ink-inverse pointer-events-auto active:bg-surface/25"
+        style={{ WebkitTouchCallout: "none" }}
+        onPointerDown={pressA}
+        onPointerUp={releaseA}
+        onPointerCancel={releaseA}
+        onLostPointerCapture={releaseA}
       >
         A
       </button>

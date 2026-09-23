@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useEffect, useCallback, useState, useMemo } from "react";
+import { useRef, useEffect, useCallback, useState, useMemo, useSyncExternalStore } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import WorldTouchControls from "@/components/WorldTouchControls";
 import { TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
@@ -45,6 +45,20 @@ const SAVE_INTERVAL_MS = 3000;
 
 /** Every traveler's home shrine: always in the warp menu, never needs finding. */
 const ALWAYS_KNOWN_SHRINES = ["capital-gate"];
+
+/** The canvas border width in CSS px (Tailwind's `border-2`). The canvas is
+ * `box-content`, so its CSS size is the drawing surface alone; the border sits
+ * outside it and has to come out of the space the container offers. */
+const CANVAS_BORDER = 2;
+
+/** Touch support doesn't change during a visit, so there is nothing to subscribe to. */
+function subscribeNever(): () => void {
+  return () => {};
+}
+
+function detectTouch(): boolean {
+  return "ontouchstart" in window || navigator.maxTouchPoints > 0;
+}
 
 /** Where a deep link lands: just south of the door, shrine, or PC it names. */
 function spawnFor(
@@ -158,10 +172,11 @@ export default function WorldCanvas({
     };
   }, [ready, persist, world.id]);
 
-  const [isTouchDevice] = useState(
-    () =>
-      typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0),
-  );
+  // The server can't know whether the device has touch, so it renders without
+  // the touch controls and React re-renders with the client's answer after
+  // hydration. A lazy useState initializer gave the two different first
+  // renders, which React reported as a hydration mismatch on every phone.
+  const isTouchDevice = useSyncExternalStore(subscribeNever, detectTouch, () => false);
 
   // ── Size the canvas to the screen ──
   // The container fills whatever space the page gives it (world/page.tsx makes
@@ -178,7 +193,8 @@ export default function WorldCanvas({
       if (!canvas || !container) return;
       const rect = container.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
-      const { cssW, cssH } = fitCanvas(rect.width, rect.height, isTouchDevice);
+      const border = CANVAS_BORDER * 2;
+      const { cssW, cssH } = fitCanvas(rect.width - border, rect.height - border, isTouchDevice);
       viewportRef.current = computeViewport(cssW, cssH, dpr);
       canvas.style.width = `${cssW}px`;
       canvas.style.height = `${cssH}px`;
@@ -274,7 +290,7 @@ export default function WorldCanvas({
         <div className="relative">
           <canvas
             ref={canvasRef}
-            className="block rounded-lg border-2 border-line-inverse"
+            className="box-content block rounded-lg border-2 border-line-inverse"
             style={{ imageRendering: "pixelated" }}
           />
           {!ready && (
