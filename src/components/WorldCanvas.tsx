@@ -2,14 +2,16 @@
 
 import { useRef, useEffect, useCallback, useState, useMemo } from "react";
 import { useAuth } from "@/components/AuthProvider";
-import { CANVAS_W, CANVAS_H, TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
+import { TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
 import { isAvatarConfig } from "@/lib/game/avatar-recolor";
 import { loadWorldAssets } from "@/lib/game/world-assets";
+import { computeViewport, fitCanvas, type Viewport } from "@/lib/game/viewport";
 import {
   createIsoState,
   update,
   render,
+  setView,
   getLocalEntity,
   terrainToGrass,
   buildWorldCollision,
@@ -82,8 +84,10 @@ export default function WorldCanvas({
 }: WorldCanvasProps) {
   const { user, loading: authLoading } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const stateRef = useRef<IsoState | null>(null);
   const assetsRef = useRef<IsoAssets | null>(null);
+  const viewportRef = useRef<Viewport | null>(null);
   const inputRef = useRef(createInputManager());
   const grass = useMemo(() => terrainToGrass(world), [world]);
   const solid = useMemo(() => buildWorldCollision(world), [world]);
@@ -158,21 +162,42 @@ export default function WorldCanvas({
       typeof window !== "undefined" && ("ontouchstart" in window || navigator.maxTouchPoints > 0),
   );
 
-  // ── Responsive scaling ──
+  // ── Size the canvas to the screen ──
+  // The container fills whatever space the page gives it (world/page.tsx makes
+  // that the space under the navbar); we measure it and pick a CSS size that
+  // fills the screen on touch devices or letterboxes at the classic 960x640 on
+  // desktop, then derive an integer device-px zoom from that. A ResizeObserver
+  // catches container size changes; the window resize listener catches a DPR
+  // change alone (e.g. dragging the window to another monitor), which doesn't
+  // fire the observer.
   useEffect(() => {
-    function resize() {
+    function applySize() {
       const canvas = canvasRef.current;
-      if (!canvas) return;
-      // Scale canvas to fit container width, maintaining the 3:2 aspect ratio.
-      const maxWidth = Math.min(window.innerWidth - 16, 960);
-      const scale = maxWidth / CANVAS_W;
-      canvas.style.width = `${Math.round(CANVAS_W * scale)}px`;
-      canvas.style.height = `${Math.round(CANVAS_H * scale)}px`;
+      const container = containerRef.current;
+      if (!canvas || !container) return;
+      const rect = container.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      const { cssW, cssH } = fitCanvas(rect.width, rect.height, isTouchDevice);
+      viewportRef.current = computeViewport(cssW, cssH, dpr);
+      canvas.style.width = `${cssW}px`;
+      canvas.style.height = `${cssH}px`;
+      canvas.width = Math.round(cssW * dpr);
+      canvas.height = Math.round(cssH * dpr);
+      // Resizing the backing store resets all context state, including
+      // smoothing, so it has to be reapplied every time this runs.
+      const ctx = canvas.getContext("2d");
+      if (ctx) ctx.imageSmoothingEnabled = false;
     }
-    resize();
-    window.addEventListener("resize", resize);
-    return () => window.removeEventListener("resize", resize);
-  }, []);
+    applySize();
+    const container = containerRef.current;
+    const observer = container ? new ResizeObserver(applySize) : null;
+    if (container && observer) observer.observe(container);
+    window.addEventListener("resize", applySize);
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", applySize);
+    };
+  }, [isTouchDevice]);
 
   // ── Game loop ──
   // Fixed timestep. Ticks wait for the art so the arrival fade-in plays over
@@ -194,13 +219,19 @@ export default function WorldCanvas({
 
       const state = stateRef.current;
       const assets = assetsRef.current;
-      if (state && assets) {
+      const viewport = viewportRef.current;
+      if (state && assets && viewport) {
+        // A resize between ticks changes the view span; reframe the camera
+        // around the (possibly stationary) player before the next update.
+        if (state.view.w !== viewport.viewW || state.view.h !== viewport.viewH) {
+          setView(state, world, viewport.viewW, viewport.viewH);
+        }
         while (accumulator >= TICK_RATE) {
           update(state, world, solid, input, callbacksRef.current);
           accumulator -= TICK_RATE;
         }
         ctx.imageSmoothingEnabled = false;
-        render(ctx, state, world, grass, assets);
+        render(ctx, state, world, grass, assets, { viewport });
       } else {
         accumulator = 0;
       }
@@ -238,26 +269,26 @@ export default function WorldCanvas({
   }
 
   return (
-    <div className="flex w-full flex-col items-center">
-      <div className="relative">
-        <canvas
-          ref={canvasRef}
-          width={CANVAS_W}
-          height={CANVAS_H}
-          className="block rounded-lg border-2 border-line-inverse"
-          style={{ imageRendering: "pixelated" }}
-        />
-        {!ready && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-surface-inverse">
-            {loadError ? (
-              <p className="px-6 text-center font-mono text-sm text-red-400">{loadError}</p>
-            ) : (
-              <p className="animate-pulse font-mono text-sm text-ink-faint">
-                Entering the world...
-              </p>
-            )}
-          </div>
-        )}
+    <div className="flex h-full w-full flex-col items-center">
+      <div ref={containerRef} className="flex min-h-0 w-full flex-1 items-center justify-center">
+        <div className="relative">
+          <canvas
+            ref={canvasRef}
+            className="block rounded-lg border-2 border-line-inverse"
+            style={{ imageRendering: "pixelated" }}
+          />
+          {!ready && (
+            <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-surface-inverse">
+              {loadError ? (
+                <p className="px-6 text-center font-mono text-sm text-red-400">{loadError}</p>
+              ) : (
+                <p className="animate-pulse font-mono text-sm text-ink-faint">
+                  Entering the world...
+                </p>
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Touch D-pad — only shown on touch devices */}

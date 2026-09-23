@@ -27,16 +27,19 @@ import {
   objectCullView,
   type ViewRect,
 } from "./iso-cull";
-import { CANVAS_W, CANVAS_H, FADE_SPEED, PAL } from "./constants";
+import { FADE_SPEED, PAL } from "./constants";
+import type { Viewport } from "./viewport";
 import type { GameMode, Door, MushroomWarp, Pc, WorldLink } from "./types";
 import type { IsoWorld } from "./world-model";
 import type { InputManager } from "./input";
 
 // ── Tuning ──
 
-export const ISO_ZOOM = 2;
-export const ISO_VIEW_W = CANVAS_W / ISO_ZOOM;
-export const ISO_VIEW_H = CANVAS_H / ISO_ZOOM;
+/** Default (desktop) view: how much world (pre-zoom px) is visible before
+ * anything has called setView, e.g. the first tick before the canvas measures
+ * itself. Matches the classic 960x640 canvas at a 2x zoom. */
+export const ISO_VIEW_W = 480;
+export const ISO_VIEW_H = 320;
 
 const ANIM_TICKS = 7; // ticks per walk frame
 const WATER_ANIM_TICKS = 12; // ticks per water ripple frame
@@ -64,6 +67,10 @@ export interface IsoState {
   localId: string;
   /** Camera top-left in world-screen pixels (pre-zoom). */
   camera: { x: number; y: number };
+  /** World span visible (pre-zoom px), set by setView on every canvas resize.
+   * cameraFor reads this to centre and clamp the camera, so a resize reframes a
+   * player who is standing still instead of leaving the old span in place. */
+  view: { w: number; h: number };
   frameTick: number;
   fade: number;
   fadeDir: -1 | 0 | 1;
@@ -118,6 +125,7 @@ export function createIsoState(world: IsoWorld, options: IsoStateOptions = {}): 
     entities: [player],
     localId: "local",
     camera: { x: 0, y: 0 },
+    view: { w: ISO_VIEW_W, h: ISO_VIEW_H },
     frameTick: 0,
     fade: options.fadeIn ? 1 : 0,
     fadeDir: options.fadeIn ? -1 : 0,
@@ -274,32 +282,37 @@ function clampCamera(value: number, lo: number, hi: number): number {
 }
 
 /** Camera top-left (pre-zoom px) for a local entity at (col,row): centred on the
- * entity, then clamped so the view stays within the world's padded bounds. Pure,
- * so it's unit-tested directly. */
-export function cameraFor(world: IsoWorld, col: number, row: number): { x: number; y: number } {
+ * entity, then clamped so the given view stays within the world's padded
+ * bounds. Pure, so it's unit-tested directly. */
+export function cameraFor(
+  world: IsoWorld,
+  col: number,
+  row: number,
+  view: { w: number; h: number },
+): { x: number; y: number } {
   const pos = tileToScreen(col, row);
   const b = worldScreenBounds(world);
   return {
     x: Math.round(
-      clampCamera(
-        pos.x - ISO_VIEW_W / 2,
-        b.left - CAM_EDGE_PAD,
-        b.right + CAM_EDGE_PAD - ISO_VIEW_W,
-      ),
+      clampCamera(pos.x - view.w / 2, b.left - CAM_EDGE_PAD, b.right + CAM_EDGE_PAD - view.w),
     ),
     y: Math.round(
-      clampCamera(
-        pos.y - ISO_VIEW_H / 2,
-        b.top - CAM_TOP_PAD,
-        b.bottom + CAM_EDGE_PAD - ISO_VIEW_H,
-      ),
+      clampCamera(pos.y - view.h / 2, b.top - CAM_TOP_PAD, b.bottom + CAM_EDGE_PAD - view.h),
     ),
   };
 }
 
 function updateCamera(state: IsoState, world: IsoWorld): void {
   const player = getLocalEntity(state);
-  state.camera = cameraFor(world, player.col, player.row);
+  state.camera = cameraFor(world, player.col, player.row, state.view);
+}
+
+/** Resize the visible world span, e.g. when the canvas is resized to fit the
+ * screen, and reframe the camera around the (possibly stationary) player so a
+ * resize never leaves the old, wrong-sized view in place for a tick. */
+export function setView(state: IsoState, world: IsoWorld, w: number, h: number): void {
+  state.view = { w, h };
+  updateCamera(state, world);
 }
 
 // ── Update ──
@@ -505,23 +518,32 @@ export function render(
   world: IsoWorld,
   grass: Terrain,
   assets: IsoAssets,
+  frame: { viewport: Viewport },
 ): void {
-  ctx.fillStyle = PAL.darkest;
-  ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+  const { worldScale, dpr, cssW, cssH } = frame.viewport;
 
-  // World layer (scaled by ZOOM); the HUD below draws at native resolution.
+  // A canvas resize resets the 2D context's transform, and the world/HUD
+  // layers below each set their own, so start from a known identity transform
+  // before touching backing-store pixels directly.
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.fillStyle = PAL.darkest;
+  ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+  // World layer: world-space (pre-zoom) px -> device px in one integer scale,
+  // so pixel art stays crisp at any DPR/zoom combination. The HUD below draws
+  // in its own CSS-px layer instead.
   ctx.save();
-  ctx.scale(ISO_ZOOM, ISO_ZOOM);
+  ctx.setTransform(worldScale, 0, 0, worldScale, 0, 0);
   const { x: camX, y: camY } = state.camera;
 
-  drawGround(ctx, world, grass, assets, state.frameTick, camX, camY);
+  drawGround(ctx, world, grass, assets, state.frameTick, camX, camY, state.view);
 
   // Objects + entities, painter's order by ground-anchor screen-Y. Each is
   // skipped when its drawn rectangle can't possibly overlap the view — this
   // only prunes work from the loop below; it never changes what gets drawn,
   // since the skip test uses the exact same rectangle drawObject/drawEntity
   // would paint.
-  const view = objectCullView(camX, camY, ISO_VIEW_W, ISO_VIEW_H);
+  const view = objectCullView(camX, camY, state.view.w, state.view.h);
   type Drawable = { depth: number; draw: () => void };
   const drawables: Drawable[] = [];
   for (const obj of world.objects) {
@@ -552,36 +574,40 @@ export function render(
 
   ctx.restore();
 
-  // ── HUD (native resolution) ──
-  drawNameTags(ctx, state, assets.characters, view);
+  // ── HUD layer: lays out in CSS px, one unit = one CSS px, so text stays
+  // crisp no matter how the world layer above is zoomed or how the canvas is
+  // scaled to fit the screen. ──
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const hudSize = { w: cssW, h: cssH };
+  drawNameTags(ctx, state, assets.characters, view, frame.viewport);
   if (state.fade === 0 && state.mode === "overworld") {
     if (state.nearbyDoor) {
-      drawPrompt(ctx, `Press Enter — ${state.nearbyDoor.label}`);
+      drawPrompt(ctx, `Press Enter — ${state.nearbyDoor.label}`, hudSize);
     } else if (state.nearbyPc) {
-      drawPrompt(ctx, `Press Enter — ${state.nearbyPc.label}`);
+      drawPrompt(ctx, `Press Enter — ${state.nearbyPc.label}`, hudSize);
     } else if (state.nearbyMushroom) {
-      drawPrompt(ctx, `Press Enter — ${state.nearbyMushroom.label}`);
+      drawPrompt(ctx, `Press Enter — ${state.nearbyMushroom.label}`, hudSize);
     }
   }
 
   if (state.mode === "warp-menu") {
     const entries = [...warpMenuEntries(state, world).map((e) => e.label), "Cancel"];
-    drawWarpMenu(ctx, "Mycelium Network", entries, state.menuIndex);
+    drawWarpMenu(ctx, "Mycelium Network", entries, state.menuIndex, hudSize);
   }
 
   if (state.mode === "pc-menu" && state.nearbyPc) {
     const entries = [...pcMenuEntries(state.nearbyPc, world).map((e) => e.label), "Cancel"];
-    drawWarpMenu(ctx, state.nearbyPc.label, entries, state.menuIndex);
+    drawWarpMenu(ctx, state.nearbyPc.label, entries, state.menuIndex, hudSize);
   }
 
   if (state.toast) {
-    drawToast(ctx, state.toast);
+    drawToast(ctx, state.toast, hudSize);
   }
 
   if (state.fade > 0) {
     ctx.fillStyle = PAL.darkest;
     ctx.globalAlpha = state.fade;
-    ctx.fillRect(0, 0, CANVAS_W, CANVAS_H);
+    ctx.fillRect(0, 0, cssW, cssH);
     ctx.globalAlpha = 1;
   }
 }
@@ -594,6 +620,7 @@ function drawGround(
   frameTick: number,
   camX: number,
   camY: number,
+  view: { w: number; h: number },
 ): void {
   const { cols, rows, terrain } = world;
   const waterFrame = Math.floor(frameTick / WATER_ANIM_TICKS) % WATER_FRAMES;
@@ -601,7 +628,7 @@ function drawGround(
   // visibleGroundTiles restricts this to the diagonal bands the camera can
   // actually see (see iso-cull.ts) instead of the whole grid — it yields tiles
   // in the same order the old unculled double loop did, so output is unchanged.
-  for (const { col, row } of visibleGroundTiles(camX, camY, ISO_VIEW_W, ISO_VIEW_H, cols, rows)) {
+  for (const { col, row } of visibleGroundTiles(camX, camY, view.w, view.h, cols, rows)) {
     const kind = terrain[row][col];
     if (kind === "void") continue;
     const s = tileToScreen(col, row);
@@ -640,10 +667,10 @@ function drawEntity(
   );
 }
 
-/** Gap between a sprite's head and its name tag, in native pixels. */
+/** Gap between a sprite's head and its name tag, in CSS px. */
 const NAME_TAG_GAP = 4;
 
-/** Name tags for every labelled entity in view, drawn at native resolution
+/** Name tags for every labelled entity in view, drawn in the HUD's CSS-px layer
  * (after the zoomed world layer) so the text stays crisp. Sprites are one
  * height per sheet, so the idle frame's height places the tag for any pose. */
 function drawNameTags(
@@ -651,8 +678,10 @@ function drawNameTags(
   state: IsoState,
   characters: CharacterSprites,
   view: ViewRect,
+  viewport: Viewport,
 ): void {
   const { x: camX, y: camY } = state.camera;
+  const { worldScale, dpr } = viewport;
   for (const entity of state.entities) {
     if (!entity.label) continue;
     const pos = tileToScreen(entity.col, entity.row);
@@ -662,8 +691,8 @@ function drawNameTags(
     drawNameTag(
       ctx,
       entity.label,
-      Math.round((pos.x - camX) * ISO_ZOOM),
-      Math.round((head - camY) * ISO_ZOOM) - NAME_TAG_GAP,
+      Math.round(((pos.x - camX) * worldScale) / dpr),
+      Math.round(((head - camY) * worldScale) / dpr) - NAME_TAG_GAP,
     );
   }
 }

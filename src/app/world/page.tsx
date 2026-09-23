@@ -150,22 +150,24 @@ function WorldView() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-surface-inverse p-2">
-      <h1 className="mb-4 text-lg font-bold text-ink-inverse">{place?.title ?? "The World"}</h1>
-      {place ? (
-        <WorldCanvas
-          key={place.world.id}
-          world={place.world}
-          onDoorInteract={handleDoorInteract}
-          onWorldLink={handleWorldLink}
-          onPcPort={(href) => router.push(href)}
-          spawnAt={spawnAt}
-          persist={place.visiting === null}
-        />
-      ) : (
-        <ClosedIsland error={lookup?.error ?? ""} />
-      )}
-      <p className="mt-4 text-center text-sm text-ink-faint">
+    <div className="flex h-[calc(100dvh-4rem)] flex-col items-center bg-surface-inverse p-2">
+      <h1 className="mb-2 text-lg font-bold text-ink-inverse">{place?.title ?? "The World"}</h1>
+      <div className="min-h-0 w-full flex-1">
+        {place ? (
+          <WorldCanvas
+            key={place.world.id}
+            world={place.world}
+            onDoorInteract={handleDoorInteract}
+            onWorldLink={handleWorldLink}
+            onPcPort={(href) => router.push(href)}
+            spawnAt={spawnAt}
+            persist={place.visiting === null}
+          />
+        ) : (
+          <ClosedIsland error={lookup?.error ?? ""} />
+        )}
+      </div>
+      <p className="mt-4 hidden text-center text-sm text-ink-faint sm:block">
         WASD or arrow keys to move — Enter to use doors, computers, and mushroom shrines
       </p>
     </div>
@@ -175,7 +177,7 @@ function WorldView() {
 /** Shown while a visit resolves, or when the owner has closed their island. */
 function ClosedIsland({ error }: { error: string }) {
   return (
-    <div className="flex h-64 w-full max-w-xl flex-col items-center justify-center gap-3 rounded-lg border-2 border-line-inverse text-center">
+    <div className="mx-auto flex h-64 w-full max-w-xl flex-col items-center justify-center gap-3 rounded-lg border-2 border-line-inverse text-center">
       {error ? (
         <>
           <p className="px-6 font-mono text-sm text-ink-faint">{error}</p>

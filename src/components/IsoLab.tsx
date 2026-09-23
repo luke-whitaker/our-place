@@ -14,15 +14,17 @@
 // `?tint=<preset>` overrides the world's biome recolor (see terrain-tint.ts).
 
 import { useEffect, useRef, useState } from "react";
-import { CANVAS_W, CANVAS_H, TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
+import { TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
 import type { IsoWorld } from "@/lib/game/world-model";
 import { isTintPreset } from "@/lib/game/terrain-tint";
 import { loadWorldAssets } from "@/lib/game/world-assets";
+import { computeViewport } from "@/lib/game/viewport";
 import {
   createIsoState,
   update,
   render,
+  setView,
   terrainToGrass,
   buildWorldCollision,
   type IsoState,
@@ -80,13 +82,24 @@ export default function IsoLab() {
     };
   }, [world]);
 
-  // Fixed-timestep loop (mirrors WorldCanvas).
+  // Fixed-timestep loop (mirrors WorldCanvas). The lab always shows a fixed
+  // letterboxed 960x640 CSS canvas — no responsive resizing here, since this
+  // page exists to compare renders, not to test screen sizes.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d")!;
     const input = inputRef.current;
     const cleanupInput = input.attach();
+
+    const dpr = window.devicePixelRatio || 1;
+    const viewport = computeViewport(960, 640, dpr);
+    canvas.style.width = "960px";
+    canvas.style.height = "640px";
+    canvas.width = Math.round(960 * dpr);
+    canvas.height = Math.round(640 * dpr);
+    ctx.imageSmoothingEnabled = false;
+    setView(stateRef.current, world, viewport.viewW, viewport.viewH);
 
     let lastTime = performance.now();
     let accumulator = 0;
@@ -102,7 +115,7 @@ export default function IsoLab() {
       const assets = assetsRef.current;
       if (assets) {
         ctx.imageSmoothingEnabled = false;
-        render(ctx, stateRef.current, world, grassRef.current, assets);
+        render(ctx, stateRef.current, world, grassRef.current, assets, { viewport });
       }
       rafId = requestAnimationFrame(loop);
     }
@@ -117,10 +130,8 @@ export default function IsoLab() {
     <div className="flex flex-col items-center gap-3">
       <canvas
         ref={canvasRef}
-        width={CANVAS_W}
-        height={CANVAS_H}
         className="block rounded-lg border-2 border-line-inverse"
-        style={{ width: 768, height: 512, imageRendering: "pixelated" }}
+        style={{ imageRendering: "pixelated" }}
       />
       <p className="font-mono text-xs text-ink-faint">
         {error

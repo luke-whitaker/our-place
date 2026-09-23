@@ -10,7 +10,11 @@ import {
   update,
   buildWorldCollision,
   terrainToGrass,
+  ISO_VIEW_W,
+  ISO_VIEW_H,
 } from "./iso-engine";
+
+const DESKTOP_VIEW = { w: ISO_VIEW_W, h: ISO_VIEW_H };
 import { LAB_TOWN } from "./worlds/lab-town";
 import type { IsoWorld } from "./world-model";
 import type { InputManager } from "./input";
@@ -178,9 +182,9 @@ describe("cameraFor", () => {
   it("clamps to the world's padded edges when the world is larger than the view", () => {
     // LAB_TOWN (24×24) is wider/taller than the viewport, so corners pin to an edge.
     // Left edge: world left (-368) minus a half-tile pad (16).
-    expect(cameraFor(LAB_TOWN, 0, 23).x).toBe(-384);
+    expect(cameraFor(LAB_TOWN, 0, 23, DESKTOP_VIEW).x).toBe(-384);
     // Right edge: world right (368) + pad (16) − view width (480).
-    expect(cameraFor(LAB_TOWN, 23, 0).x).toBe(-96);
+    expect(cameraFor(LAB_TOWN, 23, 0, DESKTOP_VIEW).x).toBe(-96);
   });
 
   it("centers a world smaller than the view instead of pinning to an edge", () => {
@@ -197,7 +201,7 @@ describe("cameraFor", () => {
       regions: [],
     };
     // Same camera regardless of where the entity stands — the world is centered.
-    expect(cameraFor(tiny, 1, 1).x).toBe(cameraFor(tiny, 3, 3).x);
+    expect(cameraFor(tiny, 1, 1, DESKTOP_VIEW).x).toBe(cameraFor(tiny, 3, 3, DESKTOP_VIEW).x);
   });
 });
 
