@@ -65,7 +65,7 @@ The default, **Auto**, follows the clock — Platinum by day, Terminal at night 
 An **isometric 2.5D** overworld you teleport into:
 
 - **Isometric engine** — React + HTML Canvas, a 2:1 diamond projection with an autotiled ground, depth-sorted free-standing objects, and an 8-direction animated character
-- Player movement (WASD/arrows + mobile touch D-pad), a camera that follows and clamps to the map, and per-tile collision
+- Player movement (WASD/arrows + an on-screen joystick on touch devices), a camera that follows and clamps to the map, and per-tile collision
 - **Ports** — walk into a building's door and you are inside it; sit at the computer to log on to that community's forum view. Portal buttons drop you back at its doorstep
 - **Mushroom warp network** — discover shrines to unlock fast travel between them
 - **The Capital** — an authored starter town with a building (and a Ports door) for each community

@@ -2,6 +2,7 @@
 
 import { useRef, useEffect, useCallback, useState, useMemo } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import WorldTouchControls from "@/components/WorldTouchControls";
 import { TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
 import { isAvatarConfig } from "@/lib/game/avatar-recolor";
@@ -67,7 +68,7 @@ function spawnFor(
  * <WorldCanvas /> — the isometric overworld.
  *
  * Runs the iso engine (createIsoState / update / render) over an IsoWorld and
- * renders it on a <canvas> with WASD/arrow + touch D-pad movement, a camera that
+ * renders it on a <canvas> with WASD/arrow + touch joystick movement, a camera that
  * follows and clamps to the world, door interaction with fade transitions,
  * mushroom-shrine fast travel, links to other worlds, region toasts, and
  * responsive scaling. Ports: `spawnAt` deep-links you to a door, shrine, or PC;
@@ -255,20 +256,16 @@ export default function WorldCanvas({
     };
   }, [gameLoop]);
 
-  // ── Touch D-pad handlers ──
-  // Each button carries its key code in data-key so the two handlers stay
-  // direct event handlers (a handler factory would read the ref during render).
+  // ── Touch joystick handlers ──
+  // Plain functions that read the ref when called, not a handler factory that
+  // would read it during render (the hooks lint forbids the latter).
 
-  function dpadDown(e: React.TouchEvent<HTMLButtonElement>) {
-    e.preventDefault();
-    const code = e.currentTarget.dataset.key;
-    if (code) inputRef.current.press(code);
+  function handleTouchPress(code: string) {
+    inputRef.current.press(code);
   }
 
-  function dpadUp(e: React.TouchEvent<HTMLButtonElement>) {
-    e.preventDefault();
-    const code = e.currentTarget.dataset.key;
-    if (code) inputRef.current.release(code);
+  function handleTouchRelease(code: string) {
+    inputRef.current.release(code);
   }
 
   return (
@@ -294,49 +291,10 @@ export default function WorldCanvas({
         </div>
       </div>
 
-      {/* Touch D-pad — only shown on touch devices */}
-      {isTouchDevice && <TouchControls onDown={dpadDown} onUp={dpadUp} />}
-    </div>
-  );
-}
-
-const DPAD_BUTTON =
-  "h-14 w-14 select-none rounded-lg border border-white/20 bg-surface/10 text-xl text-ink-inverse active:bg-surface/25";
-
-function TouchControls({
-  onDown,
-  onUp,
-}: {
-  onDown: (e: React.TouchEvent<HTMLButtonElement>) => void;
-  onUp: (e: React.TouchEvent<HTMLButtonElement>) => void;
-}) {
-  const handlers = { onTouchStart: onDown, onTouchEnd: onUp, onTouchCancel: onUp };
-  return (
-    <div className="fixed bottom-6 left-0 right-0 z-30 flex items-end justify-between px-6 pointer-events-none">
-      <div className="flex flex-col items-center gap-1 pointer-events-auto">
-        <button className={DPAD_BUTTON} data-key="ArrowUp" {...handlers}>
-          ▲
-        </button>
-        <div className="flex gap-1">
-          <button className={DPAD_BUTTON} data-key="ArrowLeft" {...handlers}>
-            ◄
-          </button>
-          <button className={DPAD_BUTTON} data-key="ArrowRight" {...handlers}>
-            ►
-          </button>
-        </div>
-        <button className={DPAD_BUTTON} data-key="ArrowDown" {...handlers}>
-          ▼
-        </button>
-      </div>
-
-      <button
-        className="h-16 w-16 select-none rounded-full border-2 border-white/25 bg-surface/10 text-lg font-bold text-ink-inverse pointer-events-auto active:bg-surface/25"
-        data-key="Enter"
-        {...handlers}
-      >
-        A
-      </button>
+      {/* Touch joystick — only shown on touch devices */}
+      {isTouchDevice && (
+        <WorldTouchControls onPress={handleTouchPress} onRelease={handleTouchRelease} />
+      )}
     </div>
   );
 }
