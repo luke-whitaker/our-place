@@ -15,6 +15,15 @@ export interface HudSize {
   h: number;
 }
 
+/** Height of the prompt pill, in CSS px. */
+export const PROMPT_H = 22;
+
+/** Where the region toast sits, in CSS px from the top, and its height. The
+ * prompt reads the bottom edge so it can stay clear of the toast. */
+const TOAST_Y = 16;
+const TOAST_H = 30;
+export const TOAST_BOTTOM = TOAST_Y + TOAST_H;
+
 /** Prompt pill fill colors: bright yellow while an interaction is just in
  * reach, green for the moment it flashes to confirm before the action fires. */
 const PROMPT_BG = "#ffd84a";
@@ -45,7 +54,7 @@ export function drawPrompt(
   const padY = 5;
   const gap = 6;
   const badgePadX = 6;
-  const height = 22;
+  const height = PROMPT_H;
 
   ctx.font = "bold 12px monospace";
   const badgeW = Math.ceil(ctx.measureText(promptKey).width) + badgePadX * 2;
@@ -110,8 +119,8 @@ export function drawToast(
   ctx.font = "bold 14px monospace";
   const textW = ctx.measureText(toast.text).width + 28;
   const boxX = Math.round(size.w / 2 - textW / 2);
-  const boxY = 16;
-  const boxH = 30;
+  const boxY = TOAST_Y;
+  const boxH = TOAST_H;
 
   ctx.globalAlpha = alpha * 0.85;
   ctx.fillStyle = PAL.textBg;

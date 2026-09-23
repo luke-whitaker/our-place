@@ -151,7 +151,9 @@ function WorldView() {
 
   return (
     <div className="flex h-[calc(100dvh-4rem)] flex-col items-center bg-surface-inverse p-2">
-      <h1 className="mb-2 text-lg font-bold text-ink-inverse">{place?.title ?? "The World"}</h1>
+      <h1 className="mb-2 text-lg font-bold text-ink-inverse [@media(max-height:480px)]:hidden">
+        {place?.title ?? "The World"}
+      </h1>
       <div className="min-h-0 w-full flex-1">
         {place ? (
           <WorldCanvas
@@ -167,7 +169,7 @@ function WorldView() {
           <ClosedIsland error={lookup?.error ?? ""} />
         )}
       </div>
-      <p className="mt-4 hidden text-center text-sm text-ink-faint sm:block">
+      <p className="mt-4 hidden text-center text-sm text-ink-faint sm:pointer-fine:block">
         WASD or arrow keys to move — Enter to use doors, computers, and mushroom shrines
       </p>
     </div>

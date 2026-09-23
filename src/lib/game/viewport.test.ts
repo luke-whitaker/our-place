@@ -22,6 +22,14 @@ describe("computeViewport", () => {
     expect(vp.worldScale).toBeGreaterThan(0);
     expect(vp.viewW).toBeGreaterThanOrEqual(MIN_VIEW_W);
   });
+
+  it("backs the zoom off for a short landscape canvas too", () => {
+    // Width alone allows the full 2x; height caps it near 1.6x, so a phone held
+    // sideways sees about twelve rows instead of seven.
+    const vp = computeViewport(765, 306, 3);
+    expect(vp.worldScale).toBe(5);
+    expect(vp.viewH).toBeCloseTo(183.6);
+  });
 });
 
 describe("fitCanvas", () => {
@@ -29,7 +37,7 @@ describe("fitCanvas", () => {
     expect(fitCanvas(374, 700, true)).toEqual({ cssW: 374, cssH: 700 });
   });
 
-  it("fills a landscape phone screen, capped by the 3:2 aspect on the short axis", () => {
+  it("fills a landscape phone screen, capped at 5:2 so it never becomes a strip", () => {
     expect(fitCanvas(828, 266, true)).toEqual({ cssW: 665, cssH: 266 });
   });
 

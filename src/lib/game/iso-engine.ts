@@ -18,7 +18,7 @@ import {
   type MoveIntent,
 } from "./iso-actor";
 import { buildSolidGrid, type SolidGrid } from "./iso-collision";
-import { drawPrompt, drawToast, drawWarpMenu, drawNameTag } from "./hud";
+import { drawPrompt, drawToast, drawWarpMenu, drawNameTag, PROMPT_H, TOAST_BOTTOM } from "./hud";
 import {
   CELL,
   ENTITY_CULL_MARGIN,
@@ -638,7 +638,15 @@ export function render(
     if (label) {
       const player = getLocalEntity(state);
       const head = headHudPos(player, assets.characters, state.camera, frame.viewport);
-      const anchor = { x: head.x, y: head.y - NAME_TAG_GAP - NAME_TAG_TEXT_H - PROMPT_GAP };
+      const above = head.y - NAME_TAG_GAP - NAME_TAG_TEXT_H - PROMPT_GAP;
+      // On a short canvas, or near the map's north edge, the pill above the
+      // head can land on the region toast. While a toast shows, hang the pill
+      // below the player's feet instead.
+      const hitsToast = state.toast !== null && above - PROMPT_H < TOAST_BOTTOM + PROMPT_GAP;
+      const feetY =
+        ((tileToScreen(player.col, player.row).y + FOOT_OFFSET - state.camera.y) * worldScale) /
+        dpr;
+      const anchor = { x: head.x, y: hitsToast ? feetY + PROMPT_GAP + PROMPT_H : above };
       drawPrompt(ctx, frame.promptKey, label, anchor, hudSize, state.confirm !== null);
     }
   }

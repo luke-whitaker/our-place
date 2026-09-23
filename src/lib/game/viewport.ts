@@ -14,6 +14,11 @@
  * the zoom off toward 1x rather than cropping further. */
 export const MIN_VIEW_W = 288;
 
+/** Shortest span of world (pre-zoom px) a view may show top to bottom, about
+ * twelve rows. A phone held sideways gets a wide but short canvas, and zooming
+ * by width alone showed about seven rows with a giant character. */
+export const MIN_VIEW_H = 192;
+
 /** CSS pixels per world pixel on a wide screen: today's desktop look. */
 export const MAX_CSS_ZOOM = 2;
 
@@ -35,15 +40,15 @@ export interface Viewport {
  * size on a screen of the given device pixel ratio.
  *
  * The CSS zoom (CSS px per world px) shrinks below MAX_CSS_ZOOM once the canvas
- * is narrower than MIN_VIEW_W at that zoom, so a phone shows more world rather
- * than a sliver of it at a fixed size. worldScale then rounds that zoom (times
+ * is narrower than MIN_VIEW_W or shorter than MIN_VIEW_H at that zoom, so a
+ * phone in either orientation shows more world rather than a sliver of it. worldScale then rounds that zoom (times
  * dpr) to the nearest whole device pixel — never zero — because nearest-neighbour
  * art blurs at a fractional scale. viewW/viewH fall out of the backing-store
  * size divided by that integer scale, so the world layer exactly fills the
  * canvas with no seam at the edge.
  */
 export function computeViewport(cssW: number, cssH: number, dpr: number): Viewport {
-  const cssZoom = Math.min(MAX_CSS_ZOOM, cssW / MIN_VIEW_W);
+  const cssZoom = Math.min(MAX_CSS_ZOOM, cssW / MIN_VIEW_W, cssH / MIN_VIEW_H);
   const worldScale = Math.max(1, Math.round(cssZoom * dpr));
   const viewW = Math.round(cssW * dpr) / worldScale;
   const viewH = Math.round(cssH * dpr) / worldScale;
