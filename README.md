@@ -249,12 +249,41 @@ Open [http://localhost:3000](http://localhost:3000).
 - [ ] Welcome tour — a once-per-version walkthrough for new members on their first visit and everyone else on their next (designed, not built)
 - [ ] Wilderness with tinted biomes and user-placed content sprites
 - [x] Ports v2 — building interiors with PC sprites
+- [x] The world on a phone — a canvas sized to the screen, a touch joystick, and an interaction prompt you can't miss
 - [ ] Player identity bound to world position (the name above the avatar is in)
 - [ ] Real-time multiplayer presence (the engine is built with the seams for it)
 
 ---
 
 ## Version History
+
+### v0.10.0 — The World on a Phone (September 2026)
+
+**Why:** The world was drawn as a fixed 960x640 desktop view and then shrunk to fit the screen.
+On a phone that made the whole world about 374x249 pixels, a strip across the top of the
+screen, and the "Press Enter" text at the bottom landed near 4 pixels tall. Even on a desktop
+the prompt was small and grey, and easy to miss. The four-button touch pad couldn't walk the
+town's streets, which run diagonally on screen, without zigzagging.
+
+**What changed:**
+
+- **The world fits the screen:** on a phone or tablet the world fills the space under the
+  navbar in either orientation, and a phone shows fewer tiles at a readable size instead of
+  the desktop view in miniature. The zoom is always a whole number of screen pixels per art
+  pixel, so the pixel art stays crisp on every screen. Desktop keeps the same 960x640 view.
+- **A prompt you can't miss:** walking up to a door, a computer, or a shrine shows a bright
+  yellow label just above your character, with the key to press ("Enter", or "A" on touch).
+  Press it and the label flashes green for a moment before the door opens or the menu
+  appears, so you can see your press land.
+- **Readable text:** every piece of world text is sized in real screen pixels, and the
+  toasts, menus, and name tags are a little larger than before.
+- **A joystick on touch screens:** the four-button pad is now a thumb stick that moves in
+  eight directions, so a street is one smooth push. The A button is unchanged.
+- **No lost taps:** a quick tap on A, or a press made while the page stutters, is no longer
+  missed between game ticks.
+
+**What didn't change:** no API, schema, or migration, and no new art. Doors still open by
+walking into them or pressing Enter, and every Ports deep link lands where it did.
 
 ### v0.9.0 — Ports v2: Interiors and PCs (September 2026)
 
