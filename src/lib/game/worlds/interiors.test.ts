@@ -4,6 +4,7 @@ import { EXIT_DOOR_ID } from "./interior";
 import { CAPITAL } from "./capital";
 import { parseIsoWorld } from "../world-model";
 import { buildSolidGrid, isSolidAt, type SolidGrid } from "../iso-collision";
+import { INTERACT_TILES, nearestTarget } from "../iso-engine";
 
 function reachable(grid: SolidGrid, startCol: number, startRow: number): Set<string> {
   const seen = new Set<string>();
@@ -94,6 +95,36 @@ describe("INTERIORS", () => {
           }
         }
         expect(found).toBe(true);
+      }
+    }
+  });
+
+  // Reaching a PC is not enough if a door is nearer, because the door takes
+  // Enter and a step toward the PC walks you into it. Five rooms put the exit
+  // two tiles from the terminal, so the tile beside the PC reached both and the
+  // door won. Beside a PC, only a door's own arrival tile may answer as the door.
+  it("answers with the PC on every open tile beside it, except a door's arrival tile", () => {
+    const near = (c: number, r: number, t: { col: number; row: number }) =>
+      Math.hypot(c - t.col, r - t.row) < INTERACT_TILES;
+    for (const world of Object.values(INTERIORS)) {
+      const grid = buildSolidGrid(world);
+      const arrivals = new Set(world.doors.map((d) => `${d.col},${d.row + 1}`));
+      for (const pc of world.pcs ?? []) {
+        const beside = [
+          [pc.col + 1, pc.row],
+          [pc.col - 1, pc.row],
+          [pc.col, pc.row + 1],
+          [pc.col, pc.row - 1],
+        ].filter(([c, r]) => !isSolidAt(grid, c, r) && !arrivals.has(`${c},${r}`));
+        expect(beside.length).toBeGreaterThan(0);
+        for (const [c, r] of beside) {
+          const inReach = {
+            door: world.doors.find((d) => near(c, r, d)) ?? null,
+            pc,
+            mushroom: null,
+          };
+          expect(nearestTarget(inReach, c, r).pc, `${world.id} at ${c},${r}`).toBe(pc);
+        }
       }
     }
   });

@@ -1,5 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import { createInputManager } from "./input";
+
+/** A keydown as the browser sends it, including the auto-repeat flag. */
+function keydown(code: string, repeat = false): Event {
+  return Object.assign(new Event("keydown"), { code, repeat });
+}
 
 describe("createInputManager", () => {
   it("still reports a tap released before the tick read it", () => {
@@ -27,6 +32,38 @@ describe("createInputManager", () => {
     expect(input.consume("ArrowUp")).toBe(false);
     input.press("ArrowUp");
     expect(input.consume("ArrowUp")).toBe(true);
+  });
+
+  describe("with keyboard listeners attached", () => {
+    const g = globalThis as { window?: EventTarget };
+    const saved = g.window;
+    afterEach(() => {
+      g.window = saved;
+    });
+
+    it("ignores Enter's auto-repeat, so holding it never picks a menu row", () => {
+      g.window = new EventTarget();
+      const input = createInputManager();
+      const detach = input.attach();
+      g.window.dispatchEvent(keydown("Enter"));
+      expect(input.consume("Enter")).toBe(true);
+      input.endTick();
+      g.window.dispatchEvent(keydown("Enter", true));
+      expect(input.consume("Enter")).toBe(false);
+      detach();
+    });
+
+    it("still lets a held arrow repeat, so it scrolls a menu", () => {
+      g.window = new EventTarget();
+      const input = createInputManager();
+      const detach = input.attach();
+      g.window.dispatchEvent(keydown("ArrowDown"));
+      expect(input.consume("ArrowDown")).toBe(true);
+      input.endTick();
+      g.window.dispatchEvent(keydown("ArrowDown", true));
+      expect(input.consume("ArrowDown")).toBe(true);
+      detach();
+    });
   });
 
   it("reports a held key as down across ticks", () => {

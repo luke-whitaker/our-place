@@ -48,7 +48,7 @@ const SHADOW_RX = 7;
 const SHADOW_RY = 3;
 
 const TOAST_TICKS = 180; // ~3s at 60tps
-const INTERACT_TILES = 1.5; // door/shrine reach, in tiles
+export const INTERACT_TILES = 1.5; // door/PC/shrine reach, in tiles
 
 /** How long the interaction prompt flashes green before its action fires: 200ms
  * at the 60-tick simulation rate. Long enough to read as a deliberate commit,
@@ -186,6 +186,45 @@ function findNearbyPc(world: IsoWorld, col: number, row: number): Pc | null {
     if (isNear(col, row, pc.col, pc.row)) return pc;
   }
   return null;
+}
+
+/** Whatever the player could interact with from where they stand. */
+export interface Targets {
+  door: Door | null;
+  pc: Pc | null;
+  mushroom: MushroomWarp | null;
+}
+
+/**
+ * Narrow what is in reach to the one thing nearest the player, so the prompt,
+ * Enter, and walking into a door always agree. Without this a door beat a PC
+ * whenever both were in reach, and in rooms where the exit sits two tiles from
+ * the computer, stepping up to the PC walked you out of the building instead.
+ * Ties go to the door, then the PC, so a door can always be walked into from
+ * the tile you arrive on.
+ */
+export function nearestTarget(inReach: Targets, col: number, row: number): Targets {
+  const candidates = [
+    { kind: "door", at: inReach.door },
+    { kind: "pc", at: inReach.pc },
+    { kind: "mushroom", at: inReach.mushroom },
+  ] as const;
+  let best: (typeof candidates)[number] | null = null;
+  let bestDist = Infinity;
+  for (const candidate of candidates) {
+    if (!candidate.at) continue;
+    const dist = Math.hypot(col - candidate.at.col, row - candidate.at.row);
+    // Strictly nearer only, so an earlier kind keeps a tie.
+    if (dist < bestDist) {
+      best = candidate;
+      bestDist = dist;
+    }
+  }
+  return {
+    door: best?.kind === "door" ? inReach.door : null,
+    pc: best?.kind === "pc" ? inReach.pc : null,
+    mushroom: best?.kind === "mushroom" ? inReach.mushroom : null,
+  };
 }
 
 export function findRegionId(world: IsoWorld, col: number, row: number): string | null {
@@ -483,21 +522,29 @@ export function update(
 
   const player = getLocalEntity(state);
 
-  // ── Door / shrine proximity ──
-  state.nearbyDoor = findNearbyDoor(world, player.col, player.row);
-  state.nearbyPc = findNearbyPc(world, player.col, player.row);
-  state.nearbyMushroom = findNearbyMushroom(world, player.col, player.row);
-  if (state.nearbyMushroom && !state.discovered.has(state.nearbyMushroom.id)) {
-    state.discovered.add(state.nearbyMushroom.id);
-    state.toast = { text: `${state.nearbyMushroom.label} discovered!`, ticksLeft: TOAST_TICKS };
+  // ── Door / PC / shrine proximity ──
+  const inReach: Targets = {
+    door: findNearbyDoor(world, player.col, player.row),
+    pc: findNearbyPc(world, player.col, player.row),
+    mushroom: findNearbyMushroom(world, player.col, player.row),
+  };
+  // Discovery and arming read everything in reach, not just the nearest: a
+  // shrine you pass is found even beside a door, and a door re-arms only once
+  // you are clear of it.
+  if (inReach.mushroom && !state.discovered.has(inReach.mushroom.id)) {
+    state.discovered.add(inReach.mushroom.id);
+    state.toast = { text: `${inReach.mushroom.label} discovered!`, ticksLeft: TOAST_TICKS };
   }
+  if (!inReach.door) state.doorArmed = true;
 
-  // Re-arm as soon as the player is clear of every door.
-  if (!state.nearbyDoor) state.doorArmed = true;
+  const target = nearestTarget(inReach, player.col, player.row);
+  state.nearbyDoor = target.door;
+  state.nearbyPc = target.pc;
+  state.nearbyMushroom = target.mushroom;
 
   const intent = computeIntent(input);
 
-  // ── Interaction (doors take priority over shrines) ──
+  // ── Interaction (at most one target survives nearestTarget above) ──
   // A door opens two ways: walk up into it, or press Enter. Enter is not gated
   // on arming, because pressing it is already deliberate; it is also how a
   // player deep-linked onto a doorstep goes straight in.

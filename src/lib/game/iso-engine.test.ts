@@ -13,7 +13,9 @@ import {
   ISO_VIEW_W,
   ISO_VIEW_H,
   CONFIRM_TICKS,
+  nearestTarget,
 } from "./iso-engine";
+import { INTERIORS } from "./worlds/interiors";
 import { LAB_TOWN } from "./worlds/lab-town";
 import { createInputManager } from "./input";
 import type { IsoWorld } from "./world-model";
@@ -181,6 +183,46 @@ describe("choosing a link in the warp menu", () => {
   });
 });
 
+describe("nearestTarget", () => {
+  const door = { id: "d", col: 4, row: 1, label: "Out" } as Door;
+  const pc = { id: "pc", col: 2, row: 2, label: "PC" } as Pc;
+
+  it("keeps only the nearer of a door and a PC", () => {
+    expect(nearestTarget({ door, pc, mushroom: null }, 3, 2)).toEqual({
+      door: null,
+      pc,
+      mushroom: null,
+    });
+  });
+
+  it("gives a tie to the door, so a door can always be walked into", () => {
+    const near = { ...door, col: 3, row: 1 };
+    expect(nearestTarget({ door: near, pc, mushroom: null }, 3, 2).door).toBe(near);
+  });
+});
+
+describe("a PC two tiles from the exit", () => {
+  // The Technology room: PC at 2,2, exit door at 4,1. Standing east of the PC
+  // reaches both, and the door used to win.
+  const world = INTERIORS["technology-inside"];
+  const solid = buildWorldCollision(world);
+
+  it("answers with the PC, and stepping toward it never walks out the door", () => {
+    const state = createIsoState(world, { spawnCol: 3, spawnRow: 2 });
+    update(state, world, solid, keysHeld());
+    expect(state.nearbyPc?.id).toBe("pc");
+    expect(state.nearbyDoor).toBeNull();
+
+    // Toward the PC is screen up-left, which reads as "heading into a door".
+    for (let i = 0; i < 10; i++) update(state, world, solid, keysHeld("ArrowUp", "ArrowLeft"));
+    expect(state.confirm).toBeNull();
+    expect(state.mode).toBe("overworld");
+
+    update(state, world, solid, keyOnce("Enter"));
+    expect(state.confirm?.action).toEqual({ kind: "pc" });
+  });
+});
+
 describe("cameraFor", () => {
   it("clamps to the world's padded edges when the world is larger than the view", () => {
     // LAB_TOWN (24×24) is wider/taller than the viewport, so corners pin to an edge.
@@ -285,7 +327,7 @@ describe("choosing Log on in a PC's menu", () => {
 });
 
 describe("interaction priority", () => {
-  it("prefers a door over a PC when both are in reach", () => {
+  it("gives a door a tie with a PC, and keeps only that one target", () => {
     const door: Door = { col: 5, row: 5, id: "welcome-center", label: "Welcome Center" };
     const pc: Pc = { col: 5, row: 5, id: "pc", label: "Terminal", href: "/communities/test" };
     const world: IsoWorld = { ...LAB_TOWN, doors: [door], pcs: [pc], links: [] };
@@ -294,7 +336,7 @@ describe("interaction priority", () => {
 
     update(state, world, solid, keyOnce(null));
     expect(state.nearbyDoor).toEqual(door);
-    expect(state.nearbyPc).toEqual(pc);
+    expect(state.nearbyPc).toBeNull();
 
     update(state, world, solid, keyOnce("Enter"));
     expect(state.mode).toBe("overworld"); // confirming first

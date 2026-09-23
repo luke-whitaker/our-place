@@ -37,6 +37,12 @@ export function createInputManager(): InputManager {
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(e.code)) {
       e.preventDefault();
     }
+    // A held Enter or Space auto-repeats about every 50-90 ms after a short
+    // delay. Read as fresh presses, those repeats chose the first row of a menu
+    // the moment it opened after the confirm flash, so holding Enter at a PC
+    // logged you on without ever showing the menu. Arrows keep repeating, so a
+    // held arrow still scrolls a menu.
+    if (e.repeat && (e.code === "Enter" || e.code === "Space")) return;
     down(e.code);
   }
 
