@@ -41,4 +41,4 @@ Runs format, lint at zero warnings, tsc, unit tests, route tests, and a producti
 
 ## Local development
 
-`docker compose up -d` starts Postgres. `.env` (Prisma CLI) and `.env.development.local` (Next dev) both point at it, so dev never touches production. Dev art lives under `public/world/`.
+`docker compose up -d` starts Postgres. `.env` (Prisma CLI) and `.env.development.local` (Next dev) both point at it, so dev never touches production. Dev art lives under `public/world/`. The phone check opens the dev server at the Mac's Wi-Fi address, which works only because `next.config.ts` lists the machine's LAN addresses in `allowedDevOrigins`: Next 16 blocks dev scripts for any other origin, so the page loads but never runs.

@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { networkInterfaces } from "node:os";
 
 // Content-Security-Policy is set per-request (with a nonce) in src/proxy.ts —
 // a static header here can't carry a nonce, and nonce-based script-src is what
@@ -15,8 +16,21 @@ const securityHeaders = [
   { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
 ];
 
+// The phone check before a push opens the dev server at this Mac's Wi-Fi
+// address. Next blocks its dev scripts for every origin but localhost unless the
+// origin is listed, so the page would load on the phone and never run. List the
+// machine's own LAN addresses, read fresh each time the dev server starts, since
+// the Wi-Fi address changes. Production ignores this option.
+function lanAddresses(): string[] {
+  return Object.values(networkInterfaces())
+    .flatMap((addresses) => addresses ?? [])
+    .filter((address) => address.family === "IPv4" && !address.internal)
+    .map((address) => address.address);
+}
+
 const nextConfig: NextConfig = {
   output: "standalone",
+  allowedDevOrigins: lanAddresses(),
   headers: async () => [
     {
       source: "/:path*",
