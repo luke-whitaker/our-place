@@ -31,3 +31,5 @@ export {
   SHOES_COLORS,
   DEFAULT_AVATAR,
 } from "./game";
+
+export type { PocketItem, NotebookPageDraft, NpcTalkState, NpcTalkResult } from "./items";

@@ -77,3 +77,50 @@ export function jsonRequest(url: string, body: unknown, method = "POST"): NextRe
     body: JSON.stringify(body),
   });
 }
+
+/** Creates an item row directly (bypassing the NPC gift/tear flows), for
+ * route tests that need pockets pre-populated. `slot: null` (the default)
+ * puts it outside any pocket, matching the schema's "reserved storage" case. */
+export async function createTestItem(overrides: {
+  ownerId: string;
+  kind: string;
+  slot?: number | null;
+  body?: string | null;
+}): Promise<string> {
+  const item = await prisma.item.create({
+    data: {
+      id: uuidv4(),
+      ownerId: overrides.ownerId,
+      kind: overrides.kind,
+      slot: overrides.slot ?? null,
+      body: overrides.body ?? null,
+    },
+    select: { id: true },
+  });
+  return item.id;
+}
+
+/** Gives `ownerId` the Notebook directly, the way a real gift from Gnomie
+ * would land it, without going through the talk route. */
+export async function giveTestNotebook(ownerId: string, slot = 0): Promise<string> {
+  return createTestItem({ ownerId, kind: "notebook", slot });
+}
+
+/** Creates a notebook draft directly, for route tests that need drafts
+ * pre-populated without going through POST /api/notebook/pages. */
+export async function createTestNotebookPage(overrides: {
+  ownerId: string;
+  page: number;
+  body?: string;
+}): Promise<string> {
+  const page = await prisma.notebookPage.create({
+    data: {
+      id: uuidv4(),
+      ownerId: overrides.ownerId,
+      page: overrides.page,
+      body: overrides.body ?? "A draft.",
+    },
+    select: { id: true },
+  });
+  return page.id;
+}

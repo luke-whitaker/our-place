@@ -46,6 +46,9 @@ model User {
   eventRsvps         EventRsvp[]
   sentFriendships    Friendship[]      @relation("FriendshipSender")
   receivedFriendships Friendship[]     @relation("FriendshipReceiver")
+  items              Item[]
+  notebookPages      NotebookPage[]
+  npcGifts           NpcGift[]
 
   @@index([email])
   @@index([username])
@@ -227,4 +230,54 @@ model EventRsvp {
   @@index([eventId])
   @@index([userId])
   @@map("event_rsvps")
+}
+
+// A member's pocket contents (10 slots) plus anything not currently in a
+// pocket (slot null — reserved for later storage, like a desk). `kind` is a
+// catalog key (ItemKind in src/lib/items.ts) validated in code, not the
+// schema, matching how postType and reaction type work elsewhere.
+model Item {
+  id        String   @id @default(uuid())
+  ownerId   String   @map("owner_id")
+  kind      String
+  slot      Int?
+  body      String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // Stops two items sharing a slot, even under concurrent requests.
+  @@unique([ownerId, slot])
+  @@index([ownerId])
+  @@map("items")
+}
+
+// A member's private Notebook drafts. @@unique([ownerId, page]) bounds a
+// member to 10 drafts by construction — the tenth page is 9.
+model NotebookPage {
+  id        String   @id @default(uuid())
+  ownerId   String   @map("owner_id")
+  page      Int
+  body      String
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, page])
+  @@map("notebook_pages")
+}
+
+// Tracks which one-time NPC gifts (Gnomie's Notebook, and future gifts) a
+// member has already received, so a gift is never given twice.
+model NpcGift {
+  userId  String   @map("user_id")
+  giftId  String   @map("gift_id")
+  givenAt DateTime @default(now()) @map("given_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  // Makes each gift once-only per member.
+  @@id([userId, giftId])
+  @@map("npc_gifts")
 }

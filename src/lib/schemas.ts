@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TINT_PRESETS } from "@/lib/game/terrain-tint";
+import { NOTE_MAX_CHARS } from "@/lib/items";
 import type { IslandVisibility } from "@/lib/types";
 
 const ISLAND_VISIBILITIES: readonly IslandVisibility[] = ["anyone", "friends", "nobody"];
@@ -183,6 +184,20 @@ export const updateAvatarSchema = z.object({
   shirtColor: z.string().regex(hexColorRegex, "Invalid shirt color."),
   pantsColor: z.string().regex(hexColorRegex, "Invalid pants color."),
   shoesColor: z.string().regex(hexColorRegex, "Invalid shoes color."),
+});
+
+// ── Notebook schema ──
+
+export const notebookPageSchema = z.object({
+  body: z
+    .string({ error: "Write something first." })
+    .transform((s) => s.trim())
+    .pipe(
+      z
+        .string()
+        .min(1, "Write something first.")
+        .max(NOTE_MAX_CHARS, `Drafts are ${NOTE_MAX_CHARS} characters or fewer.`),
+    ),
 });
 
 // ── Helper ──
