@@ -257,6 +257,31 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.10.1 — PCs Open Their Menu (September 2026)
+
+**Why:** On a laptop, pressing Enter at a PC could skip its menu or send you out of the
+building. Three causes, found one after another:
+
+- Clicking the 🍄 in the navbar to enter the world left keyboard focus on that link, and moving
+  between places inside the world never moved it. Enter at a PC then did two things: the prompt
+  flashed green, and the browser followed the focused link back to the Capital, where you
+  landed at your last saved spot (the door you had walked in through, or the shrine you took
+  Home from).
+- A held Enter repeated fast enough to pick the menu's first row the moment it opened.
+- In five rooms the tile beside the PC was also within reach of the exit, and the exit won.
+
+**What changed:**
+
+- **The world takes the keyboard on arrival:** entering any place clears focus from the
+  navbar, and Enter or Space pressed on a focused link or button is left to that link or
+  button. The world is also reachable with Tab, so a keyboard user can move focus back to it.
+- **Enter ignores key repeat**, so holding it opens the menu without choosing from it.
+- **The nearest thing wins:** when a door and a PC are both in reach, the prompt, Enter, and
+  walking all act on whichever is closer.
+
+**What didn't change:** no API, schema, or art. Phones were never affected, because the A
+button does not go through keyboard focus.
+
 ### v0.10.0 — The World on a Phone (September 2026)
 
 **Why:** The world was drawn as a fixed 960x640 desktop view and then shrunk to fit the screen.

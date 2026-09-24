@@ -53,6 +53,21 @@ describe("createInputManager", () => {
       detach();
     });
 
+    it("leaves Enter and Space on a focused link to the link, but still walks", () => {
+      // A keydown's target is the focused element. Stand the window in for a
+      // focused link by giving it the `matches` a link would answer true to.
+      g.window = Object.assign(new EventTarget(), { matches: () => true });
+      const input = createInputManager();
+      const detach = input.attach();
+      g.window.dispatchEvent(keydown("Enter"));
+      g.window.dispatchEvent(keydown("Space"));
+      g.window.dispatchEvent(keydown("ArrowUp"));
+      expect(input.consume("Enter")).toBe(false);
+      expect(input.consume("Space")).toBe(false);
+      expect(input.consume("ArrowUp")).toBe(true);
+      detach();
+    });
+
     it("still lets a held arrow repeat, so it scrolls a menu", () => {
       g.window = new EventTarget();
       const input = createInputManager();

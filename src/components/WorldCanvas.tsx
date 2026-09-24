@@ -264,6 +264,17 @@ export default function WorldCanvas({
     return () => cancelAnimationFrame(rafId);
   }, [world, solid, grass, isTouchDevice]);
 
+  // ── Keyboard focus ──
+  // Drop whatever holds focus on every arrival (each place remounts this
+  // component), so Enter reaches the world. Clicking the navbar's 🍄 left focus
+  // on that link, and Next's in-world navigations never move it, so Enter at a
+  // PC also followed the link back to /world and dropped you outside. Blurring
+  // rather than focusing the canvas keeps a focus ring from appearing around
+  // the world after every door; Tab or a click still focuses the canvas.
+  useEffect(() => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur();
+  }, []);
+
   useEffect(() => {
     const cleanupInput = inputRef.current.attach();
     const cleanupLoop = gameLoop();
@@ -291,6 +302,9 @@ export default function WorldCanvas({
         <div className="relative">
           <canvas
             ref={canvasRef}
+            tabIndex={0}
+            role="application"
+            aria-label="The world. Arrow keys or WASD to move, Enter to interact."
             className="box-content block rounded-lg border-2 border-line-inverse"
             style={{ imageRendering: "pixelated" }}
           />
