@@ -41,6 +41,13 @@ interface WorldCanvasProps {
   /** Remember position and discoveries on this device. Off when visiting
    * someone else's place, so a visit never overwrites your own trail. */
   persist?: boolean;
+  /** Whether the page is in focus or full-screen mode. Here it picks the full
+   * screen button's icon and lets a desktop canvas fill the screen, scaled up;
+   * the page (not this component) owns the layout change, since the element
+   * that goes full screen has to survive WorldCanvas remounting at every door. */
+  immersive: boolean;
+  /** Toggle full screen / focus mode on or off. */
+  onToggleImmersive: () => void;
 }
 
 /** Persist position + discoveries every few seconds while playing. */
@@ -61,6 +68,32 @@ function subscribeNever(): () => void {
 
 function detectTouch(): boolean {
   return "ontouchstart" in window || navigator.maxTouchPoints > 0;
+}
+
+/** Corner-bracket paths for the full-screen toggle button: brackets at the
+ * square's true corners, arms pointing inward, read as "expand"; brackets at
+ * the inset corners, arms pointing outward, read as "compress" — the same
+ * pair used by fullscreen/fullscreen_exit icons elsewhere. */
+const EXPAND_PATHS = ["M4 9V4h5", "M15 4h5v5", "M20 15v5h-5", "M9 20H4v-5"];
+const COMPRESS_PATHS = ["M9 4v5H4", "M15 4v5h5", "M15 20v-5h5", "M9 20v-5H4"];
+
+function ScreenModeIcon({ immersive }: { immersive: boolean }) {
+  return (
+    <svg
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="white"
+      strokeWidth={2}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      className="h-5 w-5"
+      aria-hidden="true"
+    >
+      {(immersive ? COMPRESS_PATHS : EXPAND_PATHS).map((d) => (
+        <path key={d} d={d} />
+      ))}
+    </svg>
+  );
 }
 
 /** Where a deep link lands: just south of the door, shrine, or PC it names. */
@@ -99,6 +132,8 @@ export default function WorldCanvas({
   onPcPort,
   spawnAt,
   persist = true,
+  immersive,
+  onToggleImmersive,
 }: WorldCanvasProps) {
   const { user, loading: authLoading } = useAuth();
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -192,7 +227,8 @@ export default function WorldCanvas({
   // The container fills whatever space the page gives it (world/page.tsx makes
   // that the space under the navbar); we measure it and pick a CSS size that
   // fills the screen on touch devices or letterboxes at the classic 960x640 on
-  // desktop, then derive an integer device-px zoom from that. A ResizeObserver
+  // desktop, then derive an integer device-px zoom from that. Full screen fills
+  // on desktop too, scaled up to keep the classic framing. A ResizeObserver
   // catches container size changes; the window resize listener catches a DPR
   // change alone (e.g. dragging the window to another monitor), which doesn't
   // fire the observer.
@@ -204,8 +240,9 @@ export default function WorldCanvas({
       const rect = container.getBoundingClientRect();
       const dpr = window.devicePixelRatio || 1;
       const border = CANVAS_BORDER * 2;
-      const { cssW, cssH } = fitCanvas(rect.width - border, rect.height - border, isTouchDevice);
-      viewportRef.current = computeViewport(cssW, cssH, dpr);
+      const fill = isTouchDevice || immersive;
+      const { cssW, cssH } = fitCanvas(rect.width - border, rect.height - border, fill);
+      viewportRef.current = computeViewport(cssW, cssH, dpr, immersive && !isTouchDevice);
       canvas.style.width = `${cssW}px`;
       canvas.style.height = `${cssH}px`;
       canvas.width = Math.round(cssW * dpr);
@@ -224,7 +261,7 @@ export default function WorldCanvas({
       observer?.disconnect();
       window.removeEventListener("resize", applySize);
     };
-  }, [isTouchDevice]);
+  }, [isTouchDevice, immersive]);
 
   // ── Game loop ──
   // Fixed timestep. Ticks wait for the art so the arrival fade-in plays over
@@ -342,6 +379,26 @@ export default function WorldCanvas({
                 </p>
               )}
             </div>
+          )}
+          {/* The full screen button, on every device. `menu` is only ever set
+              on touch screens, so this hides it under the touch menu overlay
+              and never on desktop, where the menu is drawn on the canvas. */}
+          {!menu && (
+            <button
+              type="button"
+              onClick={(e) => {
+                // Hand focus back to the world: a focused button keeps Enter
+                // for itself (input.ts), so the keyboard's next Enter would
+                // toggle full screen instead of opening the PC in front of you.
+                e.currentTarget.blur();
+                onToggleImmersive();
+              }}
+              aria-label={immersive ? "Exit full screen" : "Full screen"}
+              title={immersive ? "Exit full screen" : "Full screen"}
+              className="absolute right-2 top-2 z-[5] flex h-11 w-11 touch-manipulation select-none items-center justify-center rounded-full border border-white/25 bg-surface/10 hover:bg-surface/20 active:bg-surface/25"
+            >
+              <ScreenModeIcon immersive={immersive} />
+            </button>
           )}
           {isTouchDevice && menu && (
             <WorldMenu

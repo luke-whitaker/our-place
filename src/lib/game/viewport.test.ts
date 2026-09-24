@@ -30,6 +30,18 @@ describe("computeViewport", () => {
     expect(vp.worldScale).toBe(5);
     expect(vp.viewH).toBeCloseTo(183.6);
   });
+
+  it("scales a full screen desktop up to about today's view instead of widening it", () => {
+    // A MacBook Air's full screen: 3x the art pixels instead of 2x, same framing.
+    const vp = computeViewport(1470, 956, 2, true);
+    expect(vp.worldScale).toBe(6);
+    expect(vp.viewW).toBe(490);
+    expect(vp.viewH).toBeCloseTo(318.7, 1);
+  });
+
+  it("leaves the 960x640 desktop view alone when scaling up has nothing to add", () => {
+    expect(computeViewport(960, 640, 1, true)).toEqual(computeViewport(960, 640, 1));
+  });
 });
 
 describe("fitCanvas", () => {

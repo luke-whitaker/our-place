@@ -257,6 +257,29 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.10.3 — Full Screen for the World (September 2026)
+
+**Why:** On a phone, the world shared the screen with the browser's address bar and buttons,
+our navbar, the page title, and the padding around the world. Held sideways, that left the
+world a strip across the middle of the screen. On a laptop it stayed a 960x640 window in the
+middle of the page.
+
+**What changed:**
+
+- **A full screen button:** a see-through button in the world's top-right corner lets the
+  world take over the screen, on phones, tablets, and laptops. Tap or click it again to
+  minimize. It stays on as you travel through doors and PCs, and ends when you go to a forum
+  page.
+- **The most each device allows:** on Android, iPad, and laptops the browser's own bars
+  disappear too, and Esc also leaves full screen. Every browser on an iPhone (Chrome included)
+  runs on Safari's engine, which doesn't let web pages go full screen, so there the world
+  hides our navbar and padding and fills all the space the browser gives it, about a third
+  taller held sideways.
+- **Bigger on a laptop, not wider:** in full screen a laptop shows the same view of the world
+  as before, scaled up to fill the screen.
+
+**What didn't change:** no API, schema, or art changes.
+
 ### v0.10.2 — Tap to Travel on Phones (September 2026)
 
 **Why:** On a phone, the PC and Mycelium Network menus were small rows drawn inside the world,

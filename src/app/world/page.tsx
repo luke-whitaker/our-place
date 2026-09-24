@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import WorldCanvas from "@/components/WorldCanvas";
@@ -14,6 +14,12 @@ import { isTintPreset } from "@/lib/game/terrain-tint";
 import type { IsoWorld } from "@/lib/game/world-model";
 import type { Door, WorldLink } from "@/lib/game/types";
 import type { IslandInfo } from "@/lib/types";
+
+/** "normal": the page as usual. "focus": the world covers the navbar and drops
+ * its padding, but the browser's own bars stay (iPhone Safari, which has no
+ * Fullscreen API for pages, or a refused request). "fullscreen": the same
+ * layout plus the real Fullscreen API, which hides the browser's bars too. */
+type ScreenMode = "normal" | "focus" | "fullscreen";
 
 /** A resolved place: the world to render, whose it is, and whether to save. */
 interface Place {
@@ -95,6 +101,14 @@ function WorldView() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { user, loading } = useAuth();
+  // The element that goes full screen. It has to be this root, not the canvas
+  // or anything inside WorldCanvas: WorldView stays mounted across doors
+  // (WorldCanvas remounts, keyed by world id), and removing the full-screen
+  // element from the DOM is what ends full screen. Keeping it here is what
+  // keeps full screen on while walking through a door.
+  const rootRef = useRef<HTMLDivElement>(null);
+  const [screenMode, setScreenMode] = useState<ScreenMode>("normal");
+  const immersive = screenMode !== "normal";
   // `place` picks the world: the Capital by default, `<slug>-inside` for a
   // community room, `me` or a username for an island, and `me-inside` or
   // `<username>-inside` for the house on it. `at` is what to spawn beside.
@@ -136,6 +150,67 @@ function WorldView() {
     [placeParam, inside, isHome, user, lookup],
   );
 
+  // Hide the navbar outright while immersive (globals.css), instead of trusting
+  // the fixed z-60 root to cover it. In Chrome on an iPhone the sticky,
+  // backdrop-blurred navbar still painted over the world and hid the minimize
+  // button, though desktop WebKit and Chromium stack it correctly.
+  useEffect(() => {
+    if (!immersive) return;
+    const html = document.documentElement;
+    html.dataset.worldImmersive = "";
+    return () => {
+      delete html.dataset.worldImmersive;
+    };
+  }, [immersive]);
+
+  // Full screen can end without the minimize button: Android's back gesture,
+  // or Esc on a keyboard. Follow it back to normal so the button and layout
+  // don't get stuck reading "Exit full screen".
+  useEffect(() => {
+    function handleFullscreenChange() {
+      if (document.fullscreenElement) return;
+      setScreenMode((mode) => (mode === "fullscreen" ? "normal" : mode));
+    }
+    document.addEventListener("fullscreenchange", handleFullscreenChange);
+    return () => document.removeEventListener("fullscreenchange", handleFullscreenChange);
+  }, []);
+
+  async function enterImmersive() {
+    const root = rootRef.current;
+    if (!root) return; // the button only renders after this div has mounted
+    if (!document.fullscreenEnabled) {
+      setScreenMode("focus");
+      return;
+    }
+    try {
+      await root.requestFullscreen();
+      setScreenMode("fullscreen");
+    } catch {
+      // A browser can refuse requestFullscreen (not a direct user gesture, a
+      // site or OS setting, ...). Focus mode is still a real improvement, so
+      // fall back to it instead of leaving the tap with no visible effect.
+      setScreenMode("focus");
+    }
+  }
+
+  async function exitImmersive() {
+    if (document.fullscreenElement) {
+      try {
+        await document.exitFullscreen();
+      } catch {
+        // Rejects only when full screen already ended some other way (the
+        // fullscreenchange listener above will have reset the mode already);
+        // setting "normal" below is then a harmless no-op.
+      }
+    }
+    setScreenMode("normal");
+  }
+
+  function handleToggleImmersive() {
+    if (screenMode === "normal") void enterImmersive();
+    else void exitImmersive();
+  }
+
   function handleDoorInteract(door: Door) {
     // A door that names a world opens it (Ports v2); the rest port to the forum.
     if (door.warpTo) {
@@ -149,11 +224,21 @@ function WorldView() {
     router.push(placeHref(link.place, link.spawnAt));
   }
 
+  // Immersive (focus or fullscreen) drops the navbar's sticky flow entirely:
+  // fixed + inset-0 at a z-index above the navbar's sticky z-50 covers it
+  // without touching the navbar or the root layout, and the missing padding
+  // lets WorldCanvas's ResizeObserver grow the canvas into the full viewport.
+  const rootClassName = immersive
+    ? "fixed inset-0 z-[60] flex flex-col items-center bg-surface-inverse"
+    : "flex h-[calc(100dvh-4rem)] flex-col items-center bg-surface-inverse p-2";
+
   return (
-    <div className="flex h-[calc(100dvh-4rem)] flex-col items-center bg-surface-inverse p-2">
-      <h1 className="mb-2 text-lg font-bold text-ink-inverse [@media(max-height:480px)]:hidden">
-        {place?.title ?? "The World"}
-      </h1>
+    <div ref={rootRef} className={rootClassName}>
+      {!immersive && (
+        <h1 className="mb-2 text-lg font-bold text-ink-inverse [@media(max-height:480px)]:hidden">
+          {place?.title ?? "The World"}
+        </h1>
+      )}
       <div className="min-h-0 w-full flex-1">
         {place ? (
           <WorldCanvas
@@ -164,14 +249,18 @@ function WorldView() {
             onPcPort={(href) => router.push(href)}
             spawnAt={spawnAt}
             persist={place.visiting === null}
+            immersive={immersive}
+            onToggleImmersive={handleToggleImmersive}
           />
         ) : (
           <ClosedIsland error={lookup?.error ?? ""} />
         )}
       </div>
-      <p className="mt-4 hidden text-center text-sm text-ink-faint sm:pointer-fine:block">
-        WASD or arrow keys to move — Enter to use doors, computers, and mushroom shrines
-      </p>
+      {!immersive && (
+        <p className="mt-4 hidden text-center text-sm text-ink-faint sm:pointer-fine:block">
+          WASD or arrow keys to move — Enter to use doors, computers, and mushroom shrines
+        </p>
+      )}
     </div>
   );
 }

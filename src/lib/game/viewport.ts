@@ -22,6 +22,11 @@ export const MIN_VIEW_H = 192;
 /** CSS pixels per world pixel on a wide screen: today's desktop look. */
 export const MAX_CSS_ZOOM = 2;
 
+/** The span of world the classic 960x640 desktop canvas shows at MAX_CSS_ZOOM.
+ * Desktop full screen keeps this framing and scales it up. */
+export const DESKTOP_VIEW_W = 480;
+export const DESKTOP_VIEW_H = 320;
+
 export interface Viewport {
   /** Canvas size in CSS px; the HUD lays out in these. */
   cssW: number;
@@ -46,9 +51,20 @@ export interface Viewport {
  * art blurs at a fractional scale. viewW/viewH fall out of the backing-store
  * size divided by that integer scale, so the world layer exactly fills the
  * canvas with no seam at the edge.
+ *
+ * `scaleUp` (desktop full screen) lifts the MAX_CSS_ZOOM cap far enough to keep
+ * the classic DESKTOP_VIEW framing, so a bigger canvas shows the same world
+ * bigger rather than a wider slice of it at today's size (Luke's choice).
  */
-export function computeViewport(cssW: number, cssH: number, dpr: number): Viewport {
-  const cssZoom = Math.min(MAX_CSS_ZOOM, cssW / MIN_VIEW_W, cssH / MIN_VIEW_H);
+export function computeViewport(
+  cssW: number,
+  cssH: number,
+  dpr: number,
+  scaleUp = false,
+): Viewport {
+  const fitDesktopView = Math.min(cssW / DESKTOP_VIEW_W, cssH / DESKTOP_VIEW_H);
+  const maxZoom = scaleUp ? Math.max(MAX_CSS_ZOOM, fitDesktopView) : MAX_CSS_ZOOM;
+  const cssZoom = Math.min(maxZoom, cssW / MIN_VIEW_W, cssH / MIN_VIEW_H);
   const worldScale = Math.max(1, Math.round(cssZoom * dpr));
   const viewW = Math.round(cssW * dpr) / worldScale;
   const viewH = Math.round(cssH * dpr) / worldScale;

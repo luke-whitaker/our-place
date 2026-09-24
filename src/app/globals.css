@@ -311,6 +311,13 @@ body {
 [data-theme="dusk"] .op-navbar {
   border-bottom-width: 3px;
 }
+
+/* The world in full screen or focus mode (world/page.tsx sets the attribute).
+   Hidden rather than covered: Chrome on an iPhone painted the sticky, blurred
+   navbar over the world's fixed layer despite its lower z-index. */
+html[data-world-immersive] .op-navbar {
+  display: none;
+}
 [data-theme="dusk"] .op-logo {
   color: #e8a33d; /* window-glow amber from the cityscape inspo */
 }
