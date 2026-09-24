@@ -3,7 +3,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { AvatarConfig } from "@/lib/types";
 import { worldAsset } from "@/lib/game/asset-url";
-import { loadCharacterSheet, SHEET, type CharacterSprites } from "@/lib/game/character-sheet";
+import {
+  loadCharacterSheet,
+  characterSheetPath,
+  SHEET,
+  type CharacterSprites,
+} from "@/lib/game/character-sheet";
 
 const WALK_FRAME_MS = 130;
 
@@ -30,7 +35,10 @@ export default function AvatarPreview({
   const configKey = JSON.stringify(config);
   useEffect(() => {
     let cancelled = false;
-    loadCharacterSheet(worldAsset("/world/characters/long.png"), JSON.parse(configKey))
+    // Derive from configKey rather than closing over `config` directly, so
+    // this effect's only real dependency is the one already listed below.
+    const parsed = JSON.parse(configKey) as AvatarConfig;
+    loadCharacterSheet(worldAsset(characterSheetPath(parsed.hairStyle)), parsed)
       .then((loaded) => {
         if (!cancelled) setSprites(loaded);
       })

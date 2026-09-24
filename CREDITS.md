@@ -17,6 +17,9 @@ forbid redistribution); only the running application serves derived sprites.
 License: free for personal and commercial use, modification permitted **with
 appropriate credit**. Redistribution and resale are **not** permitted.
 
+Our Place uses modified copies: a short-hair version of the long-hair sheet, edited by Luke
+Whitaker, and both sheets with the cheek blush painted out.
+
 ## World tiles, buildings & nature
 
 **Build A Whimsical Cottage Core Isometric Forest Town** (the "Evergrow Forest"

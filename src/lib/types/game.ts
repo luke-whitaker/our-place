@@ -43,7 +43,7 @@ export const PANTS_COLORS = ["#353540", "#1e3a5f", "#3b2219", "#4a5568", "#2d374
 export const SHOES_COLORS = ["#4d3f38", "#353540", "#ca5954", "#ede4da", "#1e3a5f"] as const;
 
 export const DEFAULT_AVATAR: AvatarConfig = {
-  hairStyle: "short",
+  hairStyle: "long",
   hairColor: "#3b2219",
   skinTone: "#C68642",
   shirtColor: "#5c699f",

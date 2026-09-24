@@ -81,6 +81,16 @@ export function walkFrameIndex(
 
 // ── Loading & slicing ──
 
+/**
+ * Which sheet to draw for a saved hair style. Short and long share the same
+ * frame geometry and colors, so everything above (and `avatar-recolor.ts`'s
+ * palette swap) works on either unchanged. A logged-out visitor, or a member
+ * with no saved avatar, gets long — the sheet the world has always drawn.
+ */
+export function characterSheetPath(hairStyle: AvatarConfig["hairStyle"] | undefined): string {
+  return hairStyle === "short" ? "/world/characters/short.png" : "/world/characters/long.png";
+}
+
 /** Baked, ready-to-draw frames for one character sheet, keyed by facing. */
 export interface CharacterSprites {
   frameW: number;

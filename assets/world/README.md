@@ -65,10 +65,24 @@ nearest-neighbour); footprints should approximate the scaled base diamond.
 
 ### Character — the 8-direction sheet
 
-The player is a BossNelNel 8-direction sheet (`long.png` ships first; see
-`CREDITS.md`). Geometry lives in `src/lib/game/character-sheet.ts`: a 9×9 grid of
-23×36 cells, column 0 idle + columns 1–8 walk, rows = the 8 facings clockwise from
-South. A drop-in alternate (e.g. short hair) just needs the same geometry.
+The player is a BossNelNel 8-direction sheet (see `CREDITS.md`), in two hair styles
+picked by the member's `hairStyle`: `public/world/characters/long.png` and `short.png`.
+Geometry lives in `src/lib/game/character-sheet.ts`: a 9×9 grid of 23×36 cells, column 0
+idle + columns 1–8 walk, rows = the 8 facings clockwise from South.
+
+The runtime sheets are edited copies. Where they come from:
+
+- `long.png`: `assets/SpriteSheet long hair.png` (the purchased sheet).
+- `short.png`: Luke's short-hair edit, `SpriteSheet short hair (ramp).png` in
+  `~/Desktop/pixel_art/our_place_assets/`. The `assets/SpriteSheet short hair.png` copy is an
+  earlier version whose shirt is painted green; those greens are on no recolor ramp, so every member would
+  wear the same green shirt. Don't use it.
+- In both, the cheek blush `#eabcd6` (216 px) is repainted to the base skin `#ecd9b8`, so faces
+  keep their shading without blush (Luke, September 24, 2026).
+
+A new sheet must use exactly the colors in `avatar-recolor.ts`'s ramps, or its pixels won't
+follow the member's avatar colors. Measure its palette against `long.png` before wiring it
+in, and run `npm run world:upload` before the deploy that uses it.
 
 ### Interiors — the wooden ground sheet, walls, and furniture
 

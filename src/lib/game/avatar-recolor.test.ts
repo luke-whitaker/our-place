@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildRecolorMap, hexToRgb, isAvatarConfig } from "./avatar-recolor";
+import { buildRecolorMap, hexToRgb, isAvatarConfig, recolorPixels } from "./avatar-recolor";
 import type { AvatarConfig } from "@/lib/types";
 
 const CONFIG: AvatarConfig = {
@@ -36,9 +36,9 @@ describe("buildRecolorMap", () => {
     expect(map.size).toBe(18);
   });
 
-  it("never recolors the blush, so cheeks stay pink whatever shirt is picked", () => {
-    // #eabcd6 is painted only on faces. It was once listed in the shirt ramp,
-    // which made cheeks follow the shirt color — a blue shirt gave blue cheeks.
+  it("keeps the old blush color off every ramp", () => {
+    // #eabcd6 was painted only on faces (now painted out of our sheets). It was
+    // once listed in the shirt ramp, which made cheeks follow the shirt color.
     expect(map.has(pack("#eabcd6"))).toBe(false);
   });
 
@@ -87,5 +87,51 @@ describe("isAvatarConfig", () => {
 
   it("rejects a config whose colors are not hex", () => {
     expect(isAvatarConfig({ ...CONFIG, skinTone: "tan" })).toBe(false);
+  });
+});
+
+describe("recolorPixels", () => {
+  const map = buildRecolorMap(CONFIG);
+
+  /** RGBA pixels from [r, g, b, a] tuples. */
+  function pixels(...rgba: number[][]): Uint8ClampedArray {
+    return new Uint8ClampedArray(rgba.flat());
+  }
+
+  it("recolors an exact sheet color", () => {
+    const px = pixels([...hexToRgb("#e9a5e2")!, 255]);
+    expect(recolorPixels(px, map)).toBe(0);
+    expect([...px]).toEqual([...hexToRgb(CONFIG.shirtColor)!, 255]);
+  });
+
+  it("recolors a pixel that canvas noise nudged one step off", () => {
+    // Firefox's anti-fingerprinting noise: the shirt pink read back as #e8a5e3.
+    // An exact lookup missed these, leaving pink flecks on every shirt.
+    const px = pixels([0xe8, 0xa5, 0xe3, 255], [0x37, 0x54, 0xbf, 254]);
+    expect(recolorPixels(px, map)).toBe(0);
+    expect([...px]).toEqual([
+      ...hexToRgb(CONFIG.shirtColor)!,
+      255,
+      ...hexToRgb(CONFIG.pantsColor)!,
+      255,
+    ]);
+  });
+
+  it("writes noisy fixed colors back clean", () => {
+    const px = pixels([1, 0, 1, 255]);
+    recolorPixels(px, map);
+    expect([...px]).toEqual([0, 0, 0, 255]);
+  });
+
+  it("clears a transparent pixel that noise lifted to alpha 1", () => {
+    const px = pixels([37, 148, 22, 1]);
+    expect(recolorPixels(px, map)).toBe(0);
+    expect([...px]).toEqual([0, 0, 0, 0]);
+  });
+
+  it("counts, and leaves alone, an opaque pixel far from every sheet color", () => {
+    const px = pixels([0, 200, 0, 255]);
+    expect(recolorPixels(px, map)).toBe(1);
+    expect([...px]).toEqual([0, 200, 0, 255]);
   });
 });

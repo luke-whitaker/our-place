@@ -6,6 +6,7 @@ import {
   SHEET,
   vectorToDir8,
   walkFrameIndex,
+  characterSheetPath,
 } from "./character-sheet";
 
 describe("character-sheet geometry", () => {
@@ -40,6 +41,20 @@ describe("vectorToDir8", () => {
 
   it("returns null for a zero vector so the caller keeps its facing", () => {
     expect(vectorToDir8(0, 0)).toBeNull();
+  });
+});
+
+describe("characterSheetPath", () => {
+  it("picks the short sheet for short hair", () => {
+    expect(characterSheetPath("short")).toBe("/world/characters/short.png");
+  });
+
+  it("picks the long sheet for long hair", () => {
+    expect(characterSheetPath("long")).toBe("/world/characters/long.png");
+  });
+
+  it("defaults to the long sheet with no saved hair style", () => {
+    expect(characterSheetPath(undefined)).toBe("/world/characters/long.png");
   });
 });
 

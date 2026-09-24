@@ -98,9 +98,11 @@ function AvatarBuilderForm({ initial }: { initial: AvatarConfig | null }) {
           </div>
         </div>
 
-        {/* Options. (No hair-style toggle: only the long-hair sheet is
-            licensed today — the control returns when a second sheet lands.) */}
+        {/* Options */}
         <div className="op-card space-y-6 rounded-2xl border border-line bg-surface p-6 shadow-sm">
+          {/* Hair Style */}
+          <HairStylePicker value={config.hairStyle} onChange={(s) => update("hairStyle", s)} />
+
           {/* Hair Color */}
           <ColorPicker
             label="Hair Color"
@@ -171,6 +173,42 @@ function AvatarBuilderForm({ initial }: { initial: AvatarConfig | null }) {
             Skip for now
           </button>
         )}
+      </div>
+    </div>
+  );
+}
+
+const HAIR_STYLES: ReadonlyArray<{ value: AvatarConfig["hairStyle"]; label: string }> = [
+  { value: "short", label: "Short" },
+  { value: "long", label: "Long" },
+];
+
+function HairStylePicker({
+  value,
+  onChange,
+}: {
+  value: AvatarConfig["hairStyle"];
+  onChange: (style: AvatarConfig["hairStyle"]) => void;
+}) {
+  return (
+    <div>
+      <label className="block text-sm font-semibold text-ink-secondary mb-3">Hair Style</label>
+      <div className="flex gap-3">
+        {HAIR_STYLES.map((style) => (
+          <button
+            key={style.value}
+            type="button"
+            onClick={() => onChange(style.value)}
+            aria-pressed={value === style.value}
+            className={`rounded-xl border-2 px-5 py-2.5 text-sm font-semibold transition-all ${
+              value === style.value
+                ? "border-accent-500 ring-2 ring-accent-200 bg-accent-50 text-accent-700"
+                : "border-line text-ink-secondary hover:border-line-strong"
+            }`}
+          >
+            {style.label}
+          </button>
+        ))}
       </div>
     </div>
   );

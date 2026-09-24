@@ -7,7 +7,7 @@ import type { AvatarConfig } from "@/lib/types";
 import type { IsoAssets } from "./iso-engine";
 import type { IsoWorld } from "./world-model";
 import { OBJECT_CATALOG } from "./world-model";
-import { loadCharacterSheet } from "./character-sheet";
+import { loadCharacterSheet, characterSheetPath } from "./character-sheet";
 import { loadObjectSprite, type ObjectSprite } from "./world-object";
 import { worldAsset, newWorldImage } from "./asset-url";
 import { tintImage, tintToImage, type TintPreset } from "./terrain-tint";
@@ -23,7 +23,7 @@ export async function loadWorldAssets(
   const ground = world.groundSheet ?? "/world/tiles/forest.png";
 
   const [characters, forest, water, ...sprites] = await Promise.all([
-    loadCharacterSheet(worldAsset("/world/characters/long.png"), avatar),
+    loadCharacterSheet(worldAsset(characterSheetPath(avatar?.hairStyle)), avatar),
     loadImage(worldAsset(ground)).then((img) => tintToImage(img, tint, "ground")),
     loadImage(worldAsset("/world/tiles/water.png")).then((img) => tintToImage(img, tint, "ground")),
     ...kinds.map((kind) => {

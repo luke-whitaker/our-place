@@ -257,6 +257,32 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.10.4 — Short Hair, and No Blush (September 2026)
+
+**Why:** The avatar builder had no hair choice, because only the long-hair sheet was ready.
+The short-hair sheet is now finished. The builder had also been quietly saving "short" as
+everyone's hair style, a default nobody picked, while the world only ever drew long hair.
+And both characters had pink blush on their cheeks, which Luke wanted gone.
+
+**What changed:**
+
+- **Short or long hair:** the avatar builder has a Hair style choice, and the world draws
+  whichever you pick, in your colors.
+- **Everyone keeps the look they have:** a one-time update sets existing avatars to long
+  hair, the look members chose their colors against. New members also start with long hair
+  and can switch in the builder.
+- **No blush:** the pink cheek patches are painted out of both characters. The face keeps
+  its shading.
+- **No more pink flecks:** in browsers with anti-fingerprinting protection (Luke's Firefox,
+  and likely Brave and Safari), reading the character's pixels returned about one in eight a
+  shade off on purpose. Those pixels missed the recolor and kept the original pink shirt and
+  blue pants, so every avatar had pink and purple flecks. The recolor now matches each pixel
+  to the nearest paint within a tiny margin, and a browser that scrambles pixel reads entirely
+  gets the character in its original colors instead of static.
+
+**What didn't change:** no API changes and no schema change. The only data change is the
+one-time hair style update.
+
 ### v0.10.3 — Full Screen for the World (September 2026)
 
 **Why:** On a phone, the world shared the screen with the browser's address bar and buttons,
