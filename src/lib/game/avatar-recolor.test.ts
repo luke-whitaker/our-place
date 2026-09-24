@@ -31,9 +31,20 @@ describe("hexToRgb", () => {
 describe("buildRecolorMap", () => {
   const map = buildRecolorMap(CONFIG);
 
-  it("maps every sheet ramp color (21 total minus fixed outline/eyes/blush)", () => {
-    // 6 hair + 3 skin + 4 shirt + 2 pants + 3 shoes = 18 remapped colors
+  it("maps every sheet ramp color (all 20 except outline black and white)", () => {
+    // 5 hair + 4 skin + 4 shirt + 2 pants + 3 shoes = 18 remapped colors
     expect(map.size).toBe(18);
+  });
+
+  it("shades the neck, ears, and hands from the skin tone, not the hair", () => {
+    // #b56732 sits only on skin. In the hair ramp it painted necks hair-colored.
+    const neck = map.get(pack("#b56732"))!;
+    const skin = hexToRgb(CONFIG.skinTone)!;
+    const ratio = neck[0] / skin[0];
+    expect(ratio).toBeGreaterThan(0.4);
+    expect(ratio).toBeLessThan(0.7);
+    expect(neck[1] / skin[1]).toBeCloseTo(ratio, 1);
+    expect(neck[2] / skin[2]).toBeCloseTo(ratio, 1);
   });
 
   it("keeps the old blush color off every ramp", () => {

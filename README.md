@@ -257,6 +257,22 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.10.5 — Skin Shading and Fresh Art (September 2026)
+
+**Why:** The neck, ears, and hands mid-stride were painted with a color the avatar recolor
+filed under hair, so they took the hair color: orange-brown on dark or green skin. And after
+v0.10.4 shipped, browsers kept showing the old blushing character for days, because world art
+is replaced in place and the art host sends no cache instructions.
+
+**What changed:**
+
+- **Necks, ears, and hands follow the skin tone:** that color is now the skin's deepest
+  shadow, as dark as the original art drew it, in any skin color.
+- **Art refreshes on every deploy:** world art addresses carry the deployed version, so every
+  browser fetches the current art once after each deploy instead of keeping an old copy.
+
+**What didn't change:** no API, schema, or art changes.
+
 ### v0.10.4 — Short Hair, and No Blush (September 2026)
 
 **Why:** The avatar builder had no hair choice, because only the long-hair sheet was ready.

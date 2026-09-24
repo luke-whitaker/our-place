@@ -17,8 +17,11 @@ type RecolorablePart = "hair" | "skin" | "shirt" | "pants" | "shoes";
  * darker, highlight steps slightly brighter (clamped).
  */
 const SHEET_RAMPS: Record<RecolorablePart, readonly string[]> = {
-  hair: ["#592d07", "#280b03", "#390d01", "#824c1e", "#b56732", "#621904"],
-  skin: ["#ecd9b8", "#d39b5f", "#ffd5bf"],
+  hair: ["#592d07", "#280b03", "#390d01", "#824c1e", "#621904"],
+  // #b56732 is the deepest skin shadow: the neck under the chin, one pixel per
+  // ear, and the hands mid-stride, never hair. Filed under hair, it painted
+  // those in the hair color, which showed as orange-brown on dark or green skin.
+  skin: ["#ecd9b8", "#d39b5f", "#ffd5bf", "#b56732"],
   // #eabcd6 is absent on purpose: it was the cheek blush, and listing it here
   // once made blush track the shirt colour — pick a blue shirt, get blue
   // cheeks. Our copies of both sheets now have the blush painted out to the
