@@ -5,15 +5,17 @@
 // canvas in update); render is the only canvas-aware half. This is what
 // WorldCanvas will run in Phase 3, replacing the top-down engine.
 
+import type { NpcId } from "@/lib/npcs";
 import { tileToScreen, HALF_W, HALF_H } from "./iso";
 import { groundCell, type Terrain } from "./forest-autotile";
 import { waterCell, WATER_FRAMES, WATER_FRAME_COLS } from "./water-autotile";
 import { drawObject, objectDrawRect, type ObjectSprite } from "./world-object";
-import { pickFrame, type CharacterSprites } from "./character-sheet";
+import { pickFrame, type CharacterSprites, type NpcSprites, type Dir8 } from "./character-sheet";
 import {
   computeIntent,
   applyMovement,
   createEntity,
+  facingToward,
   type IsoEntity,
   type MoveIntent,
 } from "./iso-actor";
@@ -29,7 +31,7 @@ import {
 } from "./iso-cull";
 import { FADE_SPEED, PAL } from "./constants";
 import type { Viewport } from "./viewport";
-import type { GameMode, Door, MushroomWarp, Pc, WorldLink } from "./types";
+import type { GameMode, Door, MushroomWarp, Pc, WorldLink, WorldNpc } from "./types";
 import type { IsoWorld } from "./world-model";
 import type { InputManager } from "./input";
 
@@ -55,6 +57,13 @@ export const INTERACT_TILES = 1.5; // door/PC/shrine reach, in tiles
  * short enough not to feel like a delay. */
 export const CONFIRM_TICKS = 12;
 
+/** Prompt-pill display name per NPC ("Talk to Gnomie"). The full dialogue
+ * catalog (npc-dialogue.ts) also names each NPC; duplicating two short
+ * strings here is cheaper than having the engine import dialogue content just
+ * to label a prompt pill — the world-engine rules keep "the world is data"
+ * and rendering separate from authored copy. */
+const NPC_NAMES: Record<NpcId, string> = { gnomie: "Gnomie", gnomette: "Gnomette" };
+
 // Camera padding (pre-zoom px). Sides/bottom get a half-tile of breathing room;
 // the top gets more so tall sprites (houses, trees) at the north edge aren't
 // clipped. Tunable with the real town's camera feel in Phase 4.
@@ -64,7 +73,11 @@ const CAM_TOP_PAD = 112;
 // ── State ──
 
 /** What an armed interaction prompt will do once its confirm flash finishes. */
-export type ConfirmAction = { kind: "door"; door: Door } | { kind: "pc" } | { kind: "shrine" };
+export type ConfirmAction =
+  | { kind: "door"; door: Door }
+  | { kind: "pc" }
+  | { kind: "shrine" }
+  | { kind: "npc"; npc: WorldNpc };
 
 export interface IsoState {
   mode: GameMode;
@@ -95,6 +108,12 @@ export interface IsoState {
   nearbyPc: Pc | null;
   /** A chosen "log on" target, fired at the peak of the fade like a link. */
   pendingPort: string | null;
+  nearbyNpc: WorldNpc | null;
+  /** Each world NPC's current facing — starts at its authored default and
+   * turns toward the player for the length of a conversation. Keyed by NpcId
+   * so multiple NPCs never share state; runtime, so it lives here rather than
+   * on the (static) WorldNpc. */
+  npcFacing: Record<string, Dir8>;
   discovered: Set<string>;
   /** Cursor into whichever modal list is open — the shrine network or a PC. */
   menuIndex: number;
@@ -149,6 +168,8 @@ export function createIsoState(world: IsoWorld, options: IsoStateOptions = {}): 
     pendingLink: null,
     nearbyPc: null,
     pendingPort: null,
+    nearbyNpc: null,
+    npcFacing: Object.fromEntries((world.npcs ?? []).map((npc) => [npc.id, npc.facing])),
     discovered: new Set(options.discovered ?? []),
     menuIndex: 0,
     // Left null so the first update fires the spawn region's entry toast.
@@ -188,11 +209,19 @@ function findNearbyPc(world: IsoWorld, col: number, row: number): Pc | null {
   return null;
 }
 
+function findNearbyNpc(world: IsoWorld, col: number, row: number): WorldNpc | null {
+  for (const npc of world.npcs ?? []) {
+    if (isNear(col, row, npc.col, npc.row)) return npc;
+  }
+  return null;
+}
+
 /** Whatever the player could interact with from where they stand. */
 export interface Targets {
   door: Door | null;
   pc: Pc | null;
   mushroom: MushroomWarp | null;
+  npc: WorldNpc | null;
 }
 
 /**
@@ -200,14 +229,15 @@ export interface Targets {
  * Enter, and walking into a door always agree. Without this a door beat a PC
  * whenever both were in reach, and in rooms where the exit sits two tiles from
  * the computer, stepping up to the PC walked you out of the building instead.
- * Ties go to the door, then the PC, so a door can always be walked into from
- * the tile you arrive on.
+ * Ties go to the door, then the PC, then the shrine, then the NPC, so a door
+ * can always be walked into from the tile you arrive on.
  */
 export function nearestTarget(inReach: Targets, col: number, row: number): Targets {
   const candidates = [
     { kind: "door", at: inReach.door },
     { kind: "pc", at: inReach.pc },
     { kind: "mushroom", at: inReach.mushroom },
+    { kind: "npc", at: inReach.npc },
   ] as const;
   let best: (typeof candidates)[number] | null = null;
   let bestDist = Infinity;
@@ -224,6 +254,7 @@ export function nearestTarget(inReach: Targets, col: number, row: number): Targe
     door: best?.kind === "door" ? inReach.door : null,
     pc: best?.kind === "pc" ? inReach.pc : null,
     mushroom: best?.kind === "mushroom" ? inReach.mushroom : null,
+    npc: best?.kind === "npc" ? inReach.npc : null,
   };
 }
 
@@ -427,11 +458,45 @@ export type OnDoorInteract = (door: Door) => void;
 export type OnWorldLink = (link: WorldLink) => void;
 /** Fired at the peak of a PC "log on" fade — the caller ports to that href. */
 export type OnPcPort = (href: string) => void;
+/** Fired the moment an NPC confirm finishes — the caller opens the dialogue
+ * overlay and fetches the talk result. Unlike a door/link/PC, there's no
+ * fade: the engine just pauses (see pauseForOverlay) and hands off. */
+export type OnNpcTalk = (npcId: NpcId) => void;
 
 export interface UpdateCallbacks {
   onDoorInteract?: OnDoorInteract;
   onWorldLink?: OnWorldLink;
   onPcPort?: OnPcPort;
+  onNpcTalk?: OnNpcTalk;
+}
+
+/**
+ * Enter the paused mode any DOM overlay needs — dialogue, Pockets, the
+ * Notebook, the note reader. update() returns immediately once mode is
+ * "dialogue" (see the early return below), so no movement, interaction, or
+ * prompt runs while a panel covers the world. React calls this directly for
+ * an overlay it opens itself (the Pockets button, the P key); the "npc"
+ * confirm action below calls it too, so every path into a paused world lands
+ * in the exact same state.
+ */
+export function pauseForOverlay(state: IsoState): void {
+  state.mode = "dialogue";
+}
+
+/** Leave the paused mode once every DOM overlay is closed. A no-op outside
+ * it, so a caller never has to track whether a pause is currently active. */
+export function resumeFromOverlay(state: IsoState): void {
+  if (state.mode === "dialogue") state.mode = "overworld";
+}
+
+/** End a conversation: the NPC turns back to its authored default facing (it
+ * only turned to face the player for the talk) and the world resumes. React
+ * calls this specifically when the dialogue overlay closes, rather than the
+ * generic resumeFromOverlay, so the facing reset can never be forgotten. */
+export function endNpcTalk(state: IsoState, world: IsoWorld, npcId: string): void {
+  const npc = (world.npcs ?? []).find((n) => n.id === npcId);
+  if (npc) state.npcFacing[npc.id] = npc.facing;
+  resumeFromOverlay(state);
 }
 
 export function update(
@@ -516,6 +581,20 @@ export function update(
     return;
   }
 
+  // ── Paused for a DOM overlay (dialogue, Pockets, the Notebook…) ──
+  // Draining Enter/Space here, not just returning, matters: a DOM overlay's
+  // own listener (WorldDialogue's "advance") reads the same physical keydown
+  // this engine's InputManager just queued. Without this drain, closing the
+  // dialogue on that keypress resumes the world with "Enter" still pending,
+  // and the very next tick reads it as a fresh press on whatever NPC or door
+  // the player still happens to be standing next to — instantly reopening
+  // the dialogue it was just closing.
+  if (state.mode === "dialogue") {
+    input.consume("Enter");
+    input.consume("Space");
+    return;
+  }
+
   if (state.mode !== "overworld") return;
 
   // ── Confirming an interaction (the prompt pill's green flash) ──
@@ -539,6 +618,13 @@ export function update(
       else if (action.kind === "pc") {
         state.mode = "pc-menu";
         state.menuIndex = 0;
+      } else if (action.kind === "npc") {
+        // No fade for a talk — turn the NPC to face the player and pause
+        // straight into the dialogue overlay; the caller fetches the talk
+        // result and drives the conversation from there.
+        state.npcFacing[action.npc.id] = facingToward(action.npc, player);
+        pauseForOverlay(state);
+        callbacks.onNpcTalk?.(action.npc.id);
       } else {
         state.mode = "warp-menu";
         state.menuIndex = 0;
@@ -549,11 +635,12 @@ export function update(
 
   const player = getLocalEntity(state);
 
-  // ── Door / PC / shrine proximity ──
+  // ── Door / PC / shrine / NPC proximity ──
   const inReach: Targets = {
     door: findNearbyDoor(world, player.col, player.row),
     pc: findNearbyPc(world, player.col, player.row),
     mushroom: findNearbyMushroom(world, player.col, player.row),
+    npc: findNearbyNpc(world, player.col, player.row),
   };
   // Discovery and arming read everything in reach, not just the nearest: a
   // shrine you pass is found even beside a door, and a door re-arms only once
@@ -568,6 +655,7 @@ export function update(
   state.nearbyDoor = target.door;
   state.nearbyPc = target.pc;
   state.nearbyMushroom = target.mushroom;
+  state.nearbyNpc = target.npc;
 
   const intent = computeIntent(input);
 
@@ -590,6 +678,13 @@ export function update(
   }
   if (state.nearbyMushroom && (input.consume("Enter") || input.consume("Space"))) {
     startConfirm(state, state.nearbyMushroom.label, { kind: "shrine" });
+    return;
+  }
+  if (state.nearbyNpc && (input.consume("Enter") || input.consume("Space"))) {
+    startConfirm(state, `Talk to ${NPC_NAMES[state.nearbyNpc.id]}`, {
+      kind: "npc",
+      npc: state.nearbyNpc,
+    });
     return;
   }
 
@@ -619,6 +714,8 @@ export interface IsoAssets {
   objects: Record<string, ObjectSprite>;
   /** Character frames (shared for now; per-entity once players have identity). */
   characters: CharacterSprites;
+  /** Standing NPC frames, keyed by NpcId, for every NPC the world places. */
+  npcs: Record<string, NpcSprites>;
 }
 
 /** Project a world's terrain to the grass grid the forest autotiler reads. Water
@@ -695,6 +792,23 @@ export function render(
       draw: () => drawEntity(ctx, entity, assets.characters, camX, camY),
     });
   }
+  for (const npc of world.npcs ?? []) {
+    const sprites = assets.npcs[npc.id];
+    if (!sprites) continue;
+    const pos = tileToScreen(npc.col, npc.row);
+    const npcRect: ViewRect = {
+      x: pos.x - ENTITY_CULL_MARGIN,
+      y: pos.y - ENTITY_CULL_MARGIN,
+      w: ENTITY_CULL_MARGIN * 2,
+      h: ENTITY_CULL_MARGIN * 2,
+    };
+    if (!rectsOverlap(npcRect, view)) continue;
+    const facing = state.npcFacing[npc.id] ?? npc.facing;
+    drawables.push({
+      depth: pos.y,
+      draw: () => drawNpc(ctx, npc, sprites[facing], camX, camY),
+    });
+  }
   drawables.sort((a, b) => a.depth - b.depth).forEach((d) => d.draw());
 
   ctx.restore();
@@ -707,12 +821,13 @@ export function render(
   drawNameTags(ctx, state, assets.characters, view, frame.viewport);
   if (state.fade === 0 && state.mode === "overworld") {
     // Yellow while just in reach, green for the confirm flash right before the
-    // action fires; door > PC > shrine when more than one is in reach, as today.
+    // action fires; door > PC > shrine > NPC when more than one is in reach.
     const label =
       state.confirm?.text ??
       state.nearbyDoor?.label ??
       state.nearbyPc?.label ??
-      state.nearbyMushroom?.label;
+      state.nearbyMushroom?.label ??
+      (state.nearbyNpc ? `Talk to ${NPC_NAMES[state.nearbyNpc.id]}` : undefined);
     if (label) {
       const player = getLocalEntity(state);
       const head = headHudPos(player, assets.characters, state.camera, frame.viewport);
@@ -802,6 +917,29 @@ function drawEntity(
     Math.round(pos.x - frame.width / 2 - camX),
     Math.round(pos.y - frame.height + FOOT_OFFSET - camY),
   );
+}
+
+/** Draw a standing NPC: a shadow like the player's, then its current-facing
+ * frame, bottom-anchored on its feet the same way drawEntity anchors the
+ * player — a taller frame (the gnomes' hat headroom) just extends further up
+ * from the same foot point. */
+function drawNpc(
+  ctx: CanvasRenderingContext2D,
+  npc: WorldNpc,
+  frame: HTMLCanvasElement,
+  camX: number,
+  camY: number,
+): void {
+  const pos = tileToScreen(npc.col, npc.row);
+
+  ctx.fillStyle = "rgba(0,0,0,0.22)";
+  ctx.beginPath();
+  ctx.ellipse(pos.x - camX, pos.y - camY, SHADOW_RX, SHADOW_RY, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  const dx = Math.round(pos.x - frame.width / 2 - camX);
+  const dy = Math.round(pos.y - frame.height + FOOT_OFFSET - camY);
+  ctx.drawImage(frame, dx, dy);
 }
 
 /** Gap between a sprite's head and its name tag, in CSS px. */

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { computeIntent, applyMovement, createEntity } from "./iso-actor";
+import { computeIntent, applyMovement, createEntity, facingToward } from "./iso-actor";
 import type { SolidGrid } from "./iso-collision";
 
 function openGrid(cols: number, rows: number): SolidGrid {
@@ -54,5 +54,37 @@ describe("applyMovement", () => {
     expect(Math.floor(entity.col)).toBe(5);
     expect(Math.floor(entity.row)).toBe(5);
     expect(entity.dir).toBe("E"); // still turns to face the attempted direction
+  });
+});
+
+describe("facingToward", () => {
+  it("returns S when the two tiles coincide", () => {
+    expect(facingToward({ col: 5, row: 5 }, { col: 5, row: 5 })).toBe("S");
+  });
+
+  it("faces a target one column ahead as the down-right screen direction", () => {
+    // The col axis alone projects to screen (+16,+8) — down-right, the same
+    // "SE" a player walking that way would face (see iso.ts's tileToScreen).
+    expect(facingToward({ col: 5, row: 5 }, { col: 6, row: 5 })).toBe("SE");
+  });
+
+  it("faces a target one row ahead as the down-left screen direction", () => {
+    expect(facingToward({ col: 5, row: 5 }, { col: 5, row: 6 })).toBe("SW");
+  });
+
+  it("is symmetric: facing away from a target is the opposite of facing toward it", () => {
+    const from = { col: 3, row: 8 };
+    const to = { col: 9, row: 2 };
+    const opposite: Record<string, string> = {
+      S: "N",
+      SE: "NW",
+      E: "W",
+      NE: "SW",
+      N: "S",
+      NW: "SE",
+      W: "E",
+      SW: "NE",
+    };
+    expect(facingToward(from, to)).toBe(opposite[facingToward(to, from)]);
   });
 });

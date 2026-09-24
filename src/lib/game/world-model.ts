@@ -11,8 +11,9 @@
 //   • Door ids are community slugs, so Ports keeps working (`?at=<slug>`).
 
 import { z } from "zod";
+import { isNpcId } from "@/lib/npcs";
 import { TINT_PRESETS, type TintPreset, type TintTarget } from "./terrain-tint";
-import type { Door, MushroomWarp, Pc, Region, WorldLink } from "./types";
+import type { Door, MushroomWarp, Pc, Region, WorldLink, WorldNpc } from "./types";
 
 // ── Terrain ──
 // Iso ground is a small set of surface types — in iso, structures (walls, roofs,
@@ -285,6 +286,8 @@ export interface IsoWorld {
   doors: Door[];
   /** Ports terminals: log on to a forum view, or travel PC to PC. */
   pcs?: Pc[];
+  /** Standing NPCs a member can talk to (the fourth interaction kind). */
+  npcs?: WorldNpc[];
   /** Mushroom warp shrines (the mycelium fast-travel network). */
   mushrooms: MushroomWarp[];
   /** Warp-menu destinations in other worlds, offered at every shrine here. */
@@ -314,6 +317,17 @@ const pcSchema = z.object({
   id: z.string(),
   label: z.string(),
   href: z.string(),
+});
+
+/** Mirrors character-sheet.ts's Dir8 union (spelled out rather than derived
+ * from DIR8_ALL, since Zod needs a literal tuple, not a readonly array). */
+const dir8Schema = z.enum(["S", "SE", "E", "NE", "N", "NW", "W", "SW"]);
+
+const npcSchema = z.object({
+  id: z.string().refine(isNpcId, { message: "unrecognized NPC id" }),
+  col: z.number().int(),
+  row: z.number().int(),
+  facing: dir8Schema,
 });
 
 const mushroomSchema = z.object({
@@ -355,6 +369,7 @@ export const isoWorldSchema = z.object({
   objects: z.array(z.object({ kind: z.string(), col: z.number().int(), row: z.number().int() })),
   doors: z.array(doorSchema),
   pcs: z.array(pcSchema).optional(),
+  npcs: z.array(npcSchema).optional(),
   mushrooms: z.array(mushroomSchema),
   links: z.array(linkSchema),
   regions: z.array(regionSchema),
@@ -380,8 +395,43 @@ export function parseIsoWorld(data: unknown): IsoWorld {
       throw new Error(`objects[${i}] has unknown kind "${obj.kind}"`);
     }
   });
+  (world.npcs ?? []).forEach((npc, i) => validateNpcPlacement(world, npc, i));
 
   return world;
+}
+
+/** Whether `world`'s solid terrain or a solid object's footprint covers (col,
+ * row). Duplicates the tile-blocking half of iso-collision.ts's
+ * buildSolidGrid rather than importing it: iso-collision.ts already imports
+ * this file for OBJECT_CATALOG and SOLID_TERRAIN, so importing back would
+ * cycle. */
+function isBlockedTile(world: IsoWorld, col: number, row: number): boolean {
+  if (SOLID_TERRAIN.has(world.terrain[row][col])) return true;
+  return world.objects.some((obj) => {
+    const def = OBJECT_CATALOG[obj.kind];
+    return (
+      def?.solid && def.footprint.some((f) => obj.col + f.dc === col && obj.row + f.dr === row)
+    );
+  });
+}
+
+/** An NPC must stand in bounds, on ground the player can actually walk onto,
+ * and clear of every other interaction point — sharing a tile with a door,
+ * PC, or shrine would make `nearestTarget` pick one arbitrarily. */
+function validateNpcPlacement(world: IsoWorld, npc: WorldNpc, index: number): void {
+  if (npc.col < 0 || npc.col >= world.cols || npc.row < 0 || npc.row >= world.rows) {
+    throw new Error(`npcs[${index}] "${npc.id}" is out of bounds`);
+  }
+  if (isBlockedTile(world, npc.col, npc.row)) {
+    throw new Error(`npcs[${index}] "${npc.id}" is not on a walkable tile`);
+  }
+  const onOtherInteraction =
+    world.doors.some((d) => d.col === npc.col && d.row === npc.row) ||
+    (world.pcs ?? []).some((p) => p.col === npc.col && p.row === npc.row) ||
+    world.mushrooms.some((m) => m.col === npc.col && m.row === npc.row);
+  if (onOtherInteraction) {
+    throw new Error(`npcs[${index}] "${npc.id}" sits on a door, PC, or shrine tile`);
+  }
 }
 
 /** Fetch a serialized world by URL — a static JSON file now, a DB-backed API

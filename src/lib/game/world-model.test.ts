@@ -83,4 +83,54 @@ describe("parseIsoWorld", () => {
     expect(parseIsoWorld(linked).links[0].place).toBe("me");
     expect(() => parseIsoWorld({ ...LAB_TOWN, links: [{ id: "x", label: "X" }] })).toThrow();
   });
+
+  describe("npcs", () => {
+    it("accepts an NPC on an open, walkable tile", () => {
+      const world = {
+        ...LAB_TOWN,
+        npcs: [{ id: "gnomie", col: 5, row: 5, facing: "S" }],
+      };
+      expect(() => parseIsoWorld(world)).not.toThrow();
+      expect(parseIsoWorld(world).npcs?.[0].id).toBe("gnomie");
+    });
+
+    it("rejects an unrecognized NPC id", () => {
+      const world = { ...LAB_TOWN, npcs: [{ id: "dragon", col: 5, row: 5, facing: "S" }] };
+      expect(() => parseIsoWorld(world)).toThrow();
+    });
+
+    it("rejects an out-of-bounds NPC", () => {
+      const world = {
+        ...LAB_TOWN,
+        npcs: [{ id: "gnomie", col: LAB_TOWN.cols + 5, row: 5, facing: "S" }],
+      };
+      expect(() => parseIsoWorld(world)).toThrow(/out of bounds/);
+    });
+
+    it("rejects an NPC on a door tile", () => {
+      const door = LAB_TOWN.doors[0];
+      const world = {
+        ...LAB_TOWN,
+        npcs: [{ id: "gnomie", col: door.col, row: door.row, facing: "S" }],
+      };
+      expect(() => parseIsoWorld(world)).toThrow(/door, PC, or shrine/);
+    });
+
+    it("rejects an NPC standing on solid terrain or a solid object", () => {
+      const onWater = {
+        ...LAB_TOWN,
+        terrain: LAB_TOWN.terrain.map((row) => row.slice()),
+        npcs: [{ id: "gnomie", col: 1, row: 1, facing: "S" }],
+      };
+      onWater.terrain[1][1] = "water";
+      expect(() => parseIsoWorld(onWater)).toThrow(/walkable tile/);
+
+      const onObject = {
+        ...LAB_TOWN,
+        objects: [...LAB_TOWN.objects, { kind: "oak1", col: 2, row: 2 }],
+        npcs: [{ id: "gnomie", col: 2, row: 2, facing: "S" }],
+      };
+      expect(() => parseIsoWorld(onObject)).toThrow(/walkable tile/);
+    });
+  });
 });

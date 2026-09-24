@@ -28,7 +28,7 @@
 // `wall_row` in `props`, which is already solid and already depth-sorted.
 
 import type { IsoWorld, PlacedObjectData, TerrainKind } from "../world-model";
-import type { Door, Pc, Region, WorldLink } from "../types";
+import type { Door, Pc, Region, WorldLink, WorldNpc } from "../types";
 
 /** The wooden interior sheet, painted in the Forest_Tiles cell layout. */
 export const INTERIOR_GROUND = "/world/tiles/interior_wood.png";
@@ -75,6 +75,8 @@ export interface InteriorSpec {
   props?: readonly PlacedObjectData[];
   /** Destinations the PC offers besides logging on — the rest of the network. */
   links?: readonly WorldLink[];
+  /** NPCs standing in the room, in room coordinates. */
+  npcs?: readonly WorldNpc[];
 }
 
 function key(col: number, row: number): string {
@@ -210,6 +212,7 @@ export function buildInterior(spec: InteriorSpec): IsoWorld {
     ],
     doors,
     pcs,
+    npcs: spec.npcs ? [...spec.npcs] : undefined,
     mushrooms: [],
     links: [...(spec.links ?? [])],
     regions,

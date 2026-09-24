@@ -9,9 +9,10 @@
 //     position. A server can later run applyMovement to stay authoritative — it
 //     never needs the keyboard, only the intent.
 
-import { screenToTile } from "./iso";
+import { screenToTile, tileToScreen } from "./iso";
 import { resolveMove } from "./iso-collision";
 import { vectorToDir8 } from "./character-sheet";
+import type { TilePos } from "./iso";
 import type { SolidGrid } from "./iso-collision";
 import type { Dir8 } from "./character-sheet";
 import type { InputManager } from "./input";
@@ -83,4 +84,17 @@ export function applyMovement(grid: SolidGrid, entity: IsoEntity, intent: MoveIn
   entity.dir = vectorToDir8(sx, sy) ?? entity.dir;
   entity.moving = true;
   entity.animTimer++;
+}
+
+/**
+ * The 8-way facing an actor at `from` should show to look toward `to` — an
+ * NPC turning to face the player for dialogue. tileToScreen is linear with no
+ * translation, so the screen-space vector between two tiles is exactly the
+ * projection of their tile-space delta; feeding that through the same
+ * vectorToDir8 sector math movement uses keeps "facing" consistent everywhere
+ * it's computed. Falls back to "S" only when the two tiles coincide.
+ */
+export function facingToward(from: TilePos, to: TilePos): Dir8 {
+  const delta = tileToScreen(to.col - from.col, to.row - from.row);
+  return vectorToDir8(delta.x, delta.y) ?? "S";
 }

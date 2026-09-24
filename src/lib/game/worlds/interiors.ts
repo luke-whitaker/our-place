@@ -44,7 +44,11 @@ const ROOMS: ReadonlyArray<Omit<InteriorSpec, "id" | "exit" | "pcHref" | "links"
     windowCols: [7, 8, 14, 15],
     windowRows: [3, 4, 9, 10],
     flagstones: [{ col: 9, row: 5, w: 5, h: 5 }],
-    props: [],
+    // A planter for Gnomie to tend. It sits one tile down-left of him in the
+    // grid, which is straight left on screen, so he faces west in profile.
+    // Facing the entrance instead showed only his back and hat.
+    props: [{ kind: "flower_box3", col: 5, row: 11 }],
+    npcs: [{ id: "gnomie", col: 6, row: 10, facing: "W" }],
   },
   {
     label: "Creative",

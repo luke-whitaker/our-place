@@ -21,7 +21,7 @@ import { OBJECT_CATALOG } from "../world-model";
 import { ISLAND_SHRINE_ID } from "./island";
 import { EXIT_DOOR_ID } from "./interior";
 import { interiorPlace } from "./interiors";
-import type { Door, MushroomWarp, Region, WorldLink } from "../types";
+import type { Door, MushroomWarp, Region, WorldLink, WorldNpc } from "../types";
 
 // ── Map + the town's offset within it ──
 
@@ -369,6 +369,14 @@ function dressMirrorPond(): void {
 }
 dressMirrorPond();
 
+// ── NPCs ──
+
+// Gnomette sits on the pond's north-west bank, in the open clearing, looking
+// down across the water (and toward the camera). The south bank looked right
+// on the map but the forest canopy is drawn in front of it, hiding her and
+// the player. The tile south of her is dry, so ?at=gnomette lands on grass.
+const npcs: WorldNpc[] = [{ id: "gnomette", col: 90, row: 39, facing: "S" }];
+
 // ── Mushroom warp network ──
 
 const mushrooms: MushroomWarp[] = [
@@ -505,6 +513,7 @@ export const CAPITAL: IsoWorld = {
   terrain,
   objects,
   doors,
+  npcs,
   mushrooms,
   links,
   regions,

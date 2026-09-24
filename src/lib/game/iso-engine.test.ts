@@ -15,13 +15,14 @@ import {
   ISO_VIEW_H,
   CONFIRM_TICKS,
   nearestTarget,
+  endNpcTalk,
 } from "./iso-engine";
 import { INTERIORS } from "./worlds/interiors";
 import { LAB_TOWN } from "./worlds/lab-town";
 import { createInputManager } from "./input";
 import type { IsoWorld } from "./world-model";
 import type { InputManager } from "./input";
-import type { Door, Pc, WorldLink } from "./types";
+import type { Door, Pc, WorldLink, WorldNpc } from "./types";
 
 const DESKTOP_VIEW = { w: ISO_VIEW_W, h: ISO_VIEW_H };
 
@@ -211,16 +212,27 @@ describe("nearestTarget", () => {
   const pc = { id: "pc", col: 2, row: 2, label: "PC" } as Pc;
 
   it("keeps only the nearer of a door and a PC", () => {
-    expect(nearestTarget({ door, pc, mushroom: null }, 3, 2)).toEqual({
+    expect(nearestTarget({ door, pc, mushroom: null, npc: null }, 3, 2)).toEqual({
       door: null,
       pc,
       mushroom: null,
+      npc: null,
     });
   });
 
   it("gives a tie to the door, so a door can always be walked into", () => {
     const near = { ...door, col: 3, row: 1 };
-    expect(nearestTarget({ door: near, pc, mushroom: null }, 3, 2).door).toBe(near);
+    expect(nearestTarget({ door: near, pc, mushroom: null, npc: null }, 3, 2).door).toBe(near);
+  });
+
+  it("keeps only the nearer of an NPC and everything else", () => {
+    const npc: WorldNpc = { id: "gnomie", col: 6, row: 2, facing: "S" };
+    expect(nearestTarget({ door, pc, mushroom: null, npc }, 6, 2)).toEqual({
+      door: null,
+      pc: null,
+      mushroom: null,
+      npc,
+    });
   });
 });
 
@@ -305,6 +317,71 @@ describe("PC proximity and the pc-menu mode", () => {
     for (let i = 0; i < CONFIRM_TICKS; i++) update(state, world, solid, keyOnce(null));
     expect(state.mode).toBe("pc-menu");
     expect(state.menuIndex).toBe(0);
+  });
+});
+
+describe("NPC proximity and talking", () => {
+  const npc: WorldNpc = { id: "gnomie", col: 5, row: 5, facing: "N" };
+  const world: IsoWorld = { ...LAB_TOWN, npcs: [npc] };
+
+  it("notices a nearby NPC while walking", () => {
+    const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
+    const solid = buildWorldCollision(world);
+    update(state, world, solid, keyOnce(null));
+    expect(state.nearbyNpc).toEqual(npc);
+  });
+
+  it("starts idle-facing, then confirming Enter fires onNpcTalk after CONFIRM_TICKS, turns the NPC to face the player, and pauses the engine", () => {
+    const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
+    const solid = buildWorldCollision(world);
+    expect(state.npcFacing[npc.id]).toBe("N"); // the authored default
+
+    update(state, world, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("overworld"); // confirming first
+    expect(state.confirm?.text).toBe("Talk to Gnomie");
+    expect(state.confirm?.action).toEqual({ kind: "npc", npc });
+
+    const onNpcTalk = vi.fn();
+    for (let i = 0; i < CONFIRM_TICKS; i++) {
+      update(state, world, solid, keyOnce(null), { onNpcTalk });
+    }
+    expect(onNpcTalk).toHaveBeenCalledTimes(1);
+    expect(onNpcTalk).toHaveBeenCalledWith("gnomie");
+    // The player stands one row south of the NPC — the same tile delta
+    // facingToward's own test says projects to "SW" on screen.
+    expect(state.npcFacing[npc.id]).toBe("SW");
+    expect(state.mode).toBe("dialogue");
+
+    // Paused: a further update does nothing (no menu, no movement).
+    const before = getLocalEntity(state).row;
+    update(state, world, solid, keysHeld("ArrowDown"), { onNpcTalk });
+    expect(onNpcTalk).toHaveBeenCalledTimes(1);
+    expect(getLocalEntity(state).row).toBe(before);
+
+    endNpcTalk(state, world, npc.id);
+    expect(state.mode).toBe("overworld");
+    expect(state.npcFacing[npc.id]).toBe("N"); // back to its default
+  });
+
+  it("drains a pending Enter while paused, so it can't reopen the NPC it just closed", () => {
+    // Regression: the DOM dialogue closes on the same physical Enter press
+    // that the engine's own InputManager also queues. If that queued press
+    // survived past the resume, the very next tick would read it as a fresh
+    // Enter at whatever NPC the player is still standing beside — instantly
+    // reopening the dialogue it was just told to close. update() must drain
+    // Enter/Space on every tick it spends paused, not just return early.
+    const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
+    state.mode = "dialogue";
+    const input = createInputManager();
+    input.press("Enter"); // simulates the close keypress the DOM handler saw too
+    update(state, world, buildWorldCollision(world), input);
+    expect(input.consume("Enter")).toBe(false); // already drained, nothing left to consume
+
+    // Resuming now must not find an armed confirm waiting to fire.
+    endNpcTalk(state, world, npc.id);
+    update(state, world, buildWorldCollision(world), keyOnce(null));
+    expect(state.mode).toBe("overworld");
+    expect(state.confirm).toBeNull();
   });
 });
 

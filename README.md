@@ -257,6 +257,29 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.11.0 — Pockets, Gnomes, and the Notebook (September 2026)
+
+**Why:** The world had places to go but nothing to carry, and nobody in it but members. This is
+the first step of the item system that mailboxes, seeds, founding markers, and the wilderness
+all build on, and it starts with something to do: write to a friend.
+
+**What changed:**
+
+- **Two gnomes:** Gnomie tends a planter inside the Welcome Center and gives every member a
+  Notebook, once. Gnomette hangs out by the mirror pond, musing about ripples and frogs, and
+  hints at a gift that isn't ready yet. Walk up, press Enter (or A), and they turn to face you
+  and talk.
+- **Pockets:** the 👖 button in the world's top corner (or P on a laptop) opens 10 pocket
+  slots. Tap an item to see what you can do with it.
+- **The Notebook:** write up to 10 private drafts of up to 1,000 characters, edit them,
+  crumple them up, or tear one out. A torn-out page becomes a Note in your pockets that you
+  can read or throw away. When mailboxes arrive, a Note is what you'll leave in a friend's.
+  The Notebook itself can never be thrown away.
+- **Visitors** who aren't logged in can still meet the gnomes, who ask them to come back as
+  members; Pockets are for members only.
+
+**What didn't change:** existing APIs. New tables hold items, drafts, and one-time gifts.
+
 ### v0.10.5 — Skin Shading and Fresh Art (September 2026)
 
 **Why:** The neck, ears, and hands mid-stride were painted with a color the avatar recolor

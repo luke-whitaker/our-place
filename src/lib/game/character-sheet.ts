@@ -166,3 +166,52 @@ function sliceSheet(img: SheetSource): CharacterSprites {
 
   return { frameW: SHEET.frameW, frameH: SHEET.frameH, idle, walk };
 }
+
+// ── NPCs (standing-only sprite strips) ──
+// Gnomie and Gnomette ship as one contiguous 168×46 strip — eight 21×46
+// standing frames, DIR8_ALL order, no gutters and no walk cycle, since
+// neither NPC ever moves. The frame is taller than the player's 21×34 (a
+// pointy hat needs 12 rows more headroom), but it's still bottom-anchored on
+// the feet exactly like the player: drawing at `pos.y - frame.height +
+// FOOT_OFFSET` (iso-engine.ts) lines the feet up regardless of frame height.
+
+const NPC_FRAME_W = 21;
+const NPC_FRAME_H = 46;
+
+/** One idle frame per facing — no walk arrays, since these NPCs never move. */
+export type NpcSprites = Record<Dir8, HTMLCanvasElement>;
+
+/** Load and slice one NPC's sheet. No recolor: the art is final per-NPC paint,
+ * not a palette the member's avatar swaps onto. */
+export function loadNpcSheet(url: string): Promise<NpcSprites> {
+  return new Promise((resolve, reject) => {
+    const img = newWorldImage(url);
+    img.onload = () => resolve(sliceNpcSheet(img));
+    img.onerror = () => reject(new Error(`Failed to load NPC sheet: ${url}`));
+    img.src = url;
+  });
+}
+
+function sliceNpcSheet(img: HTMLImageElement): NpcSprites {
+  const sprites = {} as NpcSprites;
+  DIR8_ALL.forEach((dir, i) => {
+    const canvas = document.createElement("canvas");
+    canvas.width = NPC_FRAME_W;
+    canvas.height = NPC_FRAME_H;
+    const ctx = canvas.getContext("2d")!;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(
+      img,
+      i * NPC_FRAME_W,
+      0,
+      NPC_FRAME_W,
+      NPC_FRAME_H,
+      0,
+      0,
+      NPC_FRAME_W,
+      NPC_FRAME_H,
+    );
+    sprites[dir] = canvas;
+  });
+  return sprites;
+}

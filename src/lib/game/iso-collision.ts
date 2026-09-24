@@ -26,6 +26,14 @@ export function buildSolidGrid(world: IsoWorld): SolidGrid {
     }
   }
 
+  // An NPC blocks its own tile like any other standing body, so the player
+  // walks up beside one rather than through it.
+  for (const npc of world.npcs ?? []) {
+    if (npc.row >= 0 && npc.row < world.rows && npc.col >= 0 && npc.col < world.cols) {
+      grid[npc.row][npc.col] = true;
+    }
+  }
+
   return grid;
 }
 

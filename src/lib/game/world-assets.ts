@@ -7,10 +7,16 @@ import type { AvatarConfig } from "@/lib/types";
 import type { IsoAssets } from "./iso-engine";
 import type { IsoWorld } from "./world-model";
 import { OBJECT_CATALOG } from "./world-model";
-import { loadCharacterSheet, characterSheetPath } from "./character-sheet";
+import {
+  loadCharacterSheet,
+  characterSheetPath,
+  loadNpcSheet,
+  type NpcSprites,
+} from "./character-sheet";
 import { loadObjectSprite, type ObjectSprite } from "./world-object";
 import { worldAsset, newWorldImage } from "./asset-url";
 import { tintImage, tintToImage, type TintPreset } from "./terrain-tint";
+import { NPC_DIALOGUE } from "./npc-dialogue";
 
 export async function loadWorldAssets(
   world: IsoWorld,
@@ -18,14 +24,17 @@ export async function loadWorldAssets(
 ): Promise<IsoAssets> {
   const tint: TintPreset = world.tint ?? "forest";
   const kinds = [...new Set(world.objects.map((o) => o.kind))];
+  // Every NPC the world places, deduplicated (a future world could repeat one).
+  const npcIds = [...new Set((world.npcs ?? []).map((n) => n.id))];
   // An interior names its own ground sheet, painted in the same cell layout, so
   // the autotiler reads it unchanged: `grass` becomes floorboards, `dirt` flags.
   const ground = world.groundSheet ?? "/world/tiles/forest.png";
 
-  const [characters, forest, water, ...sprites] = await Promise.all([
+  const [characters, forest, water, npcSheets, ...sprites] = await Promise.all([
     loadCharacterSheet(worldAsset(characterSheetPath(avatar?.hairStyle)), avatar),
     loadImage(worldAsset(ground)).then((img) => tintToImage(img, tint, "ground")),
     loadImage(worldAsset("/world/tiles/water.png")).then((img) => tintToImage(img, tint, "ground")),
+    Promise.all(npcIds.map((id) => loadNpcSheet(worldAsset(NPC_DIALOGUE[id].sheet)))),
     ...kinds.map((kind) => {
       const def = OBJECT_CATALOG[kind];
       return loadObjectSprite(worldAsset(def.src), def.scale).then((sprite) =>
@@ -38,7 +47,11 @@ export async function loadWorldAssets(
   kinds.forEach((kind, i) => {
     objects[kind] = sprites[i];
   });
-  return { characters, forest, water, objects };
+  const npcs: Record<string, NpcSprites> = {};
+  npcIds.forEach((id, i) => {
+    npcs[id] = npcSheets[i];
+  });
+  return { characters, forest, water, objects, npcs };
 }
 
 function tintSprite(

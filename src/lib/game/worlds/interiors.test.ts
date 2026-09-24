@@ -122,6 +122,7 @@ describe("INTERIORS", () => {
             door: world.doors.find((d) => near(c, r, d)) ?? null,
             pc,
             mushroom: null,
+            npc: null,
           };
           expect(nearestTarget(inReach, c, r).pc, `${world.id} at ${c},${r}`).toBe(pc);
         }

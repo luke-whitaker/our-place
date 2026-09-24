@@ -3,6 +3,9 @@
 // top-down engine in the iso migration — the iso world model lives in
 // world-model.ts and its runtime state in iso-engine.ts.
 
+import type { NpcId } from "@/lib/npcs";
+import type { Dir8 } from "./character-sheet";
+
 // ── Doors & Interactions ──
 
 export interface Door {
@@ -30,6 +33,18 @@ export interface Pc {
   label: string;
   /** Where "log on" goes. Empty means this PC only offers travel. */
   href: string;
+}
+
+// ── NPCs (talking neighbours, the fourth interaction kind) ──
+
+/** A standing NPC placed in a world. `facing` is the pose to idle in — the
+ * direction it faces the player during dialogue lives in IsoState instead,
+ * since that's runtime, not authored data. */
+export interface WorldNpc {
+  id: NpcId;
+  col: number;
+  row: number;
+  facing: Dir8;
 }
 
 // ── Mushroom warp network (mycelium fast-travel) ──

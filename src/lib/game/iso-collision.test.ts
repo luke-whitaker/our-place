@@ -53,6 +53,20 @@ describe("buildSolidGrid", () => {
     expect(() => buildSolidGrid(world)).not.toThrow();
     expect(buildSolidGrid(world)[0][0]).toBe(true);
   });
+
+  it("blocks an NPC's own tile like any other standing body", () => {
+    const world = grassWorld(4, 4);
+    world.npcs = [{ id: "gnomie", col: 2, row: 1, facing: "S" }];
+    const grid = buildSolidGrid(world);
+    expect(grid[1][2]).toBe(true);
+    expect(grid[1][1]).toBe(false);
+  });
+
+  it("does not throw when an NPC sits out of bounds", () => {
+    const world = grassWorld(3, 3);
+    world.npcs = [{ id: "gnomette", col: 99, row: 99, facing: "S" }];
+    expect(() => buildSolidGrid(world)).not.toThrow();
+  });
 });
 
 describe("isSolidAt", () => {

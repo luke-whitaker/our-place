@@ -4,6 +4,7 @@ import { useRef, useEffect, useCallback, useState, useMemo, useSyncExternalStore
 import { useAuth } from "@/components/AuthProvider";
 import WorldTouchControls from "@/components/WorldTouchControls";
 import WorldMenu from "@/components/WorldMenu";
+import WorldOverlays, { type OverlayScreen } from "@/components/WorldOverlays";
 import { TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
 import { isAvatarConfig } from "@/lib/game/avatar-recolor";
@@ -26,6 +27,7 @@ import { loadIsoSave, persistIsoSave, isValidIsoPosition } from "@/lib/game/iso-
 import type { IsoWorld } from "@/lib/game/world-model";
 import type { SolidGrid } from "@/lib/game/iso-collision";
 import type { Door, WorldLink } from "@/lib/game/types";
+import type { NpcId } from "@/lib/npcs";
 
 interface WorldCanvasProps {
   /** The place to render. Remount (change the key) to move between places. */
@@ -110,6 +112,9 @@ function spawnFor(
   // PC-to-PC travel names a terminal; arrive standing at it, as at a shrine.
   const pc = spawnAt ? world.pcs?.find((p) => p.id === spawnAt) : undefined;
   if (pc) return { col: pc.col, row: pc.row + 1 };
+  // An NPC id (?at=gnomie) lands the same way — one tile south, like a shrine.
+  const npc = spawnAt ? world.npcs?.find((n) => n.id === spawnAt) : undefined;
+  if (npc) return { col: npc.col, row: npc.row + 1 };
   if (saved && isValidIsoPosition(solid, saved.col, saved.row)) return saved;
   return undefined;
 }
@@ -153,11 +158,22 @@ export default function WorldCanvas({
   // ticks/sec) only calls setState on an actual change, not every frame.
   const [menu, setMenu] = useState<{ title: string; entries: MenuEntry[] } | null>(null);
   const menuKeyRef = useRef<string | null>(null);
+  // Which DOM overlay (dialogue, Pockets, the Notebook, the note reader) is
+  // covering the world, if any — see WorldOverlays.tsx, which owns everything
+  // about them beyond this one piece of state and the callback below.
+  const [overlay, setOverlay] = useState<OverlayScreen>({ kind: "none" });
+  const overlayOpen = overlay.kind !== "none";
 
-  const callbacksRef = useRef({ onDoorInteract, onWorldLink, onPcPort });
+  // Stable across renders: the engine calls this from inside the game loop
+  // (see UpdateCallbacks.onNpcTalk), so it can't close over stale props.
+  const handleNpcTalk = useCallback((npcId: NpcId) => {
+    setOverlay({ kind: "dialogue", npcId });
+  }, []);
+
+  const callbacksRef = useRef({ onDoorInteract, onWorldLink, onPcPort, onNpcTalk: handleNpcTalk });
   useEffect(() => {
-    callbacksRef.current = { onDoorInteract, onWorldLink, onPcPort };
-  }, [onDoorInteract, onWorldLink, onPcPort]);
+    callbacksRef.current = { onDoorInteract, onWorldLink, onPcPort, onNpcTalk: handleNpcTalk };
+  }, [onDoorInteract, onWorldLink, onPcPort, handleNpcTalk]);
 
   // ── Spawn resolution (deep-link → saved position → default) ──
   const playerLabel = user?.display_name;
@@ -382,8 +398,10 @@ export default function WorldCanvas({
           )}
           {/* The full screen button, on every device. `menu` is only ever set
               on touch screens, so this hides it under the touch menu overlay
-              and never on desktop, where the menu is drawn on the canvas. */}
-          {!menu && (
+              and never on desktop, where the menu is drawn on the canvas.
+              overlayOpen hides it the same way under Pockets/the Notebook/
+              dialogue, on every device. */}
+          {!menu && !overlayOpen && (
             <button
               type="button"
               onClick={(e) => {
@@ -400,6 +418,14 @@ export default function WorldCanvas({
               <ScreenModeIcon immersive={immersive} />
             </button>
           )}
+          <WorldOverlays
+            stateRef={stateRef}
+            world={world}
+            inputRef={inputRef}
+            overlay={overlay}
+            setOverlay={setOverlay}
+            signedIn={!!user}
+          />
           {isTouchDevice && menu && (
             <WorldMenu
               title={menu.title}
@@ -416,9 +442,9 @@ export default function WorldCanvas({
         </div>
       </div>
 
-      {/* Touch joystick — only on touch devices, and hidden while a menu overlay
-          is open (its unmount already releases any held stick keys). */}
-      {isTouchDevice && !menu && (
+      {/* Touch joystick — only on touch devices, and hidden while a menu or a
+          DOM overlay is open (its unmount already releases any held stick keys). */}
+      {isTouchDevice && !menu && !overlayOpen && (
         <WorldTouchControls onPress={handleTouchPress} onRelease={handleTouchRelease} />
       )}
     </div>
