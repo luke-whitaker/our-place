@@ -278,15 +278,42 @@ export function pcMenuEntries(pc: Pc, world: IsoWorld): MenuEntry[] {
   ];
 }
 
+/** The open terminal menu's title and rows (without the Cancel row), or null
+ * when no menu is open. Shared by the canvas-drawn menu and the touch DOM
+ * overlay (WorldMenu) so their title/row logic can never drift apart. */
+export function menuView(
+  state: IsoState,
+  world: IsoWorld,
+): { title: string; entries: MenuEntry[] } | null {
+  if (state.mode === "warp-menu") {
+    return { title: "Mycelium Network", entries: warpMenuEntries(state, world) };
+  }
+  if (state.mode === "pc-menu" && state.nearbyPc) {
+    return { title: state.nearbyPc.label, entries: pcMenuEntries(state.nearbyPc, world) };
+  }
+  return null;
+}
+
 /** Drive an open modal list. Returns the chosen row, "cancel" when the player
  * backs out or picks the Cancel row, or null while the menu is still open.
- * Shared by both menus so their key handling can never drift apart. */
+ * Shared by both menus so their key handling can never drift apart. A DOM tile
+ * tap (touch devices) arrives as a pick rather than a key, and is read first:
+ * an in-range pick chooses that row outright; an out-of-range one is ignored
+ * (the tile grid never produces one, but a stale pick from a menu that just
+ * shrank must not choose the wrong row) and leaves the menu open rather than
+ * falling through to the keyboard/joystick handling below. */
 function stepMenu(
   state: IsoState,
   input: InputManager,
   entries: MenuEntry[],
 ): MenuEntry | "cancel" | null {
   const total = entries.length + 1; // + Cancel
+  const picked = input.consumePick();
+  if (picked !== null) {
+    if (!Number.isInteger(picked) || picked < 0 || picked >= entries.length) return null;
+    state.menuIndex = picked;
+    return entries[picked];
+  }
   if (input.consume("Escape")) return "cancel";
   if (input.consume("ArrowUp") || input.consume("KeyW")) {
     state.menuIndex = (state.menuIndex - 1 + total) % total;
@@ -612,9 +639,13 @@ export function render(
   world: IsoWorld,
   grass: Terrain,
   assets: IsoAssets,
-  frame: { viewport: Viewport; promptKey: string },
+  frame: { viewport: Viewport; promptKey: string; drawMenus?: boolean },
 ): void {
   const { worldScale, dpr, cssW, cssH } = frame.viewport;
+  // Touch devices draw the open menu as a DOM overlay (WorldMenu) instead —
+  // its rows are large enough to tap and it fits a phone held sideways, which
+  // the canvas's fixed 24px rows never could. Desktop leaves this true.
+  const drawMenus = frame.drawMenus ?? true;
 
   // A canvas resize resets the 2D context's transform, and the world/HUD
   // layers below each set their own, so start from a known identity transform
@@ -698,14 +729,12 @@ export function render(
     }
   }
 
-  if (state.mode === "warp-menu") {
-    const entries = [...warpMenuEntries(state, world).map((e) => e.label), "Cancel"];
-    drawWarpMenu(ctx, "Mycelium Network", entries, state.menuIndex, hudSize);
-  }
-
-  if (state.mode === "pc-menu" && state.nearbyPc) {
-    const entries = [...pcMenuEntries(state.nearbyPc, world).map((e) => e.label), "Cancel"];
-    drawWarpMenu(ctx, state.nearbyPc.label, entries, state.menuIndex, hudSize);
+  if (drawMenus) {
+    const menu = menuView(state, world);
+    if (menu) {
+      const entries = [...menu.entries.map((e) => e.label), "Cancel"];
+      drawWarpMenu(ctx, menu.title, entries, state.menuIndex, hudSize);
+    }
   }
 
   if (state.toast) {

@@ -257,6 +257,25 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.10.2 — Tap to Travel on Phones (September 2026)
+
+**Why:** On a phone, the PC and Mycelium Network menus were small rows drawn inside the world,
+driven by the joystick one row per push and chosen with A. Reaching "Home" from "Log on" took
+nine separate pushes, the rows were about half the height a thumb needs, and on a phone held
+sideways the PC menu didn't fit: its title and Cancel row were cut off.
+
+**What changed:**
+
+- **Tap where you want to go:** on phones and tablets, a PC or shrine opens a grid of large
+  buttons over the world. "Log on" runs across the top and destinations fill the columns below.
+  Tap one and you travel. ✕, or a tap outside the menu, closes it.
+- **It fits:** the largest menu shows every button on a phone held sideways, down to a
+  320-pixel-tall screen, with no scrolling.
+- **The joystick and A button step aside** while a menu is open, so they never cover it.
+
+**What didn't change:** laptops and desktops keep the keyboard menu as it was. No API,
+schema, or art changes.
+
 ### v0.10.1 — PCs Open Their Menu (September 2026)
 
 **Why:** On a laptop, pressing Enter at a PC could skip its menu or send you out of the

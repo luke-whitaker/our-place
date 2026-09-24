@@ -6,6 +6,7 @@ import {
   warpMenuOptions,
   warpMenuEntries,
   pcMenuEntries,
+  menuView,
   cameraFor,
   update,
   buildWorldCollision,
@@ -38,6 +39,28 @@ function keyOnce(code: string | null): InputManager {
     },
     press: () => {},
     release: () => {},
+    pick: () => {},
+    consumePick: () => null,
+    attach: () => () => {},
+    endTick: () => {},
+  };
+}
+
+/** An input manager that reports one pending menu pick (a WorldMenu tile tap),
+ * once, and nothing else. */
+function pickOnce(row: number): InputManager {
+  let pending: number | null = row;
+  return {
+    isDown: () => false,
+    consume: () => false,
+    press: () => {},
+    release: () => {},
+    pick: () => {},
+    consumePick: () => {
+      const picked = pending;
+      pending = null;
+      return picked;
+    },
     attach: () => () => {},
     endTick: () => {},
   };
@@ -326,6 +349,75 @@ describe("choosing Log on in a PC's menu", () => {
   });
 });
 
+describe("picking a menu row by tapping a WorldMenu tile", () => {
+  const pc: Pc = { col: 5, row: 5, id: "pc", label: "Music PC", href: "/communities/music" };
+  const world: IsoWorld = { ...LAB_TOWN, pcs: [pc], links: [CAPITAL_LINK] };
+
+  function openPcMenu() {
+    const state = createIsoState(world);
+    state.nearbyPc = pc;
+    state.mode = "pc-menu";
+    state.menuIndex = 0;
+    return state;
+  }
+
+  it("stages a link row and starts the fade, the same as Enter would", () => {
+    const state = openPcMenu();
+    const solid = buildWorldCollision(world);
+    // pcMenuEntries is [Log on (port), The Capital (link)] — row 1 is the link.
+    update(state, world, solid, pickOnce(1));
+    expect(state.pendingLink).toEqual(CAPITAL_LINK);
+    expect(state.mode).toBe("fading");
+    expect(state.menuIndex).toBe(1);
+  });
+
+  it("stages the port row when row 0 is picked", () => {
+    const state = openPcMenu();
+    const solid = buildWorldCollision(world);
+    update(state, world, solid, pickOnce(0));
+    expect(state.pendingPort).toBe("/communities/music");
+    expect(state.mode).toBe("fading");
+  });
+
+  it("ignores an out-of-range pick and leaves the menu open", () => {
+    const state = openPcMenu();
+    const solid = buildWorldCollision(world);
+    update(state, world, solid, pickOnce(99));
+    expect(state.mode).toBe("pc-menu");
+    expect(state.pendingLink).toBeNull();
+    expect(state.pendingPort).toBeNull();
+  });
+});
+
+describe("menuView", () => {
+  const pc: Pc = { col: 5, row: 5, id: "pc", label: "Music PC", href: "/communities/music" };
+  const world: IsoWorld = { ...LAB_TOWN, pcs: [pc], links: [CAPITAL_LINK] };
+
+  it("returns null in the overworld", () => {
+    const state = createIsoState(world);
+    expect(menuView(state, world)).toBeNull();
+  });
+
+  it("returns the PC's own label and its menu rows in pc-menu", () => {
+    const state = createIsoState(world);
+    state.nearbyPc = pc;
+    state.mode = "pc-menu";
+    expect(menuView(state, world)).toEqual({
+      title: "Music PC",
+      entries: pcMenuEntries(pc, world),
+    });
+  });
+
+  it("returns the shrine network's title and rows in warp-menu", () => {
+    const state = createIsoState(LINKED_TOWN);
+    state.mode = "warp-menu";
+    expect(menuView(state, LINKED_TOWN)).toEqual({
+      title: "Mycelium Network",
+      entries: warpMenuEntries(state, LINKED_TOWN),
+    });
+  });
+});
+
 describe("interaction priority", () => {
   it("gives a door a tie with a PC, and keeps only that one target", () => {
     const door: Door = { col: 5, row: 5, id: "welcome-center", label: "Welcome Center" };
@@ -355,6 +447,8 @@ function keysHeld(...codes: string[]): InputManager {
     consume: () => false,
     press: () => {},
     release: () => {},
+    pick: () => {},
+    consumePick: () => null,
     attach: () => () => {},
     endTick: () => {},
   };

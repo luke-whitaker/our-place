@@ -12,6 +12,12 @@ export interface InputManager {
   press: (code: string) => void;
   /** Simulate a key release (for touch D-pad) */
   release: (code: string) => void;
+  /** Stage a menu row chosen by tapping a DOM tile (the touch menu overlay).
+   * Latches like a press — survives until the next `endTick()` — so a tap
+   * between ticks is never lost. */
+  pick: (row: number) => void;
+  /** Consume the pending menu pick (returns it once, then null). */
+  consumePick: () => number | null;
   /** Attach keyboard event listeners — returns cleanup function */
   attach: () => () => void;
   /** Forget presses nothing consumed. The game loop calls this after every tick. */
@@ -36,6 +42,11 @@ export function createInputManager(): InputManager {
   // tick looks. Cleared by endTick, so a press nobody consumed never fires later
   // at the next door. Bounded by the handful of key codes in use.
   const pressedSinceTick = new Set<string>();
+  // A menu row picked by tapping a DOM tile, latched the same way a press is:
+  // it survives until the next endTick so a tap landing between two ticks is
+  // never lost. Null when nothing is pending; one row at a time, so a later
+  // tap replaces an earlier pick nobody read yet.
+  let pendingPick: number | null = null;
 
   function down(code: string) {
     keys[code] = true;
@@ -88,6 +99,16 @@ export function createInputManager(): InputManager {
       keys[code] = false;
     },
 
+    pick(row: number) {
+      pendingPick = row;
+    },
+
+    consumePick() {
+      const picked = pendingPick;
+      pendingPick = null;
+      return picked;
+    },
+
     attach() {
       window.addEventListener("keydown", onKeyDown);
       window.addEventListener("keyup", onKeyUp);
@@ -100,6 +121,7 @@ export function createInputManager(): InputManager {
 
     endTick() {
       pressedSinceTick.clear();
+      pendingPick = null;
     },
   };
 }

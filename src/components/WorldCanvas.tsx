@@ -3,6 +3,7 @@
 import { useRef, useEffect, useCallback, useState, useMemo, useSyncExternalStore } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import WorldTouchControls from "@/components/WorldTouchControls";
+import WorldMenu from "@/components/WorldMenu";
 import { TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
 import { isAvatarConfig } from "@/lib/game/avatar-recolor";
@@ -16,8 +17,10 @@ import {
   getLocalEntity,
   terrainToGrass,
   buildWorldCollision,
+  menuView,
   type IsoState,
   type IsoAssets,
+  type MenuEntry,
 } from "@/lib/game/iso-engine";
 import { loadIsoSave, persistIsoSave, isValidIsoPosition } from "@/lib/game/iso-save";
 import type { IsoWorld } from "@/lib/game/world-model";
@@ -108,6 +111,13 @@ export default function WorldCanvas({
   const solid = useMemo(() => buildWorldCollision(world), [world]);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState("");
+  // The open terminal menu (PC or shrine network), mirrored into React state so
+  // the touch overlay (WorldMenu) can render it as tappable DOM tiles. Desktop
+  // never reads this — it keeps the canvas-drawn menu. menuKeyRef holds a cheap
+  // fingerprint of the last value handed to setMenu, so the game loop (60
+  // ticks/sec) only calls setState on an actual change, not every frame.
+  const [menu, setMenu] = useState<{ title: string; entries: MenuEntry[] } | null>(null);
+  const menuKeyRef = useRef<string | null>(null);
 
   const callbacksRef = useRef({ onDoorInteract, onWorldLink, onPcPort });
   useEffect(() => {
@@ -248,10 +258,24 @@ export default function WorldCanvas({
           input.endTick();
           accumulator -= TICK_RATE;
         }
+        // Touch devices render the open menu as DOM tiles (WorldMenu) instead
+        // of the canvas rows below; mirror it into React state, but only on an
+        // actual change, since this runs every tick.
+        if (isTouchDevice) {
+          const nextMenu = menuView(state, world);
+          const nextKey = nextMenu
+            ? `${nextMenu.title}\n${nextMenu.entries.map((e) => e.label).join("\n")}`
+            : null;
+          if (nextKey !== menuKeyRef.current) {
+            menuKeyRef.current = nextKey;
+            setMenu(nextMenu);
+          }
+        }
         ctx.imageSmoothingEnabled = false;
         render(ctx, state, world, grass, assets, {
           viewport,
           promptKey: isTouchDevice ? "A" : "Enter",
+          drawMenus: !isTouchDevice,
         });
       } else {
         accumulator = 0;
@@ -319,11 +343,25 @@ export default function WorldCanvas({
               )}
             </div>
           )}
+          {isTouchDevice && menu && (
+            <WorldMenu
+              title={menu.title}
+              entries={menu.entries}
+              onPick={(i) => inputRef.current.pick(i)}
+              onClose={() => {
+                // A press latches until the next tick, so press+release is
+                // enough to fire the same Escape the keyboard's Cancel takes.
+                inputRef.current.press("Escape");
+                inputRef.current.release("Escape");
+              }}
+            />
+          )}
         </div>
       </div>
 
-      {/* Touch joystick — only shown on touch devices */}
-      {isTouchDevice && (
+      {/* Touch joystick — only on touch devices, and hidden while a menu overlay
+          is open (its unmount already releases any held stick keys). */}
+      {isTouchDevice && !menu && (
         <WorldTouchControls onPress={handleTouchPress} onRelease={handleTouchRelease} />
       )}
     </div>

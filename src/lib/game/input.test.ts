@@ -81,6 +81,30 @@ describe("createInputManager", () => {
     });
   });
 
+  it("reports a menu pick once, then null", () => {
+    const input = createInputManager();
+    input.pick(2);
+    expect(input.consumePick()).toBe(2);
+    expect(input.consumePick()).toBeNull();
+  });
+
+  it("keeps a pick latched until the next endTick, then drops it", () => {
+    const input = createInputManager();
+    input.pick(1);
+    // A tap between two ticks must still be read by the one after it.
+    expect(input.consumePick()).toBe(1);
+    input.pick(3);
+    input.endTick();
+    expect(input.consumePick()).toBeNull();
+  });
+
+  it("replaces an earlier unconsumed pick with a later one", () => {
+    const input = createInputManager();
+    input.pick(0);
+    input.pick(4);
+    expect(input.consumePick()).toBe(4);
+  });
+
   it("reports a held key as down across ticks", () => {
     const input = createInputManager();
     input.press("ArrowLeft");
