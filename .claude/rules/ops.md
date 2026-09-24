@@ -37,6 +37,7 @@ Runs format, lint at zero warnings, tsc, unit tests, route tests, and a producti
 
 - Every R2 PUT must send `Content-Length`. undici streams bodies at or above 64 KiB and drops the derived header; R2 answers 411. Tiny fixtures pass and real photos fail, so test uploads at realistic sizes.
 - `storage.ts` raises `StorageConfigError` (503, names the missing variables) or `StorageUploadError` (502, carries R2's status).
+- World art is replaced in place by `npm run world:upload`, and the bucket sends no Cache-Control, so browsers can keep an old copy for days (the blush stayed on long hair after v0.10.4 until a hard refresh). Production art URLs therefore carry `?v=<commit>`: the Dockerfile turns Railway's `RAILWAY_GIT_COMMIT_SHA` into `NEXT_PUBLIC_ART_VERSION`, and `worldAsset` appends it. Every deploy refetches the art once (672 KB). Upload new art before the push that ships it, or the new URLs fetch the old art.
 - Email is Resend through plain `fetch` in `email.ts`. Without `RESEND_API_KEY`, dev logs the reset code to the console.
 
 ## Local development

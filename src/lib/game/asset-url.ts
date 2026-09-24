@@ -14,11 +14,24 @@ function assetBase(): string {
   return (process.env.NEXT_PUBLIC_WORLD_ASSET_BASE || "").replace(/\/$/, "");
 }
 
+/**
+ * The deployed commit, appended to production art URLs. `npm run world:upload`
+ * replaces art in place under the same names, and the bucket sends no
+ * Cache-Control, so browsers kept an old sheet for days after an upload: the
+ * blush stayed on long hair after v0.10.4 shipped. A new query string on every
+ * deploy makes each browser fetch the current art once (672 KB in all).
+ */
+function artVersion(): string {
+  return (process.env.NEXT_PUBLIC_ART_VERSION || "").slice(0, 12);
+}
+
 /** Resolve a root-relative `/world/...` path to its served URL. */
 export function worldAsset(path: string): string {
   const base = assetBase();
   if (!base) return path;
-  return path.startsWith("/") ? `${base}${path}` : `${base}/${path}`;
+  const url = path.startsWith("/") ? `${base}${path}` : `${base}/${path}`;
+  const version = artVersion();
+  return version ? `${url}?v=${version}` : url;
 }
 
 /**

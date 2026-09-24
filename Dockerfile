@@ -39,6 +39,12 @@ ENV DATABASE_URL=postgresql://placeholder:placeholder@localhost:5432/placeholder
 ARG NEXT_PUBLIC_WORLD_ASSET_BASE
 ENV NEXT_PUBLIC_WORLD_ASSET_BASE=$NEXT_PUBLIC_WORLD_ASSET_BASE
 
+# The deployed commit versions the world art URLs (src/lib/game/asset-url.ts),
+# so browsers fetch art replaced by `npm run world:upload` after each deploy.
+# Railway provides RAILWAY_GIT_COMMIT_SHA; without it the URLs stay unversioned.
+ARG RAILWAY_GIT_COMMIT_SHA
+ENV NEXT_PUBLIC_ART_VERSION=$RAILWAY_GIT_COMMIT_SHA
+
 RUN npm run build
 
 # Stage 3: Production runner
