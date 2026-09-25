@@ -46,7 +46,8 @@ model User {
   eventRsvps         EventRsvp[]
   sentFriendships    Friendship[]      @relation("FriendshipSender")
   receivedFriendships Friendship[]     @relation("FriendshipReceiver")
-  items              Item[]
+  items              Item[]            @relation("ItemOwner")
+  sentItems          Item[]            @relation("ItemSender")
   notebookPages      NotebookPage[]
   npcGifts           NpcGift[]
 
@@ -232,23 +233,32 @@ model EventRsvp {
   @@map("event_rsvps")
 }
 
-// A member's pocket contents (10 slots) plus anything not currently in a
-// pocket (slot null — reserved for later storage, like a desk). `kind` is a
-// catalog key (ItemKind in src/lib/items.ts) validated in code, not the
-// schema, matching how postType and reaction type work elsewhere.
+// Every item a member owns, in one of their locations: pockets (10 slots) or
+// their mailbox (20 slots); the house desk joins as another location later.
+// `kind` and `location` are catalog keys (ItemKind and ItemLocation in
+// src/lib/items.ts) validated in code, not the schema, matching how postType
+// and reaction type work elsewhere.
 model Item {
-  id        String   @id @default(uuid())
-  ownerId   String   @map("owner_id")
+  id        String    @id @default(uuid())
+  ownerId   String    @map("owner_id")
   kind      String
+  location  String    @default("pocket")
   slot      Int?
   body      String?
-  createdAt DateTime @default(now()) @map("created_at")
+  fromId    String?   @map("from_id")
+  placedAt  DateTime? @map("placed_at")
+  createdAt DateTime  @default(now()) @map("created_at")
 
-  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner User  @relation("ItemOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  from  User? @relation("ItemSender", fields: [fromId], references: [id], onDelete: SetNull)
 
-  // Stops two items sharing a slot, even under concurrent requests.
-  @@unique([ownerId, slot])
+  // Stops two items sharing a slot within the same location, even under
+  // concurrent requests. Together with each location's slot bound
+  // (LOCATION_SLOTS in src/lib/items.ts), this caps that location's capacity
+  // by construction.
+  @@unique([ownerId, location, slot])
   @@index([ownerId])
+  @@index([fromId])
   @@map("items")
 }
 

@@ -32,4 +32,11 @@ export {
   DEFAULT_AVATAR,
 } from "./game";
 
-export type { PocketItem, NotebookPageDraft, NpcTalkState, NpcTalkResult } from "./items";
+export type {
+  PocketItem,
+  NotebookPageDraft,
+  NpcTalkState,
+  NpcTalkResult,
+  MailboxStatus,
+  MailboxContents,
+} from "./items";

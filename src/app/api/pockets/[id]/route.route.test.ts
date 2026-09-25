@@ -3,7 +3,7 @@ import { v4 as uuidv4 } from "uuid";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import type { AuthPayload } from "@/lib/types";
-import { createTestUser, createTestItem } from "@/test/route-helpers";
+import { createTestUser, createTestItem, createTestLetter } from "@/test/route-helpers";
 import { DELETE } from "./route";
 
 vi.mock("@/lib/auth", () => ({ requireAuth: vi.fn() }));
@@ -60,5 +60,26 @@ describe("DELETE /api/pockets/[id]", () => {
     authAs(await createTestUser());
     const res = await discard(uuidv4());
     expect(res.status).toBe(404);
+  });
+
+  it("throws away a letter still sitting in the caller's own mailbox", async () => {
+    const user = await createTestUser();
+    authAs(user);
+    const letterId = await createTestLetter({ ownerId: user.userId, slot: 0 });
+
+    const res = await discard(letterId);
+    expect(res.status).toBe(200);
+    expect((await res.json()).message).toBe("Thrown away.");
+    expect(await prisma.item.findUnique({ where: { id: letterId } })).toBeNull();
+  });
+
+  it("returns 404 for a mailbox letter that belongs to someone else", async () => {
+    const owner = await createTestUser();
+    const letterId = await createTestLetter({ ownerId: owner.userId, slot: 0 });
+    authAs(await createTestUser());
+
+    const res = await discard(letterId);
+    expect(res.status).toBe(404);
+    expect(await prisma.item.findUnique({ where: { id: letterId } })).not.toBeNull();
   });
 });

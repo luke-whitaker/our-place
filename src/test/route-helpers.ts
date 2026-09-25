@@ -78,26 +78,54 @@ export function jsonRequest(url: string, body: unknown, method = "POST"): NextRe
   });
 }
 
-/** Creates an item row directly (bypassing the NPC gift/tear flows), for
- * route tests that need pockets pre-populated. `slot: null` (the default)
- * puts it outside any pocket, matching the schema's "reserved storage" case. */
+/** Creates an item row directly (bypassing the NPC gift/tear/mailbox
+ * flows), for route tests that need pockets or a mailbox pre-populated.
+ * `slot: null` (the default) puts it outside any location, matching the
+ * schema's "reserved storage" case. `location` defaults to "pocket", like
+ * the schema column. */
 export async function createTestItem(overrides: {
   ownerId: string;
   kind: string;
+  location?: string;
   slot?: number | null;
   body?: string | null;
+  fromId?: string | null;
+  placedAt?: Date | null;
 }): Promise<string> {
   const item = await prisma.item.create({
     data: {
       id: uuidv4(),
       ownerId: overrides.ownerId,
       kind: overrides.kind,
+      location: overrides.location ?? "pocket",
       slot: overrides.slot ?? null,
       body: overrides.body ?? null,
+      fromId: overrides.fromId ?? null,
+      placedAt: overrides.placedAt ?? null,
     },
     select: { id: true },
   });
   return item.id;
+}
+
+/** Leaves a letter directly in `ownerId`'s mailbox at `slot`, bypassing
+ * POST /api/users/[username]/mailbox, for route tests that need a mailbox
+ * pre-populated. */
+export async function createTestLetter(overrides: {
+  ownerId: string;
+  slot: number;
+  fromId?: string | null;
+  body?: string | null;
+}): Promise<string> {
+  return createTestItem({
+    ownerId: overrides.ownerId,
+    kind: "note",
+    location: "mailbox",
+    slot: overrides.slot,
+    body: overrides.body ?? "A letter.",
+    fromId: overrides.fromId ?? null,
+    placedAt: new Date(),
+  });
 }
 
 /** Gives `ownerId` the Notebook directly, the way a real gift from Gnomie

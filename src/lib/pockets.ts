@@ -1,11 +1,23 @@
-// Shared pocket-slot logic: routes that hand a member a new item (the NPC
-// gift, tearing a draft out of the Notebook) all need the same "lowest free
-// slot" search and the same race handling, so it lives here once.
+// Shared pocket/mailbox-slot logic: routes that hand a member a new item (an
+// NPC gift, tearing a draft out of the Notebook, leaving or taking a letter)
+// all need the same "lowest free slot" search and the same race handling, so
+// it lives here once.
 
 import type { Prisma } from "@/generated/prisma/client";
 import prisma from "@/lib/db";
-import { POCKET_SLOTS, isItemKind, type ItemKind } from "@/lib/items";
+import { LOCATION_SLOTS, isItemKind, type ItemKind, type ItemLocation } from "@/lib/items";
 import type { PocketItem } from "@/lib/types/items";
+
+/** The one shared select every route uses to read an item row, so the wire
+ * shape (via toPocketItem) can't drift between routes. */
+export const ITEM_SELECT = {
+  id: true,
+  kind: true,
+  slot: true,
+  body: true,
+  placedAt: true,
+  from: { select: { username: true, displayName: true } },
+} as const;
 
 /** Just enough of an items row to map onto the wire shape. */
 interface ItemRow {
@@ -13,25 +25,28 @@ interface ItemRow {
   kind: string;
   slot: number | null;
   body: string | null;
+  placedAt: Date | null;
+  from: { username: string; displayName: string } | null;
 }
 
 /**
- * The lowest free pocket slot (0-9) for `ownerId`, or null if all 10 are
- * taken. Runs inside the caller's transaction so the read and the insert
- * that follows it are consistent; the `@@unique([ownerId, slot])` constraint
- * is still what actually prevents two concurrent requests from claiming the
- * same slot — this is a best-effort pick, not a lock.
+ * The lowest free slot for `ownerId` within `location`, or null if it's
+ * full. Runs inside the caller's transaction so the read and the insert
+ * that follows it are consistent; the `@@unique([ownerId, location, slot])`
+ * constraint is still what actually prevents two concurrent requests from
+ * claiming the same slot — this is a best-effort pick, not a lock.
  */
 export async function firstFreeSlot(
   tx: Prisma.TransactionClient,
   ownerId: string,
+  location: ItemLocation,
 ): Promise<number | null> {
   const occupied = await tx.item.findMany({
-    where: { ownerId, slot: { not: null } },
+    where: { ownerId, location },
     select: { slot: true },
   });
   const taken = new Set(occupied.map((item) => item.slot));
-  for (let slot = 0; slot < POCKET_SLOTS; slot++) {
+  for (let slot = 0; slot < LOCATION_SLOTS[location]; slot++) {
     if (!taken.has(slot)) return slot;
   }
   return null;
@@ -39,9 +54,10 @@ export async function firstFreeSlot(
 
 /**
  * Maps an items row to the wire shape. Asserts rather than silently
- * coercing on a row that can't have come from a healthy pocket read: an
+ * coercing on a row that can't have come from a healthy read: an
  * unrecognized kind or a null slot means the caller queried the wrong rows
- * (this app never lists an item outside 0-9 as a "pocket item").
+ * (this app never lists an item outside its location's slot range as a
+ * pocket item or letter).
  */
 export function toPocketItem(row: ItemRow): PocketItem {
   if (!isItemKind(row.kind)) {
@@ -50,7 +66,14 @@ export function toPocketItem(row: ItemRow): PocketItem {
   if (row.slot === null) {
     throw new Error(`toPocketItem called on item ${row.id}, which has no slot`);
   }
-  return { id: row.id, kind: row.kind satisfies ItemKind, slot: row.slot, body: row.body };
+  return {
+    id: row.id,
+    kind: row.kind satisfies ItemKind,
+    slot: row.slot,
+    body: row.body,
+    from: row.from ? { username: row.from.username, display_name: row.from.displayName } : null,
+    placed_at: row.placedAt ? row.placedAt.toISOString() : null,
+  };
 }
 
 /**

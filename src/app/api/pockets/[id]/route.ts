@@ -4,9 +4,9 @@ import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
 import { ITEM_CATALOG, isItemKind } from "@/lib/items";
 
-// DELETE: throw away one of the caller's own pocket items. The Notebook is
-// the only catalog entry marked non-discardable, and it can never be thrown
-// away.
+// DELETE: throw away one of the caller's own items, wherever it sits —
+// pockets or their own mailbox. The Notebook is the only catalog entry
+// marked non-discardable, and it can never be thrown away.
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await requireAuth();

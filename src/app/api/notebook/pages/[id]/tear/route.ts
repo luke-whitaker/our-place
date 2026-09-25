@@ -3,12 +3,19 @@ import { v4 as uuidv4 } from "uuid";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
-import { hasNotebook, firstFreeSlot, toPocketItem, isUniqueConstraintError } from "@/lib/pockets";
+import {
+  hasNotebook,
+  firstFreeSlot,
+  toPocketItem,
+  isUniqueConstraintError,
+  ITEM_SELECT,
+} from "@/lib/pockets";
+import type { Prisma } from "@/generated/prisma/client";
 
 type TearOutcome =
   | {
       outcome: "torn";
-      item: { id: string; kind: string; slot: number | null; body: string | null };
+      item: Prisma.ItemGetPayload<{ select: typeof ITEM_SELECT }>;
     }
   | { outcome: "not_found" }
   | { outcome: "pockets_full" };
@@ -46,14 +53,14 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
           return { outcome: "not_found" };
         }
 
-        const slot = await firstFreeSlot(tx, auth.user.userId);
+        const slot = await firstFreeSlot(tx, auth.user.userId, "pocket");
         if (slot === null) {
           return { outcome: "pockets_full" };
         }
 
         const item = await tx.item.create({
           data: { id: uuidv4(), ownerId: auth.user.userId, kind: "note", slot, body: draft.body },
-          select: { id: true, kind: true, slot: true, body: true },
+          select: ITEM_SELECT,
         });
         await tx.notebookPage.delete({ where: { id } });
         return { outcome: "torn", item };

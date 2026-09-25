@@ -1,17 +1,18 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { toPocketItem } from "@/lib/pockets";
+import { toPocketItem, ITEM_SELECT } from "@/lib/pockets";
 
-// GET: the caller's pocket contents (items holding a slot), in slot order.
+// GET: the caller's pocket contents (items in the "pocket" location), in
+// slot order. Mailbox letters never appear here, even before they're taken.
 export async function GET() {
   try {
     const auth = await requireAuth();
     if (auth.error) return auth.error;
 
     const items = await prisma.item.findMany({
-      where: { ownerId: auth.user.userId, slot: { not: null } },
-      select: { id: true, kind: true, slot: true, body: true },
+      where: { ownerId: auth.user.userId, location: "pocket" },
+      select: ITEM_SELECT,
       orderBy: { slot: "asc" },
     });
 

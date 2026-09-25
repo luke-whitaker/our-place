@@ -200,6 +200,12 @@ export const notebookPageSchema = z.object({
     ),
 });
 
+// ── Mailbox schema ──
+
+export const leaveLetterSchema = z.object({
+  item_id: z.uuid({ error: "Pick something to leave." }),
+});
+
 // ── Helper ──
 
 export function getZodErrorMessage(result: z.ZodSafeParseError<unknown>): string {

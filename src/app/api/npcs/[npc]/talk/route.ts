@@ -4,7 +4,7 @@ import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
 import { isNpcId, NPC_GIFTS } from "@/lib/npcs";
-import { firstFreeSlot, toPocketItem, isUniqueConstraintError } from "@/lib/pockets";
+import { firstFreeSlot, toPocketItem, isUniqueConstraintError, ITEM_SELECT } from "@/lib/pockets";
 
 // POST: talk to an NPC. gift/after/pockets_full/chat are dialogue branches
 // the world client renders, not error states, so they're all 200 — the only
@@ -46,13 +46,13 @@ export async function POST(_request: Request, { params }: { params: Promise<{ np
       // common-case fast path. A P2002 here means a concurrent talk already
       // won that race, so it's read the same as "after" rather than a 500.
       const created = await prisma.$transaction(async (tx) => {
-        const slot = await firstFreeSlot(tx, auth.user.userId);
+        const slot = await firstFreeSlot(tx, auth.user.userId, "pocket");
         if (slot === null) return null;
 
         await tx.npcGift.create({ data: { userId: auth.user.userId, giftId: gift.giftId } });
         return tx.item.create({
           data: { id: uuidv4(), ownerId: auth.user.userId, kind: gift.kind, slot },
-          select: { id: true, kind: true, slot: true, body: true },
+          select: ITEM_SELECT,
         });
       });
 
