@@ -105,7 +105,9 @@ export default function PocketsPanel({ onClose, onOpenNotebook, onReadNote }: Po
       {selected && (
         <div className="flex flex-col gap-2 border-t pt-2" style={{ borderColor: PAL.textBorder }}>
           <p className="text-sm font-bold" style={{ color: PAL.white }}>
-            {ITEM_CATALOG[selected.kind].name}
+            {selected.kind === "note" && selected.from
+              ? `Note from ${selected.from.display_name}`
+              : ITEM_CATALOG[selected.kind].name}
           </p>
           {confirmingDiscard ? (
             <InlineConfirm

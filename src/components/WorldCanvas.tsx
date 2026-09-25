@@ -5,6 +5,7 @@ import { useAuth } from "@/components/AuthProvider";
 import WorldTouchControls from "@/components/WorldTouchControls";
 import WorldMenu from "@/components/WorldMenu";
 import WorldOverlays, { type OverlayScreen } from "@/components/WorldOverlays";
+import { apiFetch } from "@/lib/api-client";
 import { TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
 import { isAvatarConfig } from "@/lib/game/avatar-recolor";
@@ -19,6 +20,8 @@ import {
   terrainToGrass,
   buildWorldCollision,
   menuView,
+  setMailboxFlag,
+  showToast,
   type IsoState,
   type IsoAssets,
   type MenuEntry,
@@ -26,8 +29,9 @@ import {
 import { loadIsoSave, persistIsoSave, isValidIsoPosition } from "@/lib/game/iso-save";
 import type { IsoWorld } from "@/lib/game/world-model";
 import type { SolidGrid } from "@/lib/game/iso-collision";
-import type { Door, WorldLink } from "@/lib/game/types";
+import type { Door, WorldFixture, WorldLink } from "@/lib/game/types";
 import type { NpcId } from "@/lib/npcs";
+import type { MailboxStatus } from "@/lib/types";
 
 interface WorldCanvasProps {
   /** The place to render. Remount (change the key) to move between places. */
@@ -40,6 +44,10 @@ interface WorldCanvasProps {
   onPcPort?: (href: string) => void;
   /** Door or shrine id to spawn at (Portal deep-link); falls back to saved/default spawn. */
   spawnAt?: string;
+  /** The place's owner display name, for panels that need to greet or
+   * address them ("<name>'s mailbox") — currently only the mailbox screens.
+   * Blank outside an island, where nothing reads it. */
+  ownerDisplayName: string;
   /** Remember position and discoveries on this device. Off when visiting
    * someone else's place, so a visit never overwrites your own trail. */
   persist?: boolean;
@@ -115,6 +123,9 @@ function spawnFor(
   // An NPC id (?at=gnomie) lands the same way — one tile south, like a shrine.
   const npc = spawnAt ? world.npcs?.find((n) => n.id === spawnAt) : undefined;
   if (npc) return { col: npc.col, row: npc.row + 1 };
+  // A fixture id (?at=mailbox) lands the same way too.
+  const fixture = spawnAt ? world.fixtures?.find((f) => f.id === spawnAt) : undefined;
+  if (fixture) return { col: fixture.col, row: fixture.row + 1 };
   if (saved && isValidIsoPosition(solid, saved.col, saved.row)) return saved;
   return undefined;
 }
@@ -136,6 +147,7 @@ export default function WorldCanvas({
   onWorldLink,
   onPcPort,
   spawnAt,
+  ownerDisplayName,
   persist = true,
   immersive,
   onToggleImmersive,
@@ -170,10 +182,29 @@ export default function WorldCanvas({
     setOverlay({ kind: "dialogue", npcId });
   }, []);
 
-  const callbacksRef = useRef({ onDoorInteract, onWorldLink, onPcPort, onNpcTalk: handleNpcTalk });
+  // Same shape as handleNpcTalk: the engine has already paused (pauseForOverlay,
+  // inside the "fixture" confirm branch of update()) by the time this fires, so
+  // there's nothing to do here beyond choosing which screen to show.
+  const handleFixture = useCallback((fixture: WorldFixture) => {
+    setOverlay({ kind: "mailbox", fixture });
+  }, []);
+
+  const callbacksRef = useRef({
+    onDoorInteract,
+    onWorldLink,
+    onPcPort,
+    onNpcTalk: handleNpcTalk,
+    onFixture: handleFixture,
+  });
   useEffect(() => {
-    callbacksRef.current = { onDoorInteract, onWorldLink, onPcPort, onNpcTalk: handleNpcTalk };
-  }, [onDoorInteract, onWorldLink, onPcPort, handleNpcTalk]);
+    callbacksRef.current = {
+      onDoorInteract,
+      onWorldLink,
+      onPcPort,
+      onNpcTalk: handleNpcTalk,
+      onFixture: handleFixture,
+    };
+  }, [onDoorInteract, onWorldLink, onPcPort, handleNpcTalk, handleFixture]);
 
   // ── Spawn resolution (deep-link → saved position → default) ──
   const playerLabel = user?.display_name;
@@ -192,6 +223,37 @@ export default function WorldCanvas({
       fadeIn: true,
     });
   }, [world, solid, spawnAt, persist, playerLabel]);
+
+  // ── Mailbox flag on arrival ──
+  // The island's mailbox fixture, if this world has one, shows its flag up
+  // whenever it holds mail — visible to anyone who walks up, not just the
+  // panel's opener. Fetched once per arrival; every mailbox action afterward
+  // (WorldOverlays' onMailChange) updates it again from the fresh state
+  // instead of refetching. Runs after the spawn-resolution effect above, so
+  // stateRef.current already holds this arrival's state by the time it fires.
+  useEffect(() => {
+    const fixture = world.fixtures?.find((f) => f.kind === "mailbox");
+    if (!fixture || !user) return;
+    let cancelled = false;
+    apiFetch<MailboxStatus>(`/api/users/${encodeURIComponent(fixture.owner)}/mailbox`)
+      .then((status) => {
+        const state = stateRef.current;
+        if (!cancelled && state) setMailboxFlag(state, status.has_mail);
+      })
+      .catch(() => {
+        // The flag just stays down — never swallow the failure silently, so
+        // show it the same way a region-entry or shrine-discovery message
+        // would.
+        const state = stateRef.current;
+        if (!cancelled && state) showToast(state, "Couldn't check the mailbox.");
+      });
+    return () => {
+      cancelled = true;
+    };
+    // Every input that makes the spawn effect above build a fresh state (which
+    // starts with the flag down) refetches here too, or a new `?at=` on the
+    // same island would leave a full mailbox showing its flag down.
+  }, [world, user, spawnAt, persist]);
 
   // ── Load art, palette-swapped to the signed-in member's avatar ──
   // We wait for auth to settle so the recolor uses the right colors; a
@@ -425,6 +487,8 @@ export default function WorldCanvas({
             overlay={overlay}
             setOverlay={setOverlay}
             signedIn={!!user}
+            username={user?.username ?? null}
+            ownerDisplayName={ownerDisplayName}
           />
           {isTouchDevice && menu && (
             <WorldMenu

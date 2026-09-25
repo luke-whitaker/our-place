@@ -27,6 +27,10 @@ interface Place {
   title: string;
   /** The island owner's username when visiting; null for the Capital and home. */
   visiting: string | null;
+  /** The island owner's display name — the mailbox screens need it and the
+   * fixture itself only carries a username. Blank for the Capital and a
+   * community room, where no fixture ever asks for it. */
+  ownerDisplayName: string;
 }
 
 interface VisitLookup {
@@ -70,8 +74,11 @@ interface ResolveArgs {
  * islands and the houses on them need to know who is looking. */
 function resolvePlace({ placeParam, inside, isHome, user, lookup }: ResolveArgs): Place | null {
   const room = findInterior(placeParam);
-  if (room) return { world: room, title: room.regions[0].label, visiting: null };
-  if (placeParam === "capital") return { world: CAPITAL, title: "The World", visiting: null };
+  if (room)
+    return { world: room, title: room.regions[0].label, visiting: null, ownerDisplayName: "" };
+  if (placeParam === "capital") {
+    return { world: CAPITAL, title: "The World", visiting: null, ownerDisplayName: "" };
+  }
   if (!user) return null;
 
   if (isHome) {
@@ -79,7 +86,7 @@ function resolvePlace({ placeParam, inside, isHome, user, lookup }: ResolveArgs)
     const world = inside
       ? buildIslandHouse({ owner, isOwn: true })
       : buildIsland({ owner, biome: biomeOf(user.biome), isOwn: true });
-    return { world, title: "Home", visiting: null };
+    return { world, title: "Home", visiting: null, ownerDisplayName: user.display_name };
   }
 
   if (!lookup?.info) return null;
@@ -94,6 +101,7 @@ function resolvePlace({ placeParam, inside, isHome, user, lookup }: ResolveArgs)
     world,
     title: inside ? `${owner.display_name}'s Place` : `${owner.display_name}'s Island`,
     visiting: owner.username,
+    ownerDisplayName: owner.display_name,
   };
 }
 
@@ -248,6 +256,7 @@ function WorldView() {
             onWorldLink={handleWorldLink}
             onPcPort={(href) => router.push(href)}
             spawnAt={spawnAt}
+            ownerDisplayName={place.ownerDisplayName}
             persist={place.visiting === null}
             immersive={immersive}
             onToggleImmersive={handleToggleImmersive}

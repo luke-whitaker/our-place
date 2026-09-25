@@ -532,6 +532,14 @@ export function setMailboxFlag(state: IsoState, up: boolean): void {
   state.mailboxFlagUp = up;
 }
 
+/** Show a toast the same way a region entry or shrine discovery does, for an
+ * event the engine itself doesn't know about — right now, just the mailbox
+ * status fetch on arrival failing. Overwrites whatever toast is already
+ * showing, like every other toast source here. */
+export function showToast(state: IsoState, text: string): void {
+  state.toast = { text, ticksLeft: TOAST_TICKS };
+}
+
 /** Which OBJECT_CATALOG sprite draws a fixture right now. Pure and exported
  * so it's unit-testable without a canvas. The kind union has only "mailbox"
  * today: any other kind falls back to its own catalog key, and a future

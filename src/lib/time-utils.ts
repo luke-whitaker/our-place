@@ -9,3 +9,9 @@ export function timeAgo(dateString: string): string {
   if (days < 30) return `${days}d ago`;
   return new Date(dateString).toLocaleDateString();
 }
+
+/** A short calendar date like "Sep 25" — for a row too small for a full
+ * relative timestamp, e.g. one letter among a mailbox's twenty. */
+export function shortDate(dateString: string): string {
+  return new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
