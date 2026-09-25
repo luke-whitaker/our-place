@@ -16,13 +16,15 @@ import {
   CONFIRM_TICKS,
   nearestTarget,
   endNpcTalk,
+  setMailboxFlag,
+  fixtureSprite,
 } from "./iso-engine";
 import { INTERIORS } from "./worlds/interiors";
 import { LAB_TOWN } from "./worlds/lab-town";
 import { createInputManager } from "./input";
 import type { IsoWorld } from "./world-model";
 import type { InputManager } from "./input";
-import type { Door, Pc, WorldLink, WorldNpc } from "./types";
+import type { Door, Pc, WorldLink, WorldNpc, WorldFixture } from "./types";
 
 const DESKTOP_VIEW = { w: ISO_VIEW_W, h: ISO_VIEW_H };
 
@@ -212,27 +214,68 @@ describe("nearestTarget", () => {
   const pc = { id: "pc", col: 2, row: 2, label: "PC" } as Pc;
 
   it("keeps only the nearer of a door and a PC", () => {
-    expect(nearestTarget({ door, pc, mushroom: null, npc: null }, 3, 2)).toEqual({
+    expect(nearestTarget({ door, pc, mushroom: null, npc: null, fixture: null }, 3, 2)).toEqual({
       door: null,
       pc,
       mushroom: null,
       npc: null,
+      fixture: null,
     });
   });
 
   it("gives a tie to the door, so a door can always be walked into", () => {
     const near = { ...door, col: 3, row: 1 };
-    expect(nearestTarget({ door: near, pc, mushroom: null, npc: null }, 3, 2).door).toBe(near);
+    expect(
+      nearestTarget({ door: near, pc, mushroom: null, npc: null, fixture: null }, 3, 2).door,
+    ).toBe(near);
   });
 
   it("keeps only the nearer of an NPC and everything else", () => {
     const npc: WorldNpc = { id: "gnomie", col: 6, row: 2, facing: "S" };
-    expect(nearestTarget({ door, pc, mushroom: null, npc }, 6, 2)).toEqual({
+    expect(nearestTarget({ door, pc, mushroom: null, npc, fixture: null }, 6, 2)).toEqual({
       door: null,
       pc: null,
       mushroom: null,
       npc,
+      fixture: null,
     });
+  });
+
+  it("keeps only the nearer of a fixture and everything else", () => {
+    const fixture: WorldFixture = {
+      id: "mailbox",
+      kind: "mailbox",
+      col: 6,
+      row: 2,
+      label: "Check mailbox",
+      owner: "luke",
+    };
+    expect(nearestTarget({ door, pc, mushroom: null, npc: null, fixture }, 6, 2)).toEqual({
+      door: null,
+      pc: null,
+      mushroom: null,
+      npc: null,
+      fixture,
+    });
+  });
+
+  it("still gives a tie to the door over a fixture", () => {
+    const near = { ...door, col: 3, row: 1 };
+    const fixture: WorldFixture = {
+      id: "mailbox",
+      kind: "mailbox",
+      col: 3,
+      row: 1,
+      label: "Check mailbox",
+      owner: "luke",
+    };
+    const result = nearestTarget(
+      { door: near, pc: null, mushroom: null, npc: null, fixture },
+      3,
+      2,
+    );
+    expect(result.door).toBe(near);
+    expect(result.fixture).toBeNull();
   });
 });
 
@@ -382,6 +425,74 @@ describe("NPC proximity and talking", () => {
     update(state, world, buildWorldCollision(world), keyOnce(null));
     expect(state.mode).toBe("overworld");
     expect(state.confirm).toBeNull();
+  });
+});
+
+describe("fixture proximity and using it", () => {
+  const fixture: WorldFixture = {
+    id: "mailbox",
+    kind: "mailbox",
+    col: 5,
+    row: 5,
+    label: "Check mailbox",
+    owner: "luke",
+  };
+  const world: IsoWorld = { ...LAB_TOWN, fixtures: [fixture] };
+
+  it("notices a nearby fixture while walking", () => {
+    const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
+    const solid = buildWorldCollision(world);
+    update(state, world, solid, keyOnce(null));
+    expect(state.nearbyFixture).toEqual(fixture);
+  });
+
+  it("confirming Enter at the mailbox fires onFixture exactly once after CONFIRM_TICKS, with no facing turn, then pauses the engine", () => {
+    const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
+    const solid = buildWorldCollision(world);
+
+    update(state, world, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("overworld"); // confirming first
+    expect(state.confirm?.text).toBe("Check mailbox");
+    expect(state.confirm?.action).toEqual({ kind: "fixture", fixture });
+
+    const onFixture = vi.fn();
+    for (let i = 0; i < CONFIRM_TICKS; i++) {
+      update(state, world, solid, keyOnce(null), { onFixture });
+    }
+    expect(onFixture).toHaveBeenCalledTimes(1);
+    expect(onFixture).toHaveBeenCalledWith(fixture);
+    expect(state.mode).toBe("dialogue");
+
+    // Paused: a further update does nothing (no menu, no movement), and
+    // onFixture does not fire again.
+    const before = getLocalEntity(state).row;
+    update(state, world, solid, keysHeld("ArrowDown"), { onFixture });
+    expect(onFixture).toHaveBeenCalledTimes(1);
+    expect(getLocalEntity(state).row).toBe(before);
+  });
+});
+
+describe("fixtureSprite", () => {
+  const fixture: WorldFixture = {
+    id: "mailbox",
+    kind: "mailbox",
+    col: 5,
+    row: 5,
+    label: "Check mailbox",
+    owner: "luke",
+  };
+
+  it("follows the mailbox flag state", () => {
+    const state = createIsoState(LAB_TOWN);
+    expect(state.mailboxFlagUp).toBe(false);
+    expect(fixtureSprite(fixture, state)).toBe("mailbox");
+
+    setMailboxFlag(state, true);
+    expect(state.mailboxFlagUp).toBe(true);
+    expect(fixtureSprite(fixture, state)).toBe("mailbox_flag");
+
+    setMailboxFlag(state, false);
+    expect(fixtureSprite(fixture, state)).toBe("mailbox");
   });
 });
 

@@ -34,6 +34,19 @@ export function buildSolidGrid(world: IsoWorld): SolidGrid {
     }
   }
 
+  // A fixture is furniture, not open ground: block its tile like an NPC's, so
+  // the player walks up beside the mailbox rather than through it.
+  for (const fixture of world.fixtures ?? []) {
+    if (
+      fixture.row >= 0 &&
+      fixture.row < world.rows &&
+      fixture.col >= 0 &&
+      fixture.col < world.cols
+    ) {
+      grid[fixture.row][fixture.col] = true;
+    }
+  }
+
   return grid;
 }
 

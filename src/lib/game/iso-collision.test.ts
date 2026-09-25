@@ -67,6 +67,24 @@ describe("buildSolidGrid", () => {
     world.npcs = [{ id: "gnomette", col: 99, row: 99, facing: "S" }];
     expect(() => buildSolidGrid(world)).not.toThrow();
   });
+
+  it("blocks a fixture's own tile like any other standing body", () => {
+    const world = grassWorld(4, 4);
+    world.fixtures = [
+      { id: "mailbox", kind: "mailbox", col: 2, row: 1, label: "Check mailbox", owner: "x" },
+    ];
+    const grid = buildSolidGrid(world);
+    expect(grid[1][2]).toBe(true);
+    expect(grid[1][1]).toBe(false);
+  });
+
+  it("does not throw when a fixture sits out of bounds", () => {
+    const world = grassWorld(3, 3);
+    world.fixtures = [
+      { id: "mailbox", kind: "mailbox", col: 99, row: 99, label: "Check mailbox", owner: "x" },
+    ];
+    expect(() => buildSolidGrid(world)).not.toThrow();
+  });
 });
 
 describe("isSolidAt", () => {

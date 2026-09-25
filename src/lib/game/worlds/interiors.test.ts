@@ -123,6 +123,7 @@ describe("INTERIORS", () => {
             pc,
             mushroom: null,
             npc: null,
+            fixture: null,
           };
           expect(nearestTarget(inReach, c, r).pc, `${world.id} at ${c},${r}`).toBe(pc);
         }

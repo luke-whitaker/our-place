@@ -47,6 +47,23 @@ export interface WorldNpc {
   facing: Dir8;
 }
 
+// ── Fixtures (furniture you use, the fifth interaction kind) ──
+
+/** Furniture placed in a world that a member uses directly, rather than
+ * talking to it (NPCs) or porting through it (doors/PCs/shrines). The
+ * mailbox is the first; a desk inside each island house is the next, which is
+ * why this stays a small general kind instead of a mailbox special case.
+ * `label` is the prompt text ("Check mailbox"); `owner` is the island owner's
+ * username, which the UI needs for its API calls. */
+export interface WorldFixture {
+  id: string;
+  kind: "mailbox";
+  col: number;
+  row: number;
+  label: string;
+  owner: string;
+}
+
 // ── Mushroom warp network (mycelium fast-travel) ──
 
 export interface MushroomWarp {

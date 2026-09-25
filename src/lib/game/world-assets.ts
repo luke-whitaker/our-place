@@ -7,6 +7,7 @@ import type { AvatarConfig } from "@/lib/types";
 import type { IsoAssets } from "./iso-engine";
 import type { IsoWorld } from "./world-model";
 import { OBJECT_CATALOG } from "./world-model";
+import type { WorldFixture } from "./types";
 import {
   loadCharacterSheet,
   characterSheetPath,
@@ -18,12 +19,20 @@ import { worldAsset, newWorldImage } from "./asset-url";
 import { tintImage, tintToImage, type TintPreset } from "./terrain-tint";
 import { NPC_DIALOGUE } from "./npc-dialogue";
 
+/** Every OBJECT_CATALOG key a fixture kind can render as. The mailbox needs
+ * both its raised and lowered art loaded up front, so toggling the flag
+ * never waits on a fetch — see setMailboxFlag in iso-engine.ts. */
+const FIXTURE_SPRITE_KINDS: Record<WorldFixture["kind"], readonly string[]> = {
+  mailbox: ["mailbox", "mailbox_flag"],
+};
+
 export async function loadWorldAssets(
   world: IsoWorld,
   avatar: AvatarConfig | null = null,
 ): Promise<IsoAssets> {
   const tint: TintPreset = world.tint ?? "forest";
-  const kinds = [...new Set(world.objects.map((o) => o.kind))];
+  const fixtureKinds = (world.fixtures ?? []).flatMap((f) => FIXTURE_SPRITE_KINDS[f.kind]);
+  const kinds = [...new Set([...world.objects.map((o) => o.kind), ...fixtureKinds])];
   // Every NPC the world places, deduplicated (a future world could repeat one).
   const npcIds = [...new Set((world.npcs ?? []).map((n) => n.id))];
   // An interior names its own ground sheet, painted in the same cell layout, so

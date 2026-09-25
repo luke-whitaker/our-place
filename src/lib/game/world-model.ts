@@ -13,7 +13,7 @@
 import { z } from "zod";
 import { isNpcId } from "@/lib/npcs";
 import { TINT_PRESETS, type TintPreset, type TintTarget } from "./terrain-tint";
-import type { Door, MushroomWarp, Pc, Region, WorldLink, WorldNpc } from "./types";
+import type { Door, MushroomWarp, Pc, Region, WorldFixture, WorldLink, WorldNpc } from "./types";
 
 // ── Terrain ──
 // Iso ground is a small set of surface types — in iso, structures (walls, roofs,
@@ -254,6 +254,13 @@ export const OBJECT_CATALOG: Record<string, ObjectDef> = {
     solid: true,
     tint: "building",
   },
+
+  // ── Fixtures (drawn for Our Place; see assets/world/README.md) ──
+  // The mailbox's two states: flag down (no mail) and flag up (mail
+  // waiting). Both load up front (world-assets.ts) so toggling the flag
+  // never waits on a fetch.
+  mailbox: townProp("mailbox"),
+  mailbox_flag: townProp("mailbox_flag"),
 };
 
 // ── World ──
@@ -288,6 +295,8 @@ export interface IsoWorld {
   pcs?: Pc[];
   /** Standing NPCs a member can talk to (the fourth interaction kind). */
   npcs?: WorldNpc[];
+  /** Furniture a member uses directly (the fifth interaction kind). */
+  fixtures?: WorldFixture[];
   /** Mushroom warp shrines (the mycelium fast-travel network). */
   mushrooms: MushroomWarp[];
   /** Warp-menu destinations in other worlds, offered at every shrine here. */
@@ -330,6 +339,16 @@ const npcSchema = z.object({
   facing: dir8Schema,
 });
 
+/** The kind union has only "mailbox" today; a desk joins it later. */
+const fixtureSchema = z.object({
+  id: z.string(),
+  kind: z.enum(["mailbox"]),
+  col: z.number().int(),
+  row: z.number().int(),
+  label: z.string(),
+  owner: z.string(),
+});
+
 const mushroomSchema = z.object({
   id: z.string(),
   col: z.number().int(),
@@ -370,6 +389,7 @@ export const isoWorldSchema = z.object({
   doors: z.array(doorSchema),
   pcs: z.array(pcSchema).optional(),
   npcs: z.array(npcSchema).optional(),
+  fixtures: z.array(fixtureSchema).optional(),
   mushrooms: z.array(mushroomSchema),
   links: z.array(linkSchema),
   regions: z.array(regionSchema),
@@ -396,6 +416,7 @@ export function parseIsoWorld(data: unknown): IsoWorld {
     }
   });
   (world.npcs ?? []).forEach((npc, i) => validateNpcPlacement(world, npc, i));
+  (world.fixtures ?? []).forEach((fixture, i) => validateFixturePlacement(world, fixture, i));
 
   return world;
 }
@@ -417,7 +438,7 @@ function isBlockedTile(world: IsoWorld, col: number, row: number): boolean {
 
 /** An NPC must stand in bounds, on ground the player can actually walk onto,
  * and clear of every other interaction point — sharing a tile with a door,
- * PC, or shrine would make `nearestTarget` pick one arbitrarily. */
+ * PC, shrine, or fixture would make `nearestTarget` pick one arbitrarily. */
 function validateNpcPlacement(world: IsoWorld, npc: WorldNpc, index: number): void {
   if (npc.col < 0 || npc.col >= world.cols || npc.row < 0 || npc.row >= world.rows) {
     throw new Error(`npcs[${index}] "${npc.id}" is out of bounds`);
@@ -428,9 +449,36 @@ function validateNpcPlacement(world: IsoWorld, npc: WorldNpc, index: number): vo
   const onOtherInteraction =
     world.doors.some((d) => d.col === npc.col && d.row === npc.row) ||
     (world.pcs ?? []).some((p) => p.col === npc.col && p.row === npc.row) ||
-    world.mushrooms.some((m) => m.col === npc.col && m.row === npc.row);
+    world.mushrooms.some((m) => m.col === npc.col && m.row === npc.row) ||
+    (world.fixtures ?? []).some((f) => f.col === npc.col && f.row === npc.row);
   if (onOtherInteraction) {
-    throw new Error(`npcs[${index}] "${npc.id}" sits on a door, PC, or shrine tile`);
+    throw new Error(`npcs[${index}] "${npc.id}" sits on a door, PC, shrine, or fixture tile`);
+  }
+}
+
+/** A fixture must stand in bounds, on ground the player can actually walk
+ * onto, and clear of every other interaction point, mirroring
+ * validateNpcPlacement — sharing a tile with a door, PC, shrine, or NPC would
+ * make `nearestTarget` pick one arbitrarily. */
+function validateFixturePlacement(world: IsoWorld, fixture: WorldFixture, index: number): void {
+  if (
+    fixture.col < 0 ||
+    fixture.col >= world.cols ||
+    fixture.row < 0 ||
+    fixture.row >= world.rows
+  ) {
+    throw new Error(`fixtures[${index}] "${fixture.id}" is out of bounds`);
+  }
+  if (isBlockedTile(world, fixture.col, fixture.row)) {
+    throw new Error(`fixtures[${index}] "${fixture.id}" is not on a walkable tile`);
+  }
+  const onOtherInteraction =
+    world.doors.some((d) => d.col === fixture.col && d.row === fixture.row) ||
+    (world.pcs ?? []).some((p) => p.col === fixture.col && p.row === fixture.row) ||
+    world.mushrooms.some((m) => m.col === fixture.col && m.row === fixture.row) ||
+    (world.npcs ?? []).some((n) => n.col === fixture.col && n.row === fixture.row);
+  if (onOtherInteraction) {
+    throw new Error(`fixtures[${index}] "${fixture.id}" sits on a door, PC, shrine, or NPC tile`);
   }
 }
 

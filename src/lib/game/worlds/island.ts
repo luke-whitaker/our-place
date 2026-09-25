@@ -12,7 +12,7 @@ import { OBJECT_CATALOG } from "../world-model";
 import type { TintPreset } from "../terrain-tint";
 import { buildSolidGrid, isSolidAt, type SolidGrid } from "../iso-collision";
 import { createRng, type Rng } from "../prng";
-import type { Door, MushroomWarp, Region, WorldLink } from "../types";
+import type { Door, MushroomWarp, Region, WorldFixture, WorldLink } from "../types";
 import { EXIT_DOOR_ID } from "./interior";
 
 export interface IslandOwner {
@@ -30,6 +30,7 @@ export interface IslandOptions {
 
 export const ISLAND_DOOR_ID = "my-place";
 export const ISLAND_SHRINE_ID = "island-shrine";
+export const ISLAND_MAILBOX_ID = "mailbox";
 
 /** The world id (and save slot) of a member's island. */
 export function islandWorldId(ownerId: string): string {
@@ -59,6 +60,11 @@ const HOUSE = { col: CENTRE, row: CENTRE - 3 };
 const DOOR = { col: CENTRE, row: HOUSE.row + 1 };
 const SPAWN = { col: CENTRE, row: DOOR.row + 1 };
 const SHRINE = { col: CENTRE, row: CENTRE + 4 };
+// Beside the garden path, a tile off the door and well short of the shrine's
+// own reach, inside protectedTiles() so scattered flora never lands there. The
+// west side, because the protected strip runs on in front of it (see
+// hidesMailbox); on the east side trees hid it on about a fifth of islands.
+const MAILBOX = { col: CENTRE - 1, row: SPAWN.row + 2 };
 /** Tiles per scattered object: sparser reads as a garden, denser as a thicket. */
 const TILES_PER_OBJECT = 7;
 const MAX_OBJECTS = 24;
@@ -145,8 +151,24 @@ function landmarksReachable(world: IsoWorld): boolean {
   return seen.has(`${DOOR.col},${DOOR.row}`) && seen.has(shrineApproach);
 }
 
+/** Whether flora here would draw over the mailbox, measured from the sprites
+ * across 400 islands: a rock or large bush right in front of it (a larger
+ * col + row, in the same screen column), or the big oak's canopy from up to
+ * six tiles away. Other trees are too narrow to cover it. The placement is
+ * rejected after its random draws, so an island without such a placement
+ * keeps its flora exactly (about nine in ten), and one with it swaps that
+ * piece for the next one drawn. */
+function hidesMailbox({ kind, col, row }: PlacedObjectData): boolean {
+  const dc = col - MAILBOX.col;
+  const dr = row - MAILBOX.row;
+  if (dc + dr <= 0 || Math.abs(dc - dr) > 2) return false;
+  if (kind === "oak_big") return dc + dr <= 12;
+  return (kind === "rock" || kind === "bush_large") && dc + dr <= 3 && Math.abs(dc - dr) <= 1;
+}
+
 /** Scatter flora over free grass, keeping only placements that leave the
- * door and shrine reachable. Each candidate costs one small flood fill. */
+ * door and shrine reachable and the mailbox in sight. Each candidate costs
+ * one small flood fill. */
 function scatterFlora(world: IsoWorld, rng: Rng, biome: TintPreset): void {
   const keep = protectedTiles();
   const footprint = new Set(
@@ -168,7 +190,7 @@ function scatterFlora(world: IsoWorld, rng: Rng, biome: TintPreset): void {
     const [col, row] = candidates.splice(rng.int(0, candidates.length - 1), 1)[0];
     const object: PlacedObjectData = { kind: rng.pick(flora), col, row };
     world.objects.push(object);
-    if (landmarksReachable(world)) placed++;
+    if (!hidesMailbox(object) && landmarksReachable(world)) placed++;
     else world.objects.pop();
   }
 }
@@ -202,6 +224,15 @@ export function buildIsland({ owner, biome, isOwn }: IslandOptions): IsoWorld {
     { id: "capital", label: "The Capital", place: "capital", spawnAt: "capital-gate" },
   ];
   if (!isOwn) links.push({ id: "home", label: "Home", place: "me", spawnAt: ISLAND_SHRINE_ID });
+  const fixtures: WorldFixture[] = [
+    {
+      id: ISLAND_MAILBOX_ID,
+      kind: "mailbox",
+      ...MAILBOX,
+      label: isOwn ? "Check mailbox" : "Leave a letter",
+      owner: owner.username,
+    },
+  ];
   const regions: Region[] = [
     {
       id: "island",
@@ -222,6 +253,7 @@ export function buildIsland({ owner, biome, isOwn }: IslandOptions): IsoWorld {
       { kind: "mushroom", ...SHRINE },
     ],
     doors,
+    fixtures,
     mushrooms,
     links,
     regions,

@@ -39,6 +39,14 @@ describe("OBJECT_CATALOG", () => {
     expect(OBJECT_CATALOG.pine1.tint).toBe("evergreen");
     expect(OBJECT_CATALOG.cottage_blue.tint).toBe("building");
   });
+
+  it("defines both mailbox states as solid, building-tinted, single-tile props", () => {
+    for (const kind of ["mailbox", "mailbox_flag"]) {
+      expect(OBJECT_CATALOG[kind].solid).toBe(true);
+      expect(OBJECT_CATALOG[kind].tint).toBe("building");
+      expect(OBJECT_CATALOG[kind].footprint).toEqual([{ dc: 0, dr: 0 }]);
+    }
+  });
 });
 
 describe("parseIsoWorld", () => {
@@ -113,7 +121,7 @@ describe("parseIsoWorld", () => {
         ...LAB_TOWN,
         npcs: [{ id: "gnomie", col: door.col, row: door.row, facing: "S" }],
       };
-      expect(() => parseIsoWorld(world)).toThrow(/door, PC, or shrine/);
+      expect(() => parseIsoWorld(world)).toThrow(/door, PC, shrine, or fixture/);
     });
 
     it("rejects an NPC standing on solid terrain or a solid object", () => {
@@ -131,6 +139,99 @@ describe("parseIsoWorld", () => {
         npcs: [{ id: "gnomie", col: 2, row: 2, facing: "S" }],
       };
       expect(() => parseIsoWorld(onObject)).toThrow(/walkable tile/);
+    });
+
+    it("rejects an NPC on a fixture tile", () => {
+      const world = {
+        ...LAB_TOWN,
+        fixtures: [
+          { id: "mailbox", kind: "mailbox", col: 5, row: 5, label: "Check mailbox", owner: "x" },
+        ],
+        npcs: [{ id: "gnomie", col: 5, row: 5, facing: "S" }],
+      };
+      expect(() => parseIsoWorld(world)).toThrow(/door, PC, shrine, or fixture/);
+    });
+  });
+
+  describe("fixtures", () => {
+    it("accepts a fixture on an open, walkable tile", () => {
+      const world = {
+        ...LAB_TOWN,
+        fixtures: [
+          { id: "mailbox", kind: "mailbox", col: 5, row: 5, label: "Check mailbox", owner: "x" },
+        ],
+      };
+      expect(() => parseIsoWorld(world)).not.toThrow();
+      expect(parseIsoWorld(world).fixtures?.[0].kind).toBe("mailbox");
+    });
+
+    it("rejects an unrecognized fixture kind", () => {
+      const world = {
+        ...LAB_TOWN,
+        fixtures: [{ id: "x", kind: "desk", col: 5, row: 5, label: "Sit", owner: "x" }],
+      };
+      expect(() => parseIsoWorld(world)).toThrow();
+    });
+
+    it("rejects an out-of-bounds fixture", () => {
+      const world = {
+        ...LAB_TOWN,
+        fixtures: [
+          {
+            id: "mailbox",
+            kind: "mailbox",
+            col: LAB_TOWN.cols + 5,
+            row: 5,
+            label: "Check mailbox",
+            owner: "x",
+          },
+        ],
+      };
+      expect(() => parseIsoWorld(world)).toThrow(/out of bounds/);
+    });
+
+    it("rejects a fixture on a door tile", () => {
+      const door = LAB_TOWN.doors[0];
+      const world = {
+        ...LAB_TOWN,
+        fixtures: [
+          {
+            id: "mailbox",
+            kind: "mailbox",
+            col: door.col,
+            row: door.row,
+            label: "Check mailbox",
+            owner: "x",
+          },
+        ],
+      };
+      expect(() => parseIsoWorld(world)).toThrow(/door, PC, shrine, or NPC/);
+    });
+
+    it("rejects a fixture on an NPC tile", () => {
+      // parseIsoWorld validates npcs before fixtures, so a tile the two share
+      // throws from the NPC side first (validateNpcPlacement also rejects a
+      // fixture tile) — either message proves the overlap can't slip through.
+      const world = {
+        ...LAB_TOWN,
+        npcs: [{ id: "gnomie", col: 5, row: 5, facing: "S" }],
+        fixtures: [
+          { id: "mailbox", kind: "mailbox", col: 5, row: 5, label: "Check mailbox", owner: "x" },
+        ],
+      };
+      expect(() => parseIsoWorld(world)).toThrow(/door, PC, shrine/);
+    });
+
+    it("rejects a fixture standing on solid terrain or a solid object", () => {
+      const onWater = {
+        ...LAB_TOWN,
+        terrain: LAB_TOWN.terrain.map((row) => row.slice()),
+        fixtures: [
+          { id: "mailbox", kind: "mailbox", col: 1, row: 1, label: "Check mailbox", owner: "x" },
+        ],
+      };
+      onWater.terrain[1][1] = "water";
+      expect(() => parseIsoWorld(onWater)).toThrow(/walkable tile/);
     });
   });
 });

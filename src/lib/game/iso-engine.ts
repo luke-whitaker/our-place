@@ -31,7 +31,7 @@ import {
 } from "./iso-cull";
 import { FADE_SPEED, PAL } from "./constants";
 import type { Viewport } from "./viewport";
-import type { GameMode, Door, MushroomWarp, Pc, WorldLink, WorldNpc } from "./types";
+import type { GameMode, Door, MushroomWarp, Pc, WorldFixture, WorldLink, WorldNpc } from "./types";
 import type { IsoWorld } from "./world-model";
 import type { InputManager } from "./input";
 
@@ -77,7 +77,8 @@ export type ConfirmAction =
   | { kind: "door"; door: Door }
   | { kind: "pc" }
   | { kind: "shrine" }
-  | { kind: "npc"; npc: WorldNpc };
+  | { kind: "npc"; npc: WorldNpc }
+  | { kind: "fixture"; fixture: WorldFixture };
 
 export interface IsoState {
   mode: GameMode;
@@ -114,6 +115,12 @@ export interface IsoState {
    * so multiple NPCs never share state; runtime, so it lives here rather than
    * on the (static) WorldNpc. */
   npcFacing: Record<string, Dir8>;
+  nearbyFixture: WorldFixture | null;
+  /** Whether the island mailbox's flag renders raised. Lives here rather than
+   * on the (static) world document: the world is regenerated fresh from the
+   * owner's id every load, but the flag changes as mail comes and goes, so it
+   * has to be runtime state the same way npcFacing is. */
+  mailboxFlagUp: boolean;
   discovered: Set<string>;
   /** Cursor into whichever modal list is open — the shrine network or a PC. */
   menuIndex: number;
@@ -170,6 +177,8 @@ export function createIsoState(world: IsoWorld, options: IsoStateOptions = {}): 
     pendingPort: null,
     nearbyNpc: null,
     npcFacing: Object.fromEntries((world.npcs ?? []).map((npc) => [npc.id, npc.facing])),
+    nearbyFixture: null,
+    mailboxFlagUp: false,
     discovered: new Set(options.discovered ?? []),
     menuIndex: 0,
     // Left null so the first update fires the spawn region's entry toast.
@@ -216,12 +225,20 @@ function findNearbyNpc(world: IsoWorld, col: number, row: number): WorldNpc | nu
   return null;
 }
 
+function findNearbyFixture(world: IsoWorld, col: number, row: number): WorldFixture | null {
+  for (const fixture of world.fixtures ?? []) {
+    if (isNear(col, row, fixture.col, fixture.row)) return fixture;
+  }
+  return null;
+}
+
 /** Whatever the player could interact with from where they stand. */
 export interface Targets {
   door: Door | null;
   pc: Pc | null;
   mushroom: MushroomWarp | null;
   npc: WorldNpc | null;
+  fixture: WorldFixture | null;
 }
 
 /**
@@ -229,8 +246,8 @@ export interface Targets {
  * Enter, and walking into a door always agree. Without this a door beat a PC
  * whenever both were in reach, and in rooms where the exit sits two tiles from
  * the computer, stepping up to the PC walked you out of the building instead.
- * Ties go to the door, then the PC, then the shrine, then the NPC, so a door
- * can always be walked into from the tile you arrive on.
+ * Ties go to the door, then the PC, then the shrine, then the NPC, then the
+ * fixture, so a door can always be walked into from the tile you arrive on.
  */
 export function nearestTarget(inReach: Targets, col: number, row: number): Targets {
   const candidates = [
@@ -238,6 +255,7 @@ export function nearestTarget(inReach: Targets, col: number, row: number): Targe
     { kind: "pc", at: inReach.pc },
     { kind: "mushroom", at: inReach.mushroom },
     { kind: "npc", at: inReach.npc },
+    { kind: "fixture", at: inReach.fixture },
   ] as const;
   let best: (typeof candidates)[number] | null = null;
   let bestDist = Infinity;
@@ -255,6 +273,7 @@ export function nearestTarget(inReach: Targets, col: number, row: number): Targe
     pc: best?.kind === "pc" ? inReach.pc : null,
     mushroom: best?.kind === "mushroom" ? inReach.mushroom : null,
     npc: best?.kind === "npc" ? inReach.npc : null,
+    fixture: best?.kind === "fixture" ? inReach.fixture : null,
   };
 }
 
@@ -462,12 +481,17 @@ export type OnPcPort = (href: string) => void;
  * overlay and fetches the talk result. Unlike a door/link/PC, there's no
  * fade: the engine just pauses (see pauseForOverlay) and hands off. */
 export type OnNpcTalk = (npcId: NpcId) => void;
+/** Fired the moment a fixture confirm finishes — the caller opens whatever
+ * panel the fixture needs (the mailbox's letters). Like a talk, there's no
+ * fade: the engine pauses (see pauseForOverlay) and hands off. */
+export type OnFixture = (fixture: WorldFixture) => void;
 
 export interface UpdateCallbacks {
   onDoorInteract?: OnDoorInteract;
   onWorldLink?: OnWorldLink;
   onPcPort?: OnPcPort;
   onNpcTalk?: OnNpcTalk;
+  onFixture?: OnFixture;
 }
 
 /**
@@ -497,6 +521,25 @@ export function endNpcTalk(state: IsoState, world: IsoWorld, npcId: string): voi
   const npc = (world.npcs ?? []).find((n) => n.id === npcId);
   if (npc) state.npcFacing[npc.id] = npc.facing;
   resumeFromOverlay(state);
+}
+
+/** Set whether the island mailbox's flag renders raised. Runtime state, not
+ * part of the world document: the island is regenerated fresh from the
+ * owner's id on every load, so there's nowhere on the static IsoWorld to
+ * persist "mail is waiting". The world page sets it from
+ * GET /api/users/[username]/mailbox and again after each mailbox action. */
+export function setMailboxFlag(state: IsoState, up: boolean): void {
+  state.mailboxFlagUp = up;
+}
+
+/** Which OBJECT_CATALOG sprite draws a fixture right now. Pure and exported
+ * so it's unit-testable without a canvas. The kind union has only "mailbox"
+ * today: any other kind falls back to its own catalog key, and a future
+ * fixture with its own runtime states (the desk, later) would add a branch
+ * here rather than a special case elsewhere. */
+export function fixtureSprite(fixture: WorldFixture, state: IsoState): string {
+  if (fixture.kind === "mailbox" && state.mailboxFlagUp) return "mailbox_flag";
+  return fixture.kind;
 }
 
 export function update(
@@ -625,6 +668,11 @@ export function update(
         state.npcFacing[action.npc.id] = facingToward(action.npc, player);
         pauseForOverlay(state);
         callbacks.onNpcTalk?.(action.npc.id);
+      } else if (action.kind === "fixture") {
+        // No fade and no facing turn (furniture doesn't look at you) — pause
+        // straight into whatever panel the caller opens for this fixture.
+        pauseForOverlay(state);
+        callbacks.onFixture?.(action.fixture);
       } else {
         state.mode = "warp-menu";
         state.menuIndex = 0;
@@ -635,12 +683,13 @@ export function update(
 
   const player = getLocalEntity(state);
 
-  // ── Door / PC / shrine / NPC proximity ──
+  // ── Door / PC / shrine / NPC / fixture proximity ──
   const inReach: Targets = {
     door: findNearbyDoor(world, player.col, player.row),
     pc: findNearbyPc(world, player.col, player.row),
     mushroom: findNearbyMushroom(world, player.col, player.row),
     npc: findNearbyNpc(world, player.col, player.row),
+    fixture: findNearbyFixture(world, player.col, player.row),
   };
   // Discovery and arming read everything in reach, not just the nearest: a
   // shrine you pass is found even beside a door, and a door re-arms only once
@@ -656,6 +705,7 @@ export function update(
   state.nearbyPc = target.pc;
   state.nearbyMushroom = target.mushroom;
   state.nearbyNpc = target.npc;
+  state.nearbyFixture = target.fixture;
 
   const intent = computeIntent(input);
 
@@ -684,6 +734,13 @@ export function update(
     startConfirm(state, `Talk to ${NPC_NAMES[state.nearbyNpc.id]}`, {
       kind: "npc",
       npc: state.nearbyNpc,
+    });
+    return;
+  }
+  if (state.nearbyFixture && (input.consume("Enter") || input.consume("Space"))) {
+    startConfirm(state, state.nearbyFixture.label, {
+      kind: "fixture",
+      fixture: state.nearbyFixture,
     });
     return;
   }
@@ -809,6 +866,16 @@ export function render(
       draw: () => drawNpc(ctx, npc, sprites[facing], camX, camY),
     });
   }
+  for (const fixture of world.fixtures ?? []) {
+    const sprite = assets.objects[fixtureSprite(fixture, state)];
+    if (!sprite) continue;
+    const placed = { sprite, col: fixture.col, row: fixture.row };
+    if (!rectsOverlap(objectDrawRect(placed), view)) continue;
+    drawables.push({
+      depth: tileToScreen(fixture.col, fixture.row).y,
+      draw: () => drawObject(ctx, placed, camX, camY),
+    });
+  }
   drawables.sort((a, b) => a.depth - b.depth).forEach((d) => d.draw());
 
   ctx.restore();
@@ -821,13 +888,15 @@ export function render(
   drawNameTags(ctx, state, assets.characters, view, frame.viewport);
   if (state.fade === 0 && state.mode === "overworld") {
     // Yellow while just in reach, green for the confirm flash right before the
-    // action fires; door > PC > shrine > NPC when more than one is in reach.
+    // action fires; door > PC > shrine > NPC > fixture when more than one is
+    // in reach.
     const label =
       state.confirm?.text ??
       state.nearbyDoor?.label ??
       state.nearbyPc?.label ??
       state.nearbyMushroom?.label ??
-      (state.nearbyNpc ? `Talk to ${NPC_NAMES[state.nearbyNpc.id]}` : undefined);
+      (state.nearbyNpc ? `Talk to ${NPC_NAMES[state.nearbyNpc.id]}` : undefined) ??
+      state.nearbyFixture?.label;
     if (label) {
       const player = getLocalEntity(state);
       const head = headHudPos(player, assets.characters, state.camera, frame.viewport);
