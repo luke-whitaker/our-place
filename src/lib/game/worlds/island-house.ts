@@ -2,9 +2,9 @@
 //
 // Generated, like the island itself, so a new member gets a home the moment
 // their account exists: nothing here is stored, and every device rebuilds the
-// same room from the owner's id. Only the furniture varies, seeded off that id,
-// so two members' houses are recognisably different without either being
-// authored.
+// same room from the owner's id. It starts empty apart from the computer: a
+// home is for the member to fill (Luke, September 25), the desk comes next, and
+// seeds and movable things will follow.
 //
 // Who may come in follows the island. The island already answers "may this
 // member stand here?" through GET /api/users/[username]/island, and a house
@@ -12,7 +12,6 @@
 // simply there once you are on the doorstep.
 
 import type { IsoWorld } from "../world-model";
-import { createRng } from "../prng";
 import { buildInterior } from "./interior";
 import { houseNetworkLinks } from "./interiors";
 import { houseWorldId, ISLAND_DOOR_ID, type IslandOwner } from "./island";
@@ -21,54 +20,6 @@ import { houseWorldId, ISLAND_DOOR_ID, type IslandOwner } from "./island";
 const SIZE = 11;
 const DOOR_COL = 6;
 const PC = { col: 2, row: 2 };
-
-/** Furniture a home might hold. Drawn from with replacement, so a house can have
- * two chairs; the wardrobe is handled apart because it needs two tiles. */
-const HOME_PROPS: ReadonlyArray<string> = [
-  "chair",
-  "chair",
-  "flower_box1",
-  "flower_box2",
-  "flower_box3",
-  "flower_box4",
-  "jar_blue",
-  "jar_red",
-  "jar_yellow",
-  "barrel",
-  "crate1",
-  "crate2",
-  "tub",
-  "bucket",
-  "logs",
-];
-
-/** Tiles a prop may take: the floor, minus the walls, the doorway approach, the
- * PC and the two tiles you can stand on to use it, and the middle of the room —
- * a home reads better with its furniture against the walls and the floor left
- * open to walk.
- *
- * Keeping the PC's neighbours clear is not tidiness, it is the difference
- * between a working house and a broken one. The desk sits in the room's north
- * corner, so its only two non-wall neighbours are (col+1, row) and (col, row+1);
- * furnish both and the terminal is walled in. Because a house is generated
- * deterministically from its owner's id, that would not be a rare glitch that
- * clears on reload — it would permanently brick the "log on" terminal for about
- * one member in nine, and only for them. */
-function propTiles(): Array<{ col: number; row: number }> {
-  const tiles: Array<{ col: number; row: number }> = [];
-  const last = SIZE - 2;
-  for (let row = 2; row <= last; row++) {
-    for (let col = 2; col <= last; col++) {
-      const onEdge = col === 2 || col === last || row === 2 || row === last;
-      const nearDoor = Math.abs(col - DOOR_COL) <= 1 && row <= 3;
-      const atDesk =
-        (col === PC.col && Math.abs(row - PC.row) <= 1) ||
-        (row === PC.row && Math.abs(col - PC.col) <= 1);
-      if (onEdge && !nearDoor && !atDesk) tiles.push({ col, row });
-    }
-  }
-  return tiles;
-}
 
 export interface HouseOptions {
   owner: IslandOwner;
@@ -82,17 +33,6 @@ export interface HouseOptions {
  * round trip the community buildings use.
  */
 export function buildIslandHouse({ owner, isOwn }: HouseOptions): IsoWorld {
-  const rng = createRng(`${owner.id}:house`);
-  const tiles = propTiles();
-  // Between a third and a half of the wall tiles, so a house feels lived in
-  // without becoming a warehouse. Bounded by the tile list either way.
-  const count = Math.min(tiles.length, rng.int(6, 10));
-  const props = [];
-  for (let i = 0; i < count; i++) {
-    const tile = tiles.splice(rng.int(0, tiles.length - 1), 1)[0];
-    props.push({ kind: rng.pick(HOME_PROPS), ...tile });
-  }
-
   const place = isOwn ? "me" : owner.username;
   return buildInterior({
     id: houseWorldId(owner.id),
@@ -106,7 +46,7 @@ export function buildIslandHouse({ owner, isOwn }: HouseOptions): IsoWorld {
     pcHref: isOwn ? "/profile" : `/profile/${owner.username}`,
     windowCols: [4, 8],
     windowRows: [5, 6],
-    props,
+    props: [],
     links: houseNetworkLinks(),
   });
 }

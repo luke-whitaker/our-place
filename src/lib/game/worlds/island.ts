@@ -1,16 +1,18 @@
 // A member's floating My Place island, generated rather than stored: one
-// cottage whose door ports to their profile, one mushroom shrine linking back
-// to the Capital gate, and trees in the biome they chose. Every device rebuilds
-// the same island from the owner's id, so nothing about its layout lives in
-// the database, only the biome and who may visit.
+// cottage, one mushroom shrine linking back to the Capital gate, and a mailbox,
+// on a coastline shaped by the owner's id and tinted by the biome they chose.
+// Every device rebuilds the same island from that id, so nothing about its
+// layout lives in the database, only the biome and who may visit.
+//
+// Nothing else grows here yet. Islands start bare (Luke, September 25) so each
+// member fills their own: seeds and flowers come next, and maybe rocks you can
+// pick up and carry.
 //
 // The island is a pocket you leave from, not a second town: the Capital stays
 // the daily loop, and the network is the only road between the two.
 
-import type { IsoWorld, TerrainKind, PlacedObjectData } from "../world-model";
-import { OBJECT_CATALOG } from "../world-model";
+import type { IsoWorld, TerrainKind } from "../world-model";
 import type { TintPreset } from "../terrain-tint";
-import { buildSolidGrid, isSolidAt, type SolidGrid } from "../iso-collision";
 import { createRng, type Rng } from "../prng";
 import type { Door, MushroomWarp, Region, WorldFixture, WorldLink } from "../types";
 import { EXIT_DOOR_ID } from "./interior";
@@ -60,26 +62,8 @@ const HOUSE = { col: CENTRE, row: CENTRE - 3 };
 const DOOR = { col: CENTRE, row: HOUSE.row + 1 };
 const SPAWN = { col: CENTRE, row: DOOR.row + 1 };
 const SHRINE = { col: CENTRE, row: CENTRE + 4 };
-// Beside the garden path, a tile off the door and well short of the shrine's
-// own reach, inside protectedTiles() so scattered flora never lands there. The
-// west side, because the protected strip runs on in front of it (see
-// hidesMailbox); on the east side trees hid it on about a fifth of islands.
+// Beside the garden path, clear of the door's and the shrine's reach.
 const MAILBOX = { col: CENTRE - 1, row: SPAWN.row + 2 };
-/** Tiles per scattered object: sparser reads as a garden, denser as a thicket. */
-const TILES_PER_OBJECT = 7;
-const MAX_OBJECTS = 24;
-
-/** What grows in each biome. The art is the same; the tint does the rest, so
- * the mix only nudges the silhouette (pines for snow, bare rock for scorched). */
-const BIOME_FLORA: Record<TintPreset, ReadonlyArray<string>> = {
-  forest: ["oak1", "oak2", "oak_big", "pine1", "pine2", "bush", "bush_large", "rock"],
-  autumn: ["oak1", "oak2", "oak_big", "oak1", "bush", "bush_large", "rock"],
-  snow: ["pine1", "pine2", "pine1", "pine2", "rock", "rock", "bush"],
-  dusk: ["oak1", "oak2", "oak_big", "pine1", "pine2", "bush", "bush_large", "rock"],
-  swamp: ["bush", "bush_large", "bush", "oak1", "oak2", "rock"],
-  scorched: ["rock", "rock", "rock", "bush", "pine1", "oak1"],
-};
-
 function inBounds(col: number, row: number): boolean {
   return col >= 0 && col < SIZE && row >= 0 && row < SIZE;
 }
@@ -116,83 +100,6 @@ function buildTerrain(rng: Rng): TerrainKind[][] {
   // The garden path from the doorstep to the shrine.
   for (let r = DOOR.row; r < SHRINE.row; r++) terrain[r][DOOR.col] = "dirt";
   return terrain;
-}
-
-/** Tiles no scattered object may take: the path and doorstep with a one-tile
- * margin (so nothing leans over the door), and the tiles around the shrine
- * where a traveler arrives, so nothing stands in front of them. */
-function protectedTiles(): Set<string> {
-  const keep = new Set<string>();
-  for (let r = DOOR.row - 1; r <= SHRINE.row + 2; r++) {
-    for (let c = DOOR.col - 1; c <= DOOR.col + 1; c++) keep.add(`${c},${r}`);
-  }
-  return keep;
-}
-
-/** Tiles reachable on foot from spawn (4-neighbour flood fill), as "c,r" keys. */
-function reachable(grid: SolidGrid): Set<string> {
-  const seen = new Set<string>();
-  const queue: [number, number][] = [[SPAWN.col, SPAWN.row]];
-  // Bounded by the grid: each tile enters `seen` at most once.
-  while (queue.length > 0 && seen.size <= SIZE * SIZE) {
-    const [c, r] = queue.pop()!;
-    const key = `${c},${r}`;
-    if (seen.has(key) || isSolidAt(grid, c, r)) continue;
-    seen.add(key);
-    queue.push([c + 1, r], [c - 1, r], [c, r + 1], [c, r - 1]);
-  }
-  return seen;
-}
-
-/** Whether the door and a tile beside the shrine can still be walked to. */
-function landmarksReachable(world: IsoWorld): boolean {
-  const seen = reachable(buildSolidGrid(world));
-  const shrineApproach = `${SHRINE.col},${SHRINE.row - 1}`;
-  return seen.has(`${DOOR.col},${DOOR.row}`) && seen.has(shrineApproach);
-}
-
-/** Whether flora here would draw over the mailbox, measured from the sprites
- * across 400 islands: a rock or large bush right in front of it (a larger
- * col + row, in the same screen column), or the big oak's canopy from up to
- * six tiles away. Other trees are too narrow to cover it. The placement is
- * rejected after its random draws, so an island without such a placement
- * keeps its flora exactly (about nine in ten), and one with it swaps that
- * piece for the next one drawn. */
-function hidesMailbox({ kind, col, row }: PlacedObjectData): boolean {
-  const dc = col - MAILBOX.col;
-  const dr = row - MAILBOX.row;
-  if (dc + dr <= 0 || Math.abs(dc - dr) > 2) return false;
-  if (kind === "oak_big") return dc + dr <= 12;
-  return (kind === "rock" || kind === "bush_large") && dc + dr <= 3 && Math.abs(dc - dr) <= 1;
-}
-
-/** Scatter flora over free grass, keeping only placements that leave the
- * door and shrine reachable and the mailbox in sight. Each candidate costs
- * one small flood fill. */
-function scatterFlora(world: IsoWorld, rng: Rng, biome: TintPreset): void {
-  const keep = protectedTiles();
-  const footprint = new Set(
-    OBJECT_CATALOG[HOUSE_KIND].footprint.map((f) => `${HOUSE.col + f.dc},${HOUSE.row + f.dr}`),
-  );
-  const candidates: [number, number][] = [];
-  for (let r = 0; r < SIZE; r++) {
-    for (let c = 0; c < SIZE; c++) {
-      const key = `${c},${r}`;
-      if (world.terrain[r][c] === "grass" && !keep.has(key) && !footprint.has(key)) {
-        candidates.push([c, r]);
-      }
-    }
-  }
-  const budget = Math.min(MAX_OBJECTS, Math.floor(candidates.length / TILES_PER_OBJECT));
-  const flora = BIOME_FLORA[biome];
-  let placed = 0;
-  for (let attempt = 0; attempt < candidates.length && placed < budget; attempt++) {
-    const [col, row] = candidates.splice(rng.int(0, candidates.length - 1), 1)[0];
-    const object: PlacedObjectData = { kind: rng.pick(flora), col, row };
-    world.objects.push(object);
-    if (!hidesMailbox(object) && landmarksReachable(world)) placed++;
-    else world.objects.pop();
-  }
 }
 
 export function buildIsland({ owner, biome, isOwn }: IslandOptions): IsoWorld {
@@ -258,6 +165,5 @@ export function buildIsland({ owner, biome, isOwn }: IslandOptions): IsoWorld {
     links,
     regions,
   };
-  scatterFlora(world, rng, biome);
   return world;
 }

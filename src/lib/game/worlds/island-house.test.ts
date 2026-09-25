@@ -27,15 +27,9 @@ describe("buildIslandHouse", () => {
     expect(() => parseIsoWorld(home)).not.toThrow();
   });
 
-  it("is deterministic per owner, and differs between owners", () => {
+  it("is deterministic per owner", () => {
     const again = buildIslandHouse({ owner: OWNER, isOwn: true });
     expect(JSON.stringify(again)).toBe(JSON.stringify(home));
-
-    const other = buildIslandHouse({
-      owner: { ...OWNER, id: "8f2c1a2e-1b7d-4a8e-9c3f-000000000002" },
-      isOwn: true,
-    });
-    expect(other.objects).not.toEqual(home.objects);
   });
 
   it("opens the owner's own profile and calls the room Home, for the owner", () => {
@@ -95,22 +89,10 @@ describe("buildIslandHouse", () => {
     }
   });
 
-  it("never lets furniture land on the PC's desk or block the doorway approach", () => {
-    // Regression guard on propTiles' exclusion zone: furniture is drawn only
-    // from tiles that are neither the PC's desk nor near the doorway.
-    for (let n = 0; n < 30; n++) {
-      const owner = { ...OWNER, id: `owner-${n}` };
-      const world = buildIslandHouse({ owner, isOwn: true });
-      const door = world.doors[0];
-      const pc = world.pcs![0];
-
-      for (const obj of world.objects) {
-        if (obj.kind === "computer" || obj.kind.startsWith("wall")) continue;
-        expect(obj.col === pc.col && obj.row === pc.row).toBe(false);
-        const nearDoor = Math.abs(obj.col - door.col) <= 1 && obj.row <= pc.row + 1;
-        expect(nearDoor).toBe(false);
-      }
-    }
+  it("starts empty apart from its walls and the computer, for the member to fill", () => {
+    const kinds = new Set(home.objects.map((o) => o.kind));
+    kinds.delete("computer");
+    for (const kind of kinds) expect(kind.startsWith("wall")).toBe(true);
   });
 
   describe("the island round trip", () => {

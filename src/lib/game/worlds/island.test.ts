@@ -43,7 +43,11 @@ describe("buildIsland", () => {
       biome: "autumn",
       isOwn: true,
     });
-    expect(other.objects).not.toEqual(home.objects);
+    expect(other.terrain).not.toEqual(home.terrain);
+  });
+
+  it("starts bare: only the cottage and the shrine, for the member to fill", () => {
+    expect(home.objects.map((o) => o.kind).sort()).toEqual(["cottage_blue", "mushroom"]);
   });
 
   it("has one cottage door, one shrine, and the way back to the Capital gate", () => {
@@ -113,12 +117,10 @@ describe("buildIsland", () => {
       expect(seen.has(`${door.col},${door.row}`)).toBe(true);
       const shrine = world.mushrooms[0];
       expect(seen.has(`${shrine.col},${shrine.row - 1}`)).toBe(true);
-      expect(world.objects.length).toBeGreaterThan(4);
 
-      // No scattered flora ever lands on the mailbox tile (protectedTiles
-      // covers it), and the garden path tile beside it — within the
-      // mailbox's own interact reach — stays open and reachable, the same
-      // as the door and shrine above.
+      // Nothing stands on the mailbox tile, and the garden path tile beside
+      // it, within the mailbox's reach, stays open and reachable, the same as
+      // the door and shrine above.
       const mailbox = world.fixtures![0];
       expect(world.objects.some((o) => o.col === mailbox.col && o.row === mailbox.row)).toBe(false);
       const approach = { col: mailbox.col + 1, row: mailbox.row }; // the garden path
@@ -127,26 +129,6 @@ describe("buildIsland", () => {
       );
       expect(isSolidAt(grid, approach.col, approach.row)).toBe(false);
       expect(seen.has(`${approach.col},${approach.row}`)).toBe(true);
-    }
-  });
-
-  it("keeps the mailbox in sight: nothing tall grows in front of it", () => {
-    for (let n = 0; n < 120; n++) {
-      const world = buildIsland({
-        owner: { ...OWNER, id: `sight-${n}-${Math.imul(n, 2654435761) >>> 0}` },
-        biome: TINT_PRESETS[n % TINT_PRESETS.length],
-        isOwn: true,
-      });
-      const mailbox = world.fixtures![0];
-      for (const o of world.objects) {
-        const ahead = o.col - mailbox.col + (o.row - mailbox.row);
-        const across = Math.abs(o.col - mailbox.col - (o.row - mailbox.row));
-        if (ahead <= 0 || across > 2) continue;
-        if (o.kind === "oak_big") expect(ahead).toBeGreaterThan(12);
-        if ((o.kind === "rock" || o.kind === "bush_large") && across <= 1) {
-          expect(ahead).toBeGreaterThan(3);
-        }
-      }
     }
   });
 });
