@@ -5,6 +5,7 @@
 
 import type { NpcId } from "@/lib/npcs";
 import type { Dir8 } from "./character-sheet";
+import type { MailboxColor } from "./mailbox-colors";
 
 // ── Doors & Interactions ──
 
@@ -62,6 +63,9 @@ export interface WorldFixture {
   row: number;
   label: string;
   owner: string;
+  /** The mailbox's paint color — a fixture attribute rather than a runtime
+   * one, unlike the flag: it never changes without the owner choosing again. */
+  color: MailboxColor;
 }
 
 // ── Mushroom warp network (mycelium fast-travel) ──

@@ -35,6 +35,7 @@ export type IslandVisibility = "anyone" | "friends" | "nobody";
 export interface IslandInfo {
   owner: { id: string; username: string; display_name: string };
   biome: string;
+  mailbox_color: string;
 }
 
 /** One row of the member directory, as listed by GET /api/users. */

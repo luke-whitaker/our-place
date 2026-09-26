@@ -11,6 +11,7 @@ import { buildIsland } from "@/lib/game/worlds/island";
 import { buildIslandHouse } from "@/lib/game/worlds/island-house";
 import { findInterior } from "@/lib/game/worlds/interiors";
 import { isTintPreset } from "@/lib/game/terrain-tint";
+import { isMailboxColor } from "@/lib/game/mailbox-colors";
 import type { IsoWorld } from "@/lib/game/world-model";
 import type { Door, WorldLink } from "@/lib/game/types";
 import type { IslandInfo } from "@/lib/types";
@@ -46,6 +47,10 @@ function biomeOf(value: unknown) {
   return isTintPreset(value) ? value : "forest";
 }
 
+function mailboxColorOf(value: unknown) {
+  return isMailboxColor(value) ? value : "slate";
+}
+
 /** The URL for a link's destination, keeping Ports' `?at=` deep-link shape. */
 function placeHref(place: string, spawnAt?: string): string {
   const at = spawnAt ? `&at=${encodeURIComponent(spawnAt)}` : "";
@@ -65,7 +70,13 @@ interface ResolveArgs {
   placeParam: string;
   inside: boolean;
   isHome: boolean;
-  user: { id: string; username: string; display_name: string; biome?: unknown } | null;
+  user: {
+    id: string;
+    username: string;
+    display_name: string;
+    biome?: unknown;
+    mailbox_color?: unknown;
+  } | null;
   lookup: VisitLookup | null;
 }
 
@@ -85,18 +96,28 @@ function resolvePlace({ placeParam, inside, isHome, user, lookup }: ResolveArgs)
     const owner = { id: user.id, username: user.username, displayName: user.display_name };
     const world = inside
       ? buildIslandHouse({ owner, isOwn: true })
-      : buildIsland({ owner, biome: biomeOf(user.biome), isOwn: true });
+      : buildIsland({
+          owner,
+          biome: biomeOf(user.biome),
+          mailboxColor: mailboxColorOf(user.mailbox_color),
+          isOwn: true,
+        });
     return { world, title: "Home", visiting: null, ownerDisplayName: user.display_name };
   }
 
   if (!lookup?.info) return null;
-  const { owner, biome } = lookup.info;
+  const { owner, biome, mailbox_color } = lookup.info;
   const visitor = { id: owner.id, username: owner.username, displayName: owner.display_name };
   // The house follows the island: if the gate let you stand on the doorstep,
   // the door is simply there. No second permission to check.
   const world = inside
     ? buildIslandHouse({ owner: visitor, isOwn: false })
-    : buildIsland({ owner: visitor, biome: biomeOf(biome), isOwn: false });
+    : buildIsland({
+        owner: visitor,
+        biome: biomeOf(biome),
+        mailboxColor: mailboxColorOf(mailbox_color),
+        isOwn: false,
+      });
   return {
     world,
     title: inside ? `${owner.display_name}'s Place` : `${owner.display_name}'s Island`,

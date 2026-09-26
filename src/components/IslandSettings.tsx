@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { TINT_PRESETS, isTintPreset, type TintPreset } from "@/lib/game/terrain-tint";
+import { MAILBOX_COLORS, isMailboxColor, type MailboxColor } from "@/lib/game/mailbox-colors";
+import { worldAsset } from "@/lib/game/asset-url";
 import type { IslandVisibility } from "@/lib/types";
 
 const BIOME_LABELS: Record<TintPreset, { name: string; blurb: string }> = {
@@ -14,6 +16,16 @@ const BIOME_LABELS: Record<TintPreset, { name: string; blurb: string }> = {
   swamp: { name: "Swamp", blurb: "Olive and murky." },
   scorched: { name: "Scorched", blurb: "Dead grass and dry leaves." },
 };
+
+const MAILBOX_COLOR_LABELS: Record<MailboxColor, string> = {
+  slate: "Slate",
+  green: "Green",
+  blue: "Blue",
+};
+
+// Native mailbox art is 32x48; showing it at 2x keeps it crisp (imageRendering:
+// pixelated below) while giving the swatch enough size to read as a mailbox.
+const MAILBOX_SWATCH_SCALE = 2;
 
 const VISIBILITY_OPTIONS: ReadonlyArray<{ value: IslandVisibility; label: string }> = [
   { value: "anyone", label: "Anyone" },
@@ -53,6 +65,42 @@ function BiomeOption({
   );
 }
 
+/** One mailbox color swatch: the mailbox sprite itself (through the same
+ * worldAsset URL helper the world renderer uses) plus a text label, styled
+ * like BiomeOption above. */
+function MailboxColorOption({
+  color,
+  selected,
+  onSelect,
+}: {
+  color: MailboxColor;
+  selected: boolean;
+  onSelect: (color: MailboxColor) => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={() => onSelect(color)}
+      aria-pressed={selected}
+      className={`flex flex-col items-center gap-1.5 rounded-xl border p-3 transition-colors ${
+        selected
+          ? "border-accent-400 ring-1 ring-accent-400 bg-accent-50"
+          : "border-line hover:border-line-strong"
+      }`}
+    >
+      {/* eslint-disable-next-line @next/next/no-img-element -- pixel art sprite, not a Next-optimized photo */}
+      <img
+        src={worldAsset(`/world/objects/mailbox_${color}.png`)}
+        alt=""
+        width={32 * MAILBOX_SWATCH_SCALE}
+        height={48 * MAILBOX_SWATCH_SCALE}
+        style={{ imageRendering: "pixelated" }}
+      />
+      <span className="text-sm font-medium text-ink">{MAILBOX_COLOR_LABELS[color]}</span>
+    </button>
+  );
+}
+
 // The Account tab's "Your island" section: the biome tint and who may visit,
 // both stored on the user row and read back by /world when it builds the
 // island (its own component per CLAUDE.md's ~60-line guidance — AccountSettings
@@ -61,6 +109,9 @@ export default function IslandSettings() {
   const { user, refresh } = useAuth();
   const [biome, setBiome] = useState<TintPreset>(() =>
     user && isTintPreset(user.biome) ? user.biome : "forest",
+  );
+  const [mailboxColor, setMailboxColor] = useState<MailboxColor>(() =>
+    user && isMailboxColor(user.mailbox_color) ? user.mailbox_color : "slate",
   );
   const [visibility, setVisibility] = useState<IslandVisibility>(() =>
     user && isIslandVisibility(user.island_visibility) ? user.island_visibility : "friends",
@@ -79,7 +130,11 @@ export default function IslandSettings() {
       await apiFetch("/api/auth/account", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ biome, island_visibility: visibility }),
+        body: JSON.stringify({
+          biome,
+          mailbox_color: mailboxColor,
+          island_visibility: visibility,
+        }),
       });
       setSuccess("Island updated.");
       await refresh();
@@ -94,7 +149,7 @@ export default function IslandSettings() {
     <div className="py-2">
       <p className="text-sm font-medium text-ink-secondary">Your island</p>
       <p className="text-sm text-ink-faint">
-        The biome and who may visit your floating My Place island
+        The biome, mailbox color, and who may visit your floating My Place island
       </p>
 
       <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
@@ -106,6 +161,26 @@ export default function IslandSettings() {
             onSelect={setBiome}
           />
         ))}
+      </div>
+
+      <div className="mt-4">
+        <p id="mailbox-color-label" className="text-sm font-medium text-ink-secondary">
+          Mailbox color
+        </p>
+        <div
+          role="group"
+          aria-labelledby="mailbox-color-label"
+          className="mt-1.5 grid grid-cols-3 gap-2 sm:max-w-xs"
+        >
+          {MAILBOX_COLORS.map((color) => (
+            <MailboxColorOption
+              key={color}
+              color={color}
+              selected={mailboxColor === color}
+              onSelect={setMailboxColor}
+            />
+          ))}
+        </div>
       </div>
 
       <div className="mt-4">

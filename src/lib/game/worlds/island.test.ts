@@ -10,6 +10,7 @@ import { parseIsoWorld } from "../world-model";
 import { buildSolidGrid, isSolidAt, type SolidGrid } from "../iso-collision";
 import { INTERACT_TILES } from "../iso-engine";
 import { TINT_PRESETS } from "../terrain-tint";
+import { MAILBOX_COLORS } from "../mailbox-colors";
 
 const OWNER = { id: "8f2c1a2e-1b7d-4a8e-9c3f-000000000001", username: "luke", displayName: "Luke" };
 
@@ -27,7 +28,7 @@ function reachable(grid: SolidGrid, startCol: number, startRow: number): Set<str
 }
 
 describe("buildIsland", () => {
-  const home = buildIsland({ owner: OWNER, biome: "autumn", isOwn: true });
+  const home = buildIsland({ owner: OWNER, biome: "autumn", mailboxColor: "green", isOwn: true });
 
   it("is a valid world document carrying the owner's biome and id", () => {
     expect(() => parseIsoWorld(home)).not.toThrow();
@@ -36,11 +37,17 @@ describe("buildIsland", () => {
   });
 
   it("is deterministic per owner and different between owners", () => {
-    const again = buildIsland({ owner: OWNER, biome: "autumn", isOwn: true });
+    const again = buildIsland({
+      owner: OWNER,
+      biome: "autumn",
+      mailboxColor: "green",
+      isOwn: true,
+    });
     expect(again).toEqual(home);
     const other = buildIsland({
       owner: { ...OWNER, id: "8f2c1a2e-1b7d-4a8e-9c3f-000000000002" },
       biome: "autumn",
+      mailboxColor: "green",
       isOwn: true,
     });
     expect(other.terrain).not.toEqual(home.terrain);
@@ -61,7 +68,7 @@ describe("buildIsland", () => {
   });
 
   it("names a visitor's view after the owner and offers them Home", () => {
-    const visit = buildIsland({ owner: OWNER, biome: "snow", isOwn: false });
+    const visit = buildIsland({ owner: OWNER, biome: "snow", mailboxColor: "green", isOwn: false });
     expect(visit.doors[0].label).toBe("Luke's Place");
     expect(visit.regions[0].label).toBe("Luke's Island");
     expect(visit.links.map((l) => l.place)).toEqual(["capital", "me"]);
@@ -73,6 +80,7 @@ describe("buildIsland", () => {
     expect(mailbox.kind).toBe("mailbox");
     expect(mailbox.owner).toBe(OWNER.username);
     expect(mailbox.label).toBe("Check mailbox");
+    expect(mailbox.color).toBe("green");
     expect(home.terrain[mailbox.row][mailbox.col]).toBe("grass");
 
     const door = home.doors[0];
@@ -86,9 +94,15 @@ describe("buildIsland", () => {
   });
 
   it("labels the mailbox for a visitor instead of the owner", () => {
-    const visit = buildIsland({ owner: OWNER, biome: "autumn", isOwn: false });
+    const visit = buildIsland({
+      owner: OWNER,
+      biome: "autumn",
+      mailboxColor: "blue",
+      isOwn: false,
+    });
     expect(visit.fixtures![0].label).toBe("Leave a letter");
     expect(visit.fixtures![0].owner).toBe(OWNER.username);
+    expect(visit.fixtures![0].color).toBe("blue");
   });
 
   it("floats: every border tile is void and the void is solid", () => {
@@ -108,6 +122,7 @@ describe("buildIsland", () => {
       const world = buildIsland({
         owner: { ...OWNER, id: `owner-${n}-${Math.imul(n, 2654435761) >>> 0}` },
         biome,
+        mailboxColor: MAILBOX_COLORS[n % MAILBOX_COLORS.length],
         isOwn: true,
       });
       const grid = buildSolidGrid(world);

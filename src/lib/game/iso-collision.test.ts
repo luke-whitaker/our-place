@@ -71,7 +71,15 @@ describe("buildSolidGrid", () => {
   it("blocks a fixture's own tile like any other standing body", () => {
     const world = grassWorld(4, 4);
     world.fixtures = [
-      { id: "mailbox", kind: "mailbox", col: 2, row: 1, label: "Check mailbox", owner: "x" },
+      {
+        id: "mailbox",
+        kind: "mailbox",
+        col: 2,
+        row: 1,
+        label: "Check mailbox",
+        owner: "x",
+        color: "slate",
+      },
     ];
     const grid = buildSolidGrid(world);
     expect(grid[1][2]).toBe(true);
@@ -81,7 +89,15 @@ describe("buildSolidGrid", () => {
   it("does not throw when a fixture sits out of bounds", () => {
     const world = grassWorld(3, 3);
     world.fixtures = [
-      { id: "mailbox", kind: "mailbox", col: 99, row: 99, label: "Check mailbox", owner: "x" },
+      {
+        id: "mailbox",
+        kind: "mailbox",
+        col: 99,
+        row: 99,
+        label: "Check mailbox",
+        owner: "x",
+        color: "slate",
+      },
     ];
     expect(() => buildSolidGrid(world)).not.toThrow();
   });

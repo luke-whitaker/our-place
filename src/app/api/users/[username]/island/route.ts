@@ -24,6 +24,7 @@ export async function GET(
         display_name: gate.owner.displayName,
       },
       biome: gate.owner.biome,
+      mailbox_color: gate.owner.mailboxColor,
     });
   } catch (error) {
     console.error("Island visit error:", error);

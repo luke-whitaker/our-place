@@ -46,7 +46,12 @@ function readLabWorld(): IsoWorld {
       return { ...CAPITAL, ...tintOverride };
     case "island":
       return {
-        ...buildIsland({ owner: SAMPLE_ISLAND_OWNER, biome: "forest", isOwn: true }),
+        ...buildIsland({
+          owner: SAMPLE_ISLAND_OWNER,
+          biome: "forest",
+          mailboxColor: "slate",
+          isOwn: true,
+        }),
         ...tintOverride,
       };
     default:

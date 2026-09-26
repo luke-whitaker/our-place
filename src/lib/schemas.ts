@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { TINT_PRESETS } from "@/lib/game/terrain-tint";
+import { MAILBOX_COLORS } from "@/lib/game/mailbox-colors";
 import { NOTE_MAX_CHARS } from "@/lib/items";
 import type { IslandVisibility } from "@/lib/types";
 
@@ -60,6 +61,7 @@ export const updateAccountSchema = z
     phone: z.string().max(30, "Phone number is too long.").optional(),
     theme: z.enum(["auto", "platinum", "terminal", "dusk"]).optional(),
     biome: z.enum(TINT_PRESETS).optional(),
+    mailbox_color: z.enum(MAILBOX_COLORS).optional(),
     island_visibility: z.enum(ISLAND_VISIBILITIES).optional(),
     current_password: z.string().optional(),
     new_password: z.string().min(8, "Password must be at least 8 characters.").optional(),
@@ -71,6 +73,7 @@ export const updateAccountSchema = z
       d.phone !== undefined ||
       d.theme ||
       d.biome ||
+      d.mailbox_color ||
       d.island_visibility ||
       d.new_password,
     { message: "Nothing to update." },

@@ -45,6 +45,7 @@ export interface IslandOwnerRow {
   username: string;
   displayName: string;
   biome: string;
+  mailboxColor: string;
   islandVisibility: string;
 }
 
@@ -61,7 +62,14 @@ export async function requireIslandAccess(
 ): Promise<{ owner: IslandOwnerRow; error?: never } | { owner?: never; error: Response }> {
   const owner = await prisma.user.findFirst({
     where: { username: { equals: username.toLowerCase(), mode: "insensitive" } },
-    select: { id: true, username: true, displayName: true, biome: true, islandVisibility: true },
+    select: {
+      id: true,
+      username: true,
+      displayName: true,
+      biome: true,
+      mailboxColor: true,
+      islandVisibility: true,
+    },
   });
   if (!owner) {
     return { error: NextResponse.json({ error: "This person doesn't exist." }, { status: 404 }) };

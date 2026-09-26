@@ -8,48 +8,51 @@ datasource db {
 }
 
 model User {
-  id                      String    @id @default(uuid())
-  username                String    @unique
-  displayName             String    @map("display_name")
-  email                   String    @unique
-  phone                   String?   @unique
-  passwordHash            String    @map("password_hash")
-  bio                     String    @default("")
-  avatarColor             String    @default("#6366f1") @map("avatar_color")
-  avatar                  Json?
-  theme                   String    @default("auto")
+  id                 String    @id @default(uuid())
+  username           String    @unique
+  displayName        String    @map("display_name")
+  email              String    @unique
+  phone              String?   @unique
+  passwordHash       String    @map("password_hash")
+  bio                String    @default("")
+  avatarColor        String    @default("#6366f1") @map("avatar_color")
+  avatar             Json?
+  theme              String    @default("auto")
   // The member's floating My Place island: its biome (a terrain-tint preset)
   // and who may visit it ("anyone" | "friends" | "nobody"). Friends-only by
   // default, matching My Place posts in the forum.
-  biome                   String    @default("forest")
-  islandVisibility        String    @default("friends") @map("island_visibility")
-  role                    String    @default("user")
-  isVerified              Boolean   @default(true) @map("is_verified")
-  resetCode               String?   @map("reset_code")
-  resetCodeExpiresAt      DateTime? @map("reset_code_expires_at")
-  passwordChangedAt       DateTime? @map("password_changed_at")
-  invitedById             String?   @map("invited_by_id")
-  createdAt               DateTime  @default(now()) @map("created_at")
-  updatedAt               DateTime  @default(now()) @updatedAt @map("updated_at")
+  biome              String    @default("forest")
+  islandVisibility   String    @default("friends") @map("island_visibility")
+  // The island mailbox's paint color, chosen independently of the biome so a
+  // member can tell their mailbox apart after a biome change.
+  mailboxColor       String    @default("slate") @map("mailbox_color")
+  role               String    @default("user")
+  isVerified         Boolean   @default(true) @map("is_verified")
+  resetCode          String?   @map("reset_code")
+  resetCodeExpiresAt DateTime? @map("reset_code_expires_at")
+  passwordChangedAt  DateTime? @map("password_changed_at")
+  invitedById        String?   @map("invited_by_id")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @default(now()) @updatedAt @map("updated_at")
 
   // Web of trust: who vouched for this account. Null only for trust roots
   // (the founding admin, the seed system user) — every invited member has one.
   inviter  User?  @relation("WebOfTrust", fields: [invitedById], references: [id], onDelete: SetNull)
   invitees User[] @relation("WebOfTrust")
 
-  createdCommunities Community[]       @relation("CommunityCreator")
-  memberships        CommunityMember[]
-  posts              Post[]            @relation("PostAuthor")
-  comments           Comment[]
-  reactions          Reaction[]
-  createdEvents      Event[]           @relation("EventCreator")
-  eventRsvps         EventRsvp[]
-  sentFriendships    Friendship[]      @relation("FriendshipSender")
-  receivedFriendships Friendship[]     @relation("FriendshipReceiver")
-  items              Item[]            @relation("ItemOwner")
-  sentItems          Item[]            @relation("ItemSender")
-  notebookPages      NotebookPage[]
-  npcGifts           NpcGift[]
+  createdCommunities  Community[]       @relation("CommunityCreator")
+  memberships         CommunityMember[]
+  posts               Post[]            @relation("PostAuthor")
+  comments            Comment[]
+  reactions           Reaction[]
+  createdEvents       Event[]           @relation("EventCreator")
+  eventRsvps          EventRsvp[]
+  sentFriendships     Friendship[]      @relation("FriendshipSender")
+  receivedFriendships Friendship[]      @relation("FriendshipReceiver")
+  items               Item[]            @relation("ItemOwner")
+  sentItems           Item[]            @relation("ItemSender")
+  notebookPages       NotebookPage[]
+  npcGifts            NpcGift[]
 
   @@index([email])
   @@index([username])
@@ -58,23 +61,23 @@ model User {
 }
 
 model Community {
-  id          String  @id @default(uuid())
-  name        String  @unique
-  slug        String  @unique
+  id          String   @id @default(uuid())
+  name        String   @unique
+  slug        String   @unique
   description String
   category    String
-  icon        String  @default("\uD83C\uDF10")
-  bannerColor String  @default("#6366f1") @map("banner_color")
-  guidelines  String  @default("")
-  creatorId   String  @map("creator_id")
-  isOfficial  Boolean @default(false) @map("is_official")
-  memberCount Int     @default(1) @map("member_count")
+  icon        String   @default("\uD83C\uDF10")
+  bannerColor String   @default("#6366f1") @map("banner_color")
+  guidelines  String   @default("")
+  creatorId   String   @map("creator_id")
+  isOfficial  Boolean  @default(false) @map("is_official")
+  memberCount Int      @default(1) @map("member_count")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  creator  User              @relation("CommunityCreator", fields: [creatorId], references: [id])
-  members  CommunityMember[]
-  posts    Post[]
-  events   Event[]
+  creator User              @relation("CommunityCreator", fields: [creatorId], references: [id])
+  members CommunityMember[]
+  posts   Post[]
+  events  Event[]
 
   @@map("communities")
 }
@@ -116,8 +119,8 @@ model Post {
   createdAt       DateTime @default(now()) @map("created_at")
   updatedAt       DateTime @default(now()) @updatedAt @map("updated_at")
 
-  author    User         @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
-  community Community?   @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  author    User        @relation("PostAuthor", fields: [authorId], references: [id], onDelete: Cascade)
+  community Community?  @relation(fields: [communityId], references: [id], onDelete: Cascade)
   media     PostMedia[]
   comments  Comment[]
   reactions Reaction[]
@@ -207,8 +210,8 @@ model Event {
   creatorId    String    @map("creator_id")
   createdAt    DateTime  @default(now()) @map("created_at")
 
-  community Community? @relation(fields: [communityId], references: [id], onDelete: Cascade)
-  creator   User       @relation("EventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
+  community Community?  @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  creator   User        @relation("EventCreator", fields: [creatorId], references: [id], onDelete: Cascade)
   rsvps     EventRsvp[]
 
   @@index([eventDate])

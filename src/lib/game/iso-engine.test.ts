@@ -249,6 +249,7 @@ describe("nearestTarget", () => {
       row: 2,
       label: "Check mailbox",
       owner: "luke",
+      color: "slate",
     };
     expect(nearestTarget({ door, pc, mushroom: null, npc: null, fixture }, 6, 2)).toEqual({
       door: null,
@@ -267,6 +268,7 @@ describe("nearestTarget", () => {
       col: 3,
       row: 1,
       label: "Check mailbox",
+      color: "slate",
       owner: "luke",
     };
     const result = nearestTarget(
@@ -436,6 +438,7 @@ describe("fixture proximity and using it", () => {
     row: 5,
     label: "Check mailbox",
     owner: "luke",
+    color: "slate",
   };
   const world: IsoWorld = { ...LAB_TOWN, fixtures: [fixture] };
 
@@ -480,19 +483,20 @@ describe("fixtureSprite", () => {
     row: 5,
     label: "Check mailbox",
     owner: "luke",
+    color: "green",
   };
 
-  it("follows the mailbox flag state", () => {
+  it("follows the mailbox's color and flag state", () => {
     const state = createIsoState(LAB_TOWN);
     expect(state.mailboxFlagUp).toBe(false);
-    expect(fixtureSprite(fixture, state)).toBe("mailbox");
+    expect(fixtureSprite(fixture, state)).toBe("mailbox_green");
 
     setMailboxFlag(state, true);
     expect(state.mailboxFlagUp).toBe(true);
-    expect(fixtureSprite(fixture, state)).toBe("mailbox_flag");
+    expect(fixtureSprite(fixture, state)).toBe("mailbox_green_flag");
 
     setMailboxFlag(state, false);
-    expect(fixtureSprite(fixture, state)).toBe("mailbox");
+    expect(fixtureSprite(fixture, state)).toBe("mailbox_green");
   });
 });
 

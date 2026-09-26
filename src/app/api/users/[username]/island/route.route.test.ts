@@ -22,8 +22,16 @@ async function visit(username: string) {
   return { status: res.status, body: await res.json() };
 }
 
-async function setIsland(userId: string, islandVisibility: string, biome = "autumn") {
-  await prisma.user.update({ where: { id: userId }, data: { islandVisibility, biome } });
+async function setIsland(
+  userId: string,
+  islandVisibility: string,
+  biome = "autumn",
+  mailboxColor = "slate",
+) {
+  await prisma.user.update({
+    where: { id: userId },
+    data: { islandVisibility, biome, mailboxColor },
+  });
 }
 
 async function befriend(userId: string, friendId: string) {
@@ -42,9 +50,9 @@ describe("GET /api/users/[username]/island", () => {
     expect(body.error).toBe("This person doesn't exist.");
   });
 
-  it("describes an open island to anyone, with the owner's biome", async () => {
+  it("describes an open island to anyone, with the owner's biome and mailbox color", async () => {
     const owner = await createTestUser({ displayName: "Ada" });
-    await setIsland(owner.userId, "anyone", "snow");
+    await setIsland(owner.userId, "anyone", "snow", "green");
     viewAs(await createTestUser());
 
     const { status, body } = await visit(owner.username.toUpperCase());
@@ -52,6 +60,7 @@ describe("GET /api/users/[username]/island", () => {
     expect(body).toEqual({
       owner: { id: owner.userId, username: owner.username, display_name: "Ada" },
       biome: "snow",
+      mailbox_color: "green",
     });
   });
 

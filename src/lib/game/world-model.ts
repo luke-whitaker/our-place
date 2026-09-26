@@ -13,6 +13,7 @@
 import { z } from "zod";
 import { isNpcId } from "@/lib/npcs";
 import { TINT_PRESETS, type TintPreset, type TintTarget } from "./terrain-tint";
+import { MAILBOX_COLORS } from "./mailbox-colors";
 import type { Door, MushroomWarp, Pc, Region, WorldFixture, WorldLink, WorldNpc } from "./types";
 
 // ── Terrain ──
@@ -256,11 +257,16 @@ export const OBJECT_CATALOG: Record<string, ObjectDef> = {
   },
 
   // ── Fixtures (drawn for Our Place; see assets/world/README.md) ──
-  // The mailbox's two states: flag down (no mail) and flag up (mail
-  // waiting). Both load up front (world-assets.ts) so toggling the flag
+  // Six entries: one member-chosen paint color (see mailbox-colors.ts) times
+  // the mailbox's two flag states (down = no mail, up = mail waiting). Both
+  // states for a color load up front (world-assets.ts) so toggling the flag
   // never waits on a fetch.
-  mailbox: townProp("mailbox"),
-  mailbox_flag: townProp("mailbox_flag"),
+  mailbox_slate: townProp("mailbox_slate"),
+  mailbox_slate_flag: townProp("mailbox_slate_flag"),
+  mailbox_green: townProp("mailbox_green"),
+  mailbox_green_flag: townProp("mailbox_green_flag"),
+  mailbox_blue: townProp("mailbox_blue"),
+  mailbox_blue_flag: townProp("mailbox_blue_flag"),
 };
 
 // ── World ──
@@ -347,6 +353,7 @@ const fixtureSchema = z.object({
   row: z.number().int(),
   label: z.string(),
   owner: z.string(),
+  color: z.enum(MAILBOX_COLORS),
 });
 
 const mushroomSchema = z.object({

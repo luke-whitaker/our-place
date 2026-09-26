@@ -13,6 +13,7 @@
 
 import type { IsoWorld, TerrainKind } from "../world-model";
 import type { TintPreset } from "../terrain-tint";
+import type { MailboxColor } from "../mailbox-colors";
 import { createRng, type Rng } from "../prng";
 import type { Door, MushroomWarp, Region, WorldFixture, WorldLink } from "../types";
 import { EXIT_DOOR_ID } from "./interior";
@@ -26,6 +27,8 @@ export interface IslandOwner {
 export interface IslandOptions {
   owner: IslandOwner;
   biome: TintPreset;
+  /** The mailbox's paint color, the owner's pick like the biome. */
+  mailboxColor: MailboxColor;
   /** Whether the viewer owns this island: labels and links differ for a visitor. */
   isOwn: boolean;
 }
@@ -102,7 +105,7 @@ function buildTerrain(rng: Rng): TerrainKind[][] {
   return terrain;
 }
 
-export function buildIsland({ owner, biome, isOwn }: IslandOptions): IsoWorld {
+export function buildIsland({ owner, biome, mailboxColor, isOwn }: IslandOptions): IsoWorld {
   const rng = createRng(owner.id);
   const possessive = `${owner.displayName}'s`;
 
@@ -138,6 +141,7 @@ export function buildIsland({ owner, biome, isOwn }: IslandOptions): IsoWorld {
       ...MAILBOX,
       label: isOwn ? "Check mailbox" : "Leave a letter",
       owner: owner.username,
+      color: mailboxColor,
     },
   ];
   const regions: Region[] = [

@@ -97,7 +97,12 @@ describe("buildIslandHouse", () => {
 
   describe("the island round trip", () => {
     it("warps from the island door into the house, and back to the island door, for the owner", () => {
-      const island = buildIsland({ owner: OWNER, biome: "forest", isOwn: true });
+      const island = buildIsland({
+        owner: OWNER,
+        biome: "forest",
+        mailboxColor: "slate",
+        isOwn: true,
+      });
       expect(island.doors[0].warpTo).toBe(housePlace("me"));
       expect(island.doors[0].spawnAt).toBe(EXIT_DOOR_ID);
 
@@ -108,7 +113,12 @@ describe("buildIslandHouse", () => {
     });
 
     it("does the same for a visitor, using the owner's username", () => {
-      const island = buildIsland({ owner: OWNER, biome: "forest", isOwn: false });
+      const island = buildIsland({
+        owner: OWNER,
+        biome: "forest",
+        mailboxColor: "slate",
+        isOwn: false,
+      });
       expect(island.doors[0].warpTo).toBe(housePlace(OWNER.username));
       expect(island.doors[0].spawnAt).toBe(EXIT_DOOR_ID);
     });

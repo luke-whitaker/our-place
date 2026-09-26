@@ -544,9 +544,12 @@ export function showToast(state: IsoState, text: string): void {
  * so it's unit-testable without a canvas. The kind union has only "mailbox"
  * today: any other kind falls back to its own catalog key, and a future
  * fixture with its own runtime states (the desk, later) would add a branch
- * here rather than a special case elsewhere. */
+ * here rather than a special case elsewhere. A mailbox's sprite also carries
+ * its member-chosen color (mailbox-colors.ts), independent of the flag state. */
 export function fixtureSprite(fixture: WorldFixture, state: IsoState): string {
-  if (fixture.kind === "mailbox" && state.mailboxFlagUp) return "mailbox_flag";
+  if (fixture.kind === "mailbox") {
+    return state.mailboxFlagUp ? `mailbox_${fixture.color}_flag` : `mailbox_${fixture.color}`;
+  }
   return fixture.kind;
 }
 

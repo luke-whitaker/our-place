@@ -31,6 +31,7 @@ export async function PATCH(request: NextRequest) {
       phone,
       theme,
       biome,
+      mailbox_color,
       island_visibility,
       current_password,
       new_password,
@@ -50,6 +51,7 @@ export async function PATCH(request: NextRequest) {
       phone?: string | null;
       theme?: string;
       biome?: string;
+      mailboxColor?: string;
       islandVisibility?: string;
       passwordHash?: string;
       passwordChangedAt?: Date;
@@ -65,6 +67,10 @@ export async function PATCH(request: NextRequest) {
 
     if (biome) {
       data.biome = biome;
+    }
+
+    if (mailbox_color) {
+      data.mailboxColor = mailbox_color;
     }
 
     if (island_visibility) {

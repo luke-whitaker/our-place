@@ -8,6 +8,7 @@ import {
 } from "./world-model";
 import { LAB_TOWN } from "./worlds/lab-town";
 import { CAPITAL } from "./worlds/capital";
+import { MAILBOX_COLORS } from "./mailbox-colors";
 
 describe("terrain", () => {
   it("exposes the ground kinds and marks only water and void solid", () => {
@@ -40,11 +41,13 @@ describe("OBJECT_CATALOG", () => {
     expect(OBJECT_CATALOG.cottage_blue.tint).toBe("building");
   });
 
-  it("defines both mailbox states as solid, building-tinted, single-tile props", () => {
-    for (const kind of ["mailbox", "mailbox_flag"]) {
-      expect(OBJECT_CATALOG[kind].solid).toBe(true);
-      expect(OBJECT_CATALOG[kind].tint).toBe("building");
-      expect(OBJECT_CATALOG[kind].footprint).toEqual([{ dc: 0, dr: 0 }]);
+  it("defines both flag states of every mailbox color as solid, building-tinted, single-tile props", () => {
+    for (const color of MAILBOX_COLORS) {
+      for (const kind of [`mailbox_${color}`, `mailbox_${color}_flag`]) {
+        expect(OBJECT_CATALOG[kind].solid).toBe(true);
+        expect(OBJECT_CATALOG[kind].tint).toBe("building");
+        expect(OBJECT_CATALOG[kind].footprint).toEqual([{ dc: 0, dr: 0 }]);
+      }
     }
   });
 });
@@ -145,7 +148,15 @@ describe("parseIsoWorld", () => {
       const world = {
         ...LAB_TOWN,
         fixtures: [
-          { id: "mailbox", kind: "mailbox", col: 5, row: 5, label: "Check mailbox", owner: "x" },
+          {
+            id: "mailbox",
+            kind: "mailbox",
+            col: 5,
+            row: 5,
+            label: "Check mailbox",
+            owner: "x",
+            color: "slate",
+          },
         ],
         npcs: [{ id: "gnomie", col: 5, row: 5, facing: "S" }],
       };
@@ -158,7 +169,15 @@ describe("parseIsoWorld", () => {
       const world = {
         ...LAB_TOWN,
         fixtures: [
-          { id: "mailbox", kind: "mailbox", col: 5, row: 5, label: "Check mailbox", owner: "x" },
+          {
+            id: "mailbox",
+            kind: "mailbox",
+            col: 5,
+            row: 5,
+            label: "Check mailbox",
+            owner: "x",
+            color: "slate",
+          },
         ],
       };
       expect(() => parseIsoWorld(world)).not.toThrow();
@@ -184,6 +203,7 @@ describe("parseIsoWorld", () => {
             row: 5,
             label: "Check mailbox",
             owner: "x",
+            color: "slate",
           },
         ],
       };
@@ -202,6 +222,7 @@ describe("parseIsoWorld", () => {
             row: door.row,
             label: "Check mailbox",
             owner: "x",
+            color: "slate",
           },
         ],
       };
@@ -216,7 +237,15 @@ describe("parseIsoWorld", () => {
         ...LAB_TOWN,
         npcs: [{ id: "gnomie", col: 5, row: 5, facing: "S" }],
         fixtures: [
-          { id: "mailbox", kind: "mailbox", col: 5, row: 5, label: "Check mailbox", owner: "x" },
+          {
+            id: "mailbox",
+            kind: "mailbox",
+            col: 5,
+            row: 5,
+            label: "Check mailbox",
+            owner: "x",
+            color: "slate",
+          },
         ],
       };
       expect(() => parseIsoWorld(world)).toThrow(/door, PC, shrine/);
@@ -227,7 +256,15 @@ describe("parseIsoWorld", () => {
         ...LAB_TOWN,
         terrain: LAB_TOWN.terrain.map((row) => row.slice()),
         fixtures: [
-          { id: "mailbox", kind: "mailbox", col: 1, row: 1, label: "Check mailbox", owner: "x" },
+          {
+            id: "mailbox",
+            kind: "mailbox",
+            col: 1,
+            row: 1,
+            label: "Check mailbox",
+            owner: "x",
+            color: "slate",
+          },
         ],
       };
       onWater.terrain[1][1] = "water";
