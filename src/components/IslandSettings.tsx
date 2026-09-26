@@ -91,6 +91,11 @@ function MailboxColorOption({
       {/* eslint-disable-next-line @next/next/no-img-element -- pixel art sprite, not a Next-optimized photo */}
       <img
         src={worldAsset(`/world/objects/mailbox_${color}.png`)}
+        // The world loads this same URL in CORS mode to read its pixels. A
+        // plain <img> would cache a copy without R2's CORS headers, and Chrome
+        // then serves that copy to the world's request, which fails: after a
+        // visit here, the member's island stopped loading (v0.12.0).
+        crossOrigin="anonymous"
         alt=""
         width={32 * MAILBOX_SWATCH_SCALE}
         height={48 * MAILBOX_SWATCH_SCALE}

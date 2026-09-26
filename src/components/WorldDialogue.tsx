@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { ITEM_CATALOG } from "@/lib/items";
+import { worldAsset } from "@/lib/game/asset-url";
 import { PAL } from "@/lib/game/constants";
 import { NPC_DIALOGUE, dialogueLinesFor, type DialogueLine } from "@/lib/game/npc-dialogue";
 import type { NpcId } from "@/lib/npcs";
@@ -145,7 +146,8 @@ export default function WorldDialogue({ npcId, signedIn, onClose }: WorldDialogu
           {current.icon && (
             // eslint-disable-next-line @next/next/no-img-element -- a tiny world-art icon, not a Next-optimized asset
             <img
-              src={current.icon}
+              src={worldAsset(current.icon)}
+              crossOrigin="anonymous"
               alt=""
               width={32}
               height={32}

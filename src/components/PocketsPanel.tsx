@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { ITEM_CATALOG, POCKET_SLOTS } from "@/lib/items";
 import { PAL } from "@/lib/game/constants";
+import { worldAsset } from "@/lib/game/asset-url";
 import OverlayPanel from "@/components/OverlayPanel";
 import InlineConfirm from "@/components/InlineConfirm";
 import OverlayActionButton from "@/components/OverlayActionButton";
@@ -90,7 +91,8 @@ export default function PocketsPanel({ onClose, onOpenNotebook, onReadNote }: Po
                 {catalog && (
                   // eslint-disable-next-line @next/next/no-img-element -- a tiny world-art icon, not a Next-optimized asset
                   <img
-                    src={catalog.icon}
+                    src={worldAsset(catalog.icon)}
+                    crossOrigin="anonymous"
                     alt=""
                     width={32}
                     height={32}

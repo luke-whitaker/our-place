@@ -75,7 +75,8 @@ Since Ports v2 a door with `warpTo` opens a world instead of porting to a page, 
 
 ## Art and licensing
 
-- Runtime art is gitignored under `public/world/{characters,tiles,objects}/`. Prod serves it from R2 via `NEXT_PUBLIC_WORLD_ASSET_BASE`. After adding art, run `npm run world:upload` before deploying, or prod 404s.
+- Runtime art is gitignored under `public/world/{characters,tiles,objects,items}/`. Prod serves it from R2 via `NEXT_PUBLIC_WORLD_ASSET_BASE`. After adding art, run `npm run world:upload` before deploying, or prod 404s.
+- **Every `<img>` of world art takes `src={worldAsset(path)}` and `crossOrigin="anonymous"`.** Without `worldAsset` production requests art from the app's own origin and 404s (the item icons did, v0.11.0 to v0.12.0). Without `crossOrigin`, R2 answers without CORS headers, the browser caches that copy, and Chrome later serves it to the engine's CORS load of the same URL, which fails and takes the whole world down (the mailbox color picker did this to islands in v0.12.0). R2 only allows the production origin, so localhost can't reproduce either bug; reason it through, or test the mechanism with a page script on the production origin.
 - Purchased packs (`assets/Evergrow_Forest_v0.5/` and the BossNelNel sheets) are never committed: their licenses forbid redistribution. See `CREDITS.md` and `assets/world/README.md`.
 - Buildings are the six Evergrow Town_House sprites at 0.5 scale. Keep scales to powers of one half for crisp nearest-neighbour drawing.
 - The pack has no interiors, computers, or seasonal variants, so the interior ground sheet, the wall runs, and the computer were drawn for Our Place (see `CREDITS.md`). Room furniture comes from the pack's Town_Assets set, which the town outside had not used.

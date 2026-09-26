@@ -27,6 +27,8 @@ export const LOCATION_SLOTS: Record<ItemLocation, number> = {
   mailbox: MAILBOX_SLOTS,
 };
 
+/** `icon` is a root-relative world-art path: render it through `worldAsset()`,
+ * or production asks the app's own origin for art that only lives on R2. */
 export const ITEM_CATALOG: Record<
   ItemKind,
   { name: string; icon: string; discardable: boolean; mailable: boolean }
