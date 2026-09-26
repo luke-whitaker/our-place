@@ -69,9 +69,10 @@ An **isometric 2.5D** overworld you teleport into:
 - **Ports** — walk into a building's door and you are inside it; sit at the computer to log on to that community's forum view. Portal buttons drop you back at its doorstep
 - **Mushroom warp network** — discover shrines to unlock fast travel between them
 - **The Capital** — an authored starter town with a building (and a Ports door) for each community
-- **Interiors** — every community building has a room behind its door, and every island house one inside it, each furnished to suit the place
+- **Interiors** — every community building has a furnished room behind its door, and every island house an empty one inside it, for its owner to make their own
 - **PCs** — the terminal in each room: log on to that community's page, or travel PC to PC across the network
-- **Floating My Place islands** — Every member has an island generated from their account: a cottage you can walk into, a garden path, a shrine back to the Capital, and trees in the biome they chose. Members pick who may visit: anyone, friends, or no one.
+- **Floating My Place islands** — Every member has an island generated from their account: a cottage you can walk into, a garden path, a mailbox, a shrine back to the Capital, and the biome they chose. Islands start bare so each member can make theirs their own. Members pick who may visit: anyone, friends, or no one.
+- **Pockets, the Notebook, and mailboxes** — carry things in 10 pocket slots, write notes in a Notebook from Gnomie, and leave them in a friend's mailbox. The flag goes up when a mailbox has mail.
 - **The mycelium network** — Shrines link places: Home from any shrine in the Capital, the Capital from any island
 - **Avatar builder** — gender-neutral character customization on first login
 
@@ -250,12 +251,44 @@ Open [http://localhost:3000](http://localhost:3000).
 - [ ] Wilderness with tinted biomes and user-placed content sprites
 - [x] Ports v2 — building interiors with PC sprites
 - [x] The world on a phone — a canvas sized to the screen, a touch joystick, and an interaction prompt you can't miss
+- [x] Pockets, the Notebook, and mailboxes — items you carry, notes you write, and letters you leave for friends
+- [ ] A desk in every island house, to keep letters at home
+- [ ] Seeds and flowers, to grow things on your island
 - [ ] Player identity bound to world position (the name above the avatar is in)
 - [ ] Real-time multiplayer presence (the engine is built with the seams for it)
 
 ---
 
 ## Version History
+
+### v0.12.0 — Mailboxes, and Islands That Start Bare (September 2026)
+
+**Why:** The Notebook let you write, but nobody could receive what you wrote. A letter left at
+a friend's home is the most real-world thing the world can do, so every island now has a
+mailbox. And islands were decorated by a random generator rather than by the people who live
+there, so they start bare now, ready for members to fill.
+
+**What changed:**
+
+- **A mailbox on every island,** beside the garden path. Anyone allowed to visit your island
+  can walk up, press Enter (or A), and leave you a note from their pockets. The note moves to
+  you; it isn't copied.
+- **The flag goes up** whenever your mailbox holds mail, and anyone walking by can see it.
+  There are no notifications: you find out by going home.
+- **Reading your mail:** at your own mailbox, read a letter where it is, take it into your
+  pockets, or throw it away. Every letter says who left it and when, whatever the writer
+  signed. A mailbox holds 20 letters, twice your pockets, so emptying a full one takes at most
+  two trips.
+- **Visitors only leave mail.** Nobody but you can see what's inside your mailbox.
+- **Pick your mailbox's color,** slate, green, or blue, in Account settings beside your
+  biome. Visitors see the color you chose.
+- **Bare islands and houses:** islands no longer grow random trees, bushes, and rocks, and
+  houses no longer come furnished. Each island keeps its own coastline, cottage, shrine, and
+  mailbox, and each house keeps its computer. A desk comes next, then seeds and flowers to grow
+  your own.
+
+**What didn't change:** existing APIs. Items gain a location (pockets or mailbox) and a sender;
+the migration only adds columns.
 
 ### v0.11.0 — Pockets, Gnomes, and the Notebook (September 2026)
 

@@ -128,6 +128,17 @@ building.
 Interior partitions need no support: a run of `wall_col` or `wall_row` in
 `props` is already solid and already depth-sorted.
 
+### The mailbox — drawn for Our Place, one sprite per color
+
+`~/Desktop/pixel_art/tools/mailbox.py` writes `mailbox_<color>.png` (flag down)
+and `mailbox_<color>_flag.png` (flag up) for slate, green, and blue, each a
+32x48 cell anchored like the computer. It sweeps one arch-shaped front face
+back along the row axis, so the body is always a rectangle with a round top
+seen from the corner. Flag down means no flag at all, and the two files of a
+color differ only in the flag's pixels, so their anchors match and the
+mailbox never shifts when the flag goes up. Regenerate them straight into
+`public/world/objects/`, then run `npm run world:upload` before deploying.
+
 ## Authoring a town
 
 Towns are composed in code as `IsoWorld` documents under
