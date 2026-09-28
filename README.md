@@ -256,11 +256,32 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Add to Home Screen, with our own mushroom as the app icon
 - [ ] Seeds and flowers, to grow things on your island
 - [ ] Player identity bound to world position (the name above the avatar is in)
-- [ ] Real-time multiplayer presence (the engine is built with the seams for it)
+- [x] Real-time multiplayer presence, with emotes
 
 ---
 
 ## Version History
+
+### v0.14.0 — See Each Other in the World (September 2026)
+
+**Why:** The world was a place you walked through alone. Now members in the same place see
+each other, so running into a friend at the pond is something that can actually happen.
+
+**What changed:**
+
+- **Live presence.** Everyone in the same world or room shows up in their own avatar colors
+  and hair, with their name tag, walking smoothly rather than jumping. You walk through each
+  other, and nobody blocks a door.
+- **Your island stays yours.** Islands and houses follow your existing visitor setting: someone
+  who can't visit your island never sees who's on it. Logged-out visitors see no one.
+- **Six emotes:** heart, laugh, mushroom, wow, question, and sparkle, in a bubble over your head
+  for three seconds. Press 1 to 6 on a keyboard, or tap the emote button under full screen in
+  the world's top-right corner.
+- **No counts.** Nothing anywhere says how many members are in the world. You find out by going.
+
+**What didn't change:** existing APIs. Presence adds three routes (`/api/presence`,
+`/api/presence/emote`, and `/api/presence/stream`, a Server-Sent Events stream per world) and
+keeps who's where in memory on the one server, with no new services.
 
 ### v0.13.0 — A Desk at Home, and Our Place on Your Home Screen (September 2026)
 
