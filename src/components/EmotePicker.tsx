@@ -32,7 +32,9 @@ function EmoteIcon({ emote, scale = EMOTE_SCALE }: { emote: Emote; scale?: numbe
 
 /**
  * The emote button, under full screen in the world's top-right corner, and the
- * small picker it opens below it. The three corner buttons sit within one
+ * small picker it opens as a column below it: on a short landscape screen, two
+ * rows of three to the left of the button instead, above the touch controls (z-30) so the A button never
+ * covers it. The three corner buttons sit within one
  * thumb's reach on a phone (Luke's call). On a
  * keyboard, 1 to 6 do the same without opening it. The world page hides this
  * while a menu or overlay is open, which also closes the picker.
@@ -69,7 +71,7 @@ export default function EmotePicker({ onPick }: { onPick: (emote: Emote) => void
         <div
           role="menu"
           aria-label="Choose an emote"
-          className="absolute right-2 top-28 z-[6] flex gap-1 rounded-xl border border-white/25 bg-surface-inverse/90 p-1.5 shadow-lg"
+          className="absolute right-2 top-28 z-40 flex max-h-[calc(100%-8rem)] flex-col gap-1 overflow-y-auto rounded-xl [@media(max-height:500px)]:right-15 [@media(max-height:500px)]:top-15 [@media(max-height:500px)]:grid [@media(max-height:500px)]:max-h-none [@media(max-height:500px)]:grid-cols-3 border border-white/25 bg-surface-inverse/90 p-1.5 shadow-lg"
         >
           {EMOTES.map((emote, i) => (
             <button
