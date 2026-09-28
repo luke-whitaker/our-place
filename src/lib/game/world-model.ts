@@ -55,10 +55,26 @@ export interface ObjectDef {
   /** Draw-time scale (default 1) for art authored oversized for the 32×16 tile.
    * Keep to powers of ½ so nearest-neighbour downscaling stays crisp. */
   scale?: number;
+  /** The image pixel (before `scale`) that sits on the anchor tile's centre,
+   * for art the content scan can't place: a two-tile desk's opaque centre is
+   * nowhere near its anchor tile. Absent means bottom-centre of the opaque
+   * content, which is right for anything one tile across. */
+  anchor?: { x: number; y: number };
 }
 
 /** A one-tile footprint at the anchor — trees, rocks, bushes, the warp shrine. */
 const SINGLE: ReadonlyArray<FootprintCell> = [{ dc: 0, dr: 0 }];
+
+/** The house desk: its anchor tile and the tile west of it, along a north wall. */
+const DESK_FOOTPRINT: ReadonlyArray<FootprintCell> = [
+  { dc: -1, dr: 0 },
+  { dc: 0, dr: 0 },
+];
+
+/** The tiles a fixture covers, as offsets from its anchor tile. */
+export function fixtureFootprint(fixture: WorldFixture): ReadonlyArray<FootprintCell> {
+  return fixture.kind === "desk" ? DESK_FOOTPRINT : SINGLE;
+}
 
 /** The house base: a 3-wide × 2-deep block behind its front-anchor tile. Tunable
  * per building art once real town houses are placed. */
@@ -267,6 +283,15 @@ export const OBJECT_CATALOG: Record<string, ObjectDef> = {
   mailbox_green_flag: townProp("mailbox_green_flag"),
   mailbox_blue: townProp("mailbox_blue"),
   mailbox_blue_flag: townProp("mailbox_blue_flag"),
+  // The house desk, two tiles long against the north wall (see island-house.ts).
+  // Drawn by ~/Desktop/pixel_art/tools/desk.py, which prints its anchor pixel.
+  desk: {
+    src: "/world/objects/desk.png",
+    footprint: DESK_FOOTPRINT,
+    solid: true,
+    tint: "building",
+    anchor: { x: 36, y: 42 },
+  },
 };
 
 // ── World ──
@@ -345,16 +370,18 @@ const npcSchema = z.object({
   facing: dir8Schema,
 });
 
-/** The kind union has only "mailbox" today; a desk joins it later. */
-const fixtureSchema = z.object({
+const fixtureBase = {
   id: z.string(),
-  kind: z.enum(["mailbox"]),
   col: z.number().int(),
   row: z.number().int(),
   label: z.string(),
   owner: z.string(),
-  color: z.enum(MAILBOX_COLORS),
-});
+};
+
+const fixtureSchema = z.discriminatedUnion("kind", [
+  z.object({ ...fixtureBase, kind: z.literal("mailbox"), color: z.enum(MAILBOX_COLORS) }),
+  z.object({ ...fixtureBase, kind: z.literal("desk") }),
+]);
 
 const mushroomSchema = z.object({
   id: z.string(),
@@ -466,26 +493,26 @@ function validateNpcPlacement(world: IsoWorld, npc: WorldNpc, index: number): vo
 /** A fixture must stand in bounds, on ground the player can actually walk
  * onto, and clear of every other interaction point, mirroring
  * validateNpcPlacement — sharing a tile with a door, PC, shrine, or NPC would
- * make `nearestTarget` pick one arbitrarily. */
+ * make `nearestTarget` pick one arbitrarily. Every tile it covers is checked,
+ * so a two-tile desk can't hang its far end over a wall or the computer. */
 function validateFixturePlacement(world: IsoWorld, fixture: WorldFixture, index: number): void {
-  if (
-    fixture.col < 0 ||
-    fixture.col >= world.cols ||
-    fixture.row < 0 ||
-    fixture.row >= world.rows
-  ) {
-    throw new Error(`fixtures[${index}] "${fixture.id}" is out of bounds`);
-  }
-  if (isBlockedTile(world, fixture.col, fixture.row)) {
-    throw new Error(`fixtures[${index}] "${fixture.id}" is not on a walkable tile`);
-  }
-  const onOtherInteraction =
-    world.doors.some((d) => d.col === fixture.col && d.row === fixture.row) ||
-    (world.pcs ?? []).some((p) => p.col === fixture.col && p.row === fixture.row) ||
-    world.mushrooms.some((m) => m.col === fixture.col && m.row === fixture.row) ||
-    (world.npcs ?? []).some((n) => n.col === fixture.col && n.row === fixture.row);
-  if (onOtherInteraction) {
-    throw new Error(`fixtures[${index}] "${fixture.id}" sits on a door, PC, shrine, or NPC tile`);
+  for (const { dc, dr } of fixtureFootprint(fixture)) {
+    const col = fixture.col + dc;
+    const row = fixture.row + dr;
+    if (col < 0 || col >= world.cols || row < 0 || row >= world.rows) {
+      throw new Error(`fixtures[${index}] "${fixture.id}" is out of bounds`);
+    }
+    if (isBlockedTile(world, col, row)) {
+      throw new Error(`fixtures[${index}] "${fixture.id}" is not on a walkable tile`);
+    }
+    const onOtherInteraction =
+      world.doors.some((d) => d.col === col && d.row === row) ||
+      (world.pcs ?? []).some((p) => p.col === col && p.row === row) ||
+      world.mushrooms.some((m) => m.col === col && m.row === row) ||
+      (world.npcs ?? []).some((n) => n.col === col && n.row === row);
+    if (onOtherInteraction) {
+      throw new Error(`fixtures[${index}] "${fixture.id}" sits on a door, PC, shrine, or NPC tile`);
+    }
   }
 }
 

@@ -39,4 +39,5 @@ export type {
   NpcTalkResult,
   MailboxStatus,
   MailboxContents,
+  DeskContents,
 } from "./items";

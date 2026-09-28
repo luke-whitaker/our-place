@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildIslandHouse } from "./island-house";
+import { buildIslandHouse, HOUSE_DESK_ID } from "./island-house";
 import { buildIsland, housePlace, houseWorldId, islandWorldId, ISLAND_DOOR_ID } from "./island";
 import { EXIT_DOOR_ID } from "./interior";
 import { parseIsoWorld } from "../world-model";
@@ -87,6 +87,27 @@ describe("buildIslandHouse", () => {
       ];
       expect(pcAdjacent.some(([c, r]) => seen.has(`${c},${r}`))).toBe(true);
     }
+  });
+
+  it("has one desk against the north wall, owned by the house's owner, clear of the door", () => {
+    const desks = (home.fixtures ?? []).filter((f) => f.kind === "desk");
+    expect(desks).toHaveLength(1);
+    const desk = desks[0];
+    expect(desk).toMatchObject({ id: HOUSE_DESK_ID, owner: OWNER.username });
+    const wallRow = home.doors[0].row;
+    expect(desk.row).toBe(wallRow + 1);
+    const grid = buildSolidGrid(home);
+    expect(isSolidAt(grid, desk.col, desk.row)).toBe(true);
+    expect(isSolidAt(grid, desk.col - 1, desk.row)).toBe(true);
+    // The tile in front of the doorway stays open, so arrivals never land in it.
+    expect(isSolidAt(grid, home.doors[0].col, wallRow + 1)).toBe(false);
+    const seen = reachable(grid, home.spawn.col, home.spawn.row);
+    expect(seen.has(`${desk.col},${desk.row + 1}`)).toBe(true);
+  });
+
+  it("gives a visitor the same desk, still keyed to the owner", () => {
+    const visit = buildIslandHouse({ owner: OWNER, isOwn: false });
+    expect(visit.fixtures).toEqual(home.fixtures);
   });
 
   it("starts empty apart from its walls and the computer, for the member to fill", () => {

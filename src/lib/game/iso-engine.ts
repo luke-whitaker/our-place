@@ -33,6 +33,7 @@ import { FADE_SPEED, PAL } from "./constants";
 import type { Viewport } from "./viewport";
 import type { GameMode, Door, MushroomWarp, Pc, WorldFixture, WorldLink, WorldNpc } from "./types";
 import type { IsoWorld } from "./world-model";
+import { fixtureFootprint } from "./world-model";
 import type { InputManager } from "./input";
 
 // ── Tuning ──
@@ -225,9 +226,14 @@ function findNearbyNpc(world: IsoWorld, col: number, row: number): WorldNpc | nu
   return null;
 }
 
+/** In reach of any tile a fixture covers, so either end of the two-tile desk
+ * answers. */
 function findNearbyFixture(world: IsoWorld, col: number, row: number): WorldFixture | null {
   for (const fixture of world.fixtures ?? []) {
-    if (isNear(col, row, fixture.col, fixture.row)) return fixture;
+    const cells = fixtureFootprint(fixture);
+    if (cells.some(({ dc, dr }) => isNear(col, row, fixture.col + dc, fixture.row + dr))) {
+      return fixture;
+    }
   }
   return null;
 }
@@ -541,11 +547,9 @@ export function showToast(state: IsoState, text: string): void {
 }
 
 /** Which OBJECT_CATALOG sprite draws a fixture right now. Pure and exported
- * so it's unit-testable without a canvas. The kind union has only "mailbox"
- * today: any other kind falls back to its own catalog key, and a future
- * fixture with its own runtime states (the desk, later) would add a branch
- * here rather than a special case elsewhere. A mailbox's sprite also carries
- * its member-chosen color (mailbox-colors.ts), independent of the flag state. */
+ * so it's unit-testable without a canvas. A fixture with no runtime states
+ * (the desk) draws as its own catalog key. A mailbox's sprite carries its
+ * member-chosen color (mailbox-colors.ts), independent of the flag state. */
 export function fixtureSprite(fixture: WorldFixture, state: IsoState): string {
   if (fixture.kind === "mailbox") {
     return state.mailboxFlagUp ? `mailbox_${fixture.color}_flag` : `mailbox_${fixture.color}`;

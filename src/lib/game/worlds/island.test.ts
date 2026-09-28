@@ -77,10 +77,12 @@ describe("buildIsland", () => {
   it("places a mailbox beside the garden path, on grass, out of the door's and shrine's own reach", () => {
     expect(home.fixtures?.map((f) => f.id)).toEqual([ISLAND_MAILBOX_ID]);
     const mailbox = home.fixtures![0];
-    expect(mailbox.kind).toBe("mailbox");
-    expect(mailbox.owner).toBe(OWNER.username);
-    expect(mailbox.label).toBe("Check mailbox");
-    expect(mailbox.color).toBe("green");
+    expect(mailbox).toMatchObject({
+      kind: "mailbox",
+      owner: OWNER.username,
+      label: "Check mailbox",
+      color: "green",
+    });
     expect(home.terrain[mailbox.row][mailbox.col]).toBe("grass");
 
     const door = home.doors[0];
@@ -100,9 +102,11 @@ describe("buildIsland", () => {
       mailboxColor: "blue",
       isOwn: false,
     });
-    expect(visit.fixtures![0].label).toBe("Leave a letter");
-    expect(visit.fixtures![0].owner).toBe(OWNER.username);
-    expect(visit.fixtures![0].color).toBe("blue");
+    expect(visit.fixtures![0]).toMatchObject({
+      label: "Leave a letter",
+      owner: OWNER.username,
+      color: "blue",
+    });
   });
 
   it("floats: every border tile is void and the void is solid", () => {

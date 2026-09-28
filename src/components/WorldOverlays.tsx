@@ -13,8 +13,10 @@ import type { IsoWorld } from "@/lib/game/world-model";
 import type { InputManager } from "@/lib/game/input";
 import type { NpcId } from "@/lib/npcs";
 import type { PocketItem } from "@/lib/types";
-import type { WorldFixture } from "@/lib/game/types";
+import type { DeskFixture, MailboxFixture, WorldFixture } from "@/lib/game/types";
 import WorldDialogue from "@/components/WorldDialogue";
+import DialogueBox from "@/components/DialogueBox";
+import DeskPanel from "@/components/DeskPanel";
 import PocketsPanel from "@/components/PocketsPanel";
 import NotebookPanel from "@/components/NotebookPanel";
 import NoteReader from "@/components/NoteReader";
@@ -34,9 +36,22 @@ export type OverlayScreen =
   | { kind: "dialogue"; npcId: NpcId }
   | { kind: "pockets" }
   | { kind: "notebook" }
-  | { kind: "mailbox"; fixture: WorldFixture }
+  | { kind: "mailbox"; fixture: MailboxFixture }
+  | { kind: "desk"; fixture: DeskFixture; page: number }
   | { kind: "note"; item: PocketItem; returnTo: "pockets" }
-  | { kind: "note"; item: PocketItem; returnTo: "mailbox"; fixture: WorldFixture };
+  | { kind: "note"; item: PocketItem; returnTo: "mailbox"; fixture: MailboxFixture }
+  | { kind: "note"; item: PocketItem; returnTo: "desk"; fixture: DeskFixture; page: number };
+
+/** What a visitor hears at someone else's desk: the desk is owner-only. */
+const DESK_LOCKED_LINE = "Oops! It's locked. You must not have the right key for this desk.";
+
+/** The screen a fixture opens once its confirm finishes. The desk opens on
+ * its first page; who sees what (owner or visitor) is decided at render. */
+export function fixtureScreen(fixture: WorldFixture): OverlayScreen {
+  return fixture.kind === "desk"
+    ? { kind: "desk", fixture, page: 0 }
+    : { kind: "mailbox", fixture };
+}
 
 interface WorldOverlaysProps {
   stateRef: RefObject<IsoState | null>;
@@ -68,12 +83,20 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
 }
 
-/** Whether the signed-in member is this mailbox's own owner, rather than a
- * visitor — usernames are lowercase by construction, but compared
+/** Whether the signed-in member owns this mailbox or desk, rather than
+ * visiting — usernames are lowercase by construction, but compared
  * case-insensitively anyway to match every other username comparison in the
  * app (e.g. the leave-a-letter route). */
-function isOwnMailbox(fixture: WorldFixture, username: string | null): boolean {
+function isOwner(fixture: WorldFixture, username: string | null): boolean {
   return username !== null && username.toLowerCase() === fixture.owner.toLowerCase();
+}
+
+/** Where the note reader's Back goes: the screen the note was opened from,
+ * on the same desk page. */
+function noteReturn(note: Extract<OverlayScreen, { kind: "note" }>): OverlayScreen {
+  if (note.returnTo === "mailbox") return { kind: "mailbox", fixture: note.fixture };
+  if (note.returnTo === "desk") return { kind: "desk", fixture: note.fixture, page: note.page };
+  return { kind: "pockets" };
 }
 
 /** Blur whatever holds focus so a keyboard Enter goes back to the world
@@ -191,7 +214,7 @@ export default function WorldOverlays({
         <NotebookPanel onClose={() => setOverlay({ kind: "pockets" })} />
       )}
       {overlay.kind === "mailbox" &&
-        (isOwnMailbox(overlay.fixture, username) ? (
+        (isOwner(overlay.fixture, username) ? (
           <MailboxPanel
             onClose={closeToWorld}
             onReadLetter={(item) =>
@@ -207,17 +230,32 @@ export default function WorldOverlays({
             onMailChange={updateMailboxFlag}
           />
         ))}
+      {overlay.kind === "desk" &&
+        (isOwner(overlay.fixture, username) ? (
+          <DeskPanel
+            initialPage={overlay.page}
+            onClose={closeToWorld}
+            onReadNote={(item, page) =>
+              setOverlay({ kind: "note", item, returnTo: "desk", fixture: overlay.fixture, page })
+            }
+          />
+        ) : (
+          // No request: the desk's routes only ever reach the caller's own
+          // items, so there's nothing a visitor could open anyway.
+          <DialogueBox
+            speaker={null}
+            text={DESK_LOCKED_LINE}
+            italic
+            hasMore={false}
+            ariaLabel="The desk"
+            onAdvance={closeToWorld}
+          />
+        ))}
       {overlay.kind === "note" && (
         <NoteReader
           item={overlay.item}
           returnTo={overlay.returnTo}
-          onBack={() =>
-            setOverlay(
-              overlay.returnTo === "mailbox"
-                ? { kind: "mailbox", fixture: overlay.fixture }
-                : { kind: "pockets" },
-            )
-          }
+          onBack={() => setOverlay(noteReturn(overlay))}
         />
       )}
     </>

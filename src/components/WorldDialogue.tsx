@@ -3,11 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { ITEM_CATALOG } from "@/lib/items";
-import { worldAsset } from "@/lib/game/asset-url";
-import { PAL } from "@/lib/game/constants";
 import { NPC_DIALOGUE, dialogueLinesFor, type DialogueLine } from "@/lib/game/npc-dialogue";
 import type { NpcId } from "@/lib/npcs";
 import type { NpcTalkResult, NpcTalkState, PocketItem } from "@/lib/types";
+import DialogueBox from "@/components/DialogueBox";
 
 interface WorldDialogueProps {
   npcId: NpcId;
@@ -112,62 +111,15 @@ export default function WorldDialogue({ npcId, signedIn, onClose }: WorldDialogu
     else onClose();
   }
 
-  // A plain window listener, like the rest of the world's input — re-attached
-  // every render (no deps array) so `advance` always closes over the current
-  // line; the listener itself is cheap enough that this costs nothing.
-  useEffect(() => {
-    function handleKeyDown(e: KeyboardEvent) {
-      const target = e.target;
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) return;
-      if (e.code !== "Enter" && e.code !== "Space") return;
-      e.preventDefault();
-      advance();
-    }
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  });
-
   return (
-    <div className="absolute inset-x-0 bottom-0 z-10 flex justify-center px-2 pb-2 sm:pb-4">
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-label={`${name} says`}
-        onClick={advance}
-        className="max-h-[75%] w-full max-w-2xl cursor-pointer overflow-y-auto rounded-sm border-2 px-4 py-3 font-mono"
-        style={{ backgroundColor: PAL.textBg, borderColor: PAL.textBorder }}
-      >
-        {current.speaker && (
-          <p className="mb-1 text-sm font-bold" style={{ color: PAL.lightest }}>
-            {current.speaker}
-          </p>
-        )}
-        <div className="flex items-start gap-3">
-          {current.icon && (
-            // eslint-disable-next-line @next/next/no-img-element -- a tiny world-art icon, not a Next-optimized asset
-            <img
-              src={worldAsset(current.icon)}
-              crossOrigin="anonymous"
-              alt=""
-              width={32}
-              height={32}
-              style={{ imageRendering: "pixelated" }}
-              className="shrink-0"
-            />
-          )}
-          <p
-            className={`flex-1 text-base leading-snug ${current.italic ? "italic" : ""}`}
-            style={{ color: current.italic ? PAL.light : PAL.white }}
-          >
-            {current.text}
-          </p>
-        </div>
-        {hasMore && (
-          <p className="mt-1 text-right text-sm" style={{ color: PAL.light }} aria-hidden="true">
-            ▼
-          </p>
-        )}
-      </div>
-    </div>
+    <DialogueBox
+      speaker={current.speaker}
+      text={current.text}
+      icon={current.icon}
+      italic={current.italic}
+      hasMore={hasMore}
+      ariaLabel={`${name} says`}
+      onAdvance={advance}
+    />
   );
 }

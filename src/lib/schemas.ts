@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { TINT_PRESETS } from "@/lib/game/terrain-tint";
 import { MAILBOX_COLORS } from "@/lib/game/mailbox-colors";
-import { NOTE_MAX_CHARS } from "@/lib/items";
+import { DESK_SLOTS, NOTE_MAX_CHARS } from "@/lib/items";
 import type { IslandVisibility } from "@/lib/types";
 
 const ISLAND_VISIBILITIES: readonly IslandVisibility[] = ["anyone", "friends", "nobody"];
@@ -207,6 +207,18 @@ export const notebookPageSchema = z.object({
 
 export const leaveLetterSchema = z.object({
   item_id: z.uuid({ error: "Pick something to leave." }),
+});
+
+// ── Desk schema ──
+
+export const deskStoreSchema = z.object({
+  item_id: z.uuid({ error: "Pick something to put away." }),
+  slot: z
+    .number()
+    .int()
+    .min(0)
+    .max(DESK_SLOTS - 1, "That drawer doesn't exist.")
+    .optional(),
 });
 
 // ── Helper ──

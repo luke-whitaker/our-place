@@ -9,6 +9,12 @@ export const POCKET_SLOTS = 10;
  * full mailbox takes at most two trips. */
 export const MAILBOX_SLOTS = 20;
 
+/** A house desk's 100 slots, indexed 0-99, shown as 10 pages of 10. */
+export const DESK_SLOTS = 100;
+
+/** How many desk slots one page of the desk panel shows. */
+export const DESK_PAGE_SLOTS = 10;
+
 /** A Notebook has 10 pages, indexed 0-9 — the draft cap. */
 export const NOTEBOOK_PAGES = 10;
 
@@ -17,14 +23,15 @@ export const NOTE_MAX_CHARS = 1000;
 
 export type ItemKind = "notebook" | "note";
 
-/** Where an item currently sits. A house desk joins later, so this stays a
- * string validated in code, like `kind`. */
-export type ItemLocation = "pocket" | "mailbox";
+/** Where an item currently sits. Stored as a plain string validated in code,
+ * like `kind`, so a new location needs no migration. */
+export type ItemLocation = "pocket" | "mailbox" | "desk";
 
 /** Slot capacity per location, indexed 0..N-1. */
 export const LOCATION_SLOTS: Record<ItemLocation, number> = {
   pocket: POCKET_SLOTS,
   mailbox: MAILBOX_SLOTS,
+  desk: DESK_SLOTS,
 };
 
 /** `icon` is a root-relative world-art path: render it through `worldAsset()`,

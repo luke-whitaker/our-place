@@ -4,7 +4,7 @@
 // no canvas, no projection — which means the server can run the exact same code
 // to stay authoritative over where players are.
 
-import { OBJECT_CATALOG, SOLID_TERRAIN } from "./world-model";
+import { OBJECT_CATALOG, SOLID_TERRAIN, fixtureFootprint } from "./world-model";
 import type { IsoWorld } from "./world-model";
 
 /** A blocked-tile lookup, indexed `[row][col]`; true = the player can't enter. */
@@ -34,16 +34,13 @@ export function buildSolidGrid(world: IsoWorld): SolidGrid {
     }
   }
 
-  // A fixture is furniture, not open ground: block its tile like an NPC's, so
-  // the player walks up beside the mailbox rather than through it.
+  // A fixture is furniture, not open ground: block every tile it covers, so
+  // the player walks up beside the mailbox or the desk rather than through it.
   for (const fixture of world.fixtures ?? []) {
-    if (
-      fixture.row >= 0 &&
-      fixture.row < world.rows &&
-      fixture.col >= 0 &&
-      fixture.col < world.cols
-    ) {
-      grid[fixture.row][fixture.col] = true;
+    for (const { dc, dr } of fixtureFootprint(fixture)) {
+      const c = fixture.col + dc;
+      const r = fixture.row + dr;
+      if (r >= 0 && r < world.rows && c >= 0 && c < world.cols) grid[r][c] = true;
     }
   }
 

@@ -24,15 +24,21 @@ export interface PlacedObject {
   row: number;
 }
 
-export function loadObjectSprite(src: string, scale = 1): Promise<ObjectSprite> {
+/** `anchor`, when given, is the image pixel that sits on the tile centre (see
+ * ObjectDef.anchor); otherwise it's found by scanning the art. */
+export function loadObjectSprite(
+  src: string,
+  scale = 1,
+  anchor?: { x: number; y: number },
+): Promise<ObjectSprite> {
   return new Promise((resolve, reject) => {
     const img = newWorldImage(src);
     img.onload = () => {
-      const anchor = baseAnchor(img);
+      const base = anchor ? { anchorX: anchor.x, anchorY: anchor.y } : baseAnchor(img);
       resolve({
         img,
-        anchorX: anchor.anchorX * scale,
-        anchorY: anchor.anchorY * scale,
+        anchorX: base.anchorX * scale,
+        anchorY: base.anchorY * scale,
         drawW: img.width * scale,
         drawH: img.height * scale,
       });

@@ -52,6 +52,55 @@ export async function firstFreeSlot(
   return null;
 }
 
+export type MoveOutcome =
+  | { outcome: "moved"; item: Prisma.ItemGetPayload<{ select: typeof ITEM_SELECT }> }
+  | { outcome: "full" }
+  | { outcome: "slot_taken" }
+  | { outcome: "gone" };
+
+/**
+ * Move one of `ownerId`'s own items from one of their locations to another
+ * (mailbox or desk into pockets, pockets into the desk). Lands in `slot` when
+ * given, else the lowest free one. The item itself moves, so nothing is ever
+ * copied, and `from`/`placed_at` ride along untouched.
+ *
+ * The write is guarded on the item still sitting in `from`, so a concurrent
+ * double move can't move it twice. Two moves racing for the same destination
+ * slot trip `@@unique([ownerId, location, slot])`: that P2002 propagates, and
+ * callers answer it with a 409 (see isUniqueConstraintError).
+ */
+export async function moveOwnItem(
+  ownerId: string,
+  itemId: string,
+  from: ItemLocation,
+  to: ItemLocation,
+  slot?: number,
+): Promise<MoveOutcome> {
+  return prisma.$transaction(async (tx): Promise<MoveOutcome> => {
+    let target: number | null;
+    if (slot === undefined) {
+      target = await firstFreeSlot(tx, ownerId, to);
+      if (target === null) return { outcome: "full" };
+    } else {
+      const occupant = await tx.item.findFirst({
+        where: { ownerId, location: to, slot },
+        select: { id: true },
+      });
+      if (occupant) return { outcome: "slot_taken" };
+      target = slot;
+    }
+
+    const moved = await tx.item.updateMany({
+      where: { id: itemId, ownerId, location: from },
+      data: { location: to, slot: target },
+    });
+    if (moved.count !== 1) return { outcome: "gone" };
+
+    const item = await tx.item.findUniqueOrThrow({ where: { id: itemId }, select: ITEM_SELECT });
+    return { outcome: "moved", item };
+  });
+}
+
 /**
  * Maps an items row to the wire shape. Asserts rather than silently
  * coercing on a row that can't have come from a healthy read: an

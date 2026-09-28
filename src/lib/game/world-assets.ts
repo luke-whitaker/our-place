@@ -49,7 +49,7 @@ export async function loadWorldAssets(
     Promise.all(npcIds.map((id) => loadNpcSheet(worldAsset(NPC_DIALOGUE[id].sheet)))),
     ...kinds.map((kind) => {
       const def = OBJECT_CATALOG[kind];
-      return loadObjectSprite(worldAsset(def.src), def.scale).then((sprite) =>
+      return loadObjectSprite(worldAsset(def.src), def.scale, def.anchor).then((sprite) =>
         tintSprite(sprite, tint, def.tint),
       );
     }),

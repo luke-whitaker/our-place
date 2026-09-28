@@ -1,6 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   parseIsoWorld,
+  fixtureFootprint,
   OBJECT_CATALOG,
   SOLID_TERRAIN,
   TERRAIN_KINDS,
@@ -187,9 +188,45 @@ describe("parseIsoWorld", () => {
     it("rejects an unrecognized fixture kind", () => {
       const world = {
         ...LAB_TOWN,
-        fixtures: [{ id: "x", kind: "desk", col: 5, row: 5, label: "Sit", owner: "x" }],
+        fixtures: [{ id: "x", kind: "armchair", col: 5, row: 5, label: "Sit", owner: "x" }],
       };
       expect(() => parseIsoWorld(world)).toThrow();
+    });
+
+    it("accepts a desk, which needs no color", () => {
+      const world = {
+        ...LAB_TOWN,
+        fixtures: [{ id: "desk", kind: "desk", col: 4, row: 2, label: "Open desk", owner: "x" }],
+      };
+      expect(parseIsoWorld(world).fixtures?.[0].kind).toBe("desk");
+    });
+
+    it("rejects a desk whose west tile sits on a door", () => {
+      const door = LAB_TOWN.doors[0];
+      const world = {
+        ...LAB_TOWN,
+        fixtures: [
+          {
+            id: "desk",
+            kind: "desk",
+            col: door.col + 1,
+            row: door.row,
+            label: "Open desk",
+            owner: "x",
+          },
+        ],
+      };
+      expect(() => parseIsoWorld(world)).toThrow(/door, PC, shrine, or NPC/);
+    });
+
+    it("defines the desk as a solid two-tile prop with an explicit anchor", () => {
+      const desk = OBJECT_CATALOG.desk;
+      expect(desk.solid).toBe(true);
+      expect(desk.footprint).toEqual(
+        fixtureFootprint({ id: "d", kind: "desk", col: 0, row: 0, label: "", owner: "" }),
+      );
+      expect(desk.footprint).toHaveLength(2);
+      expect(desk.anchor).toBeDefined();
     });
 
     it("rejects an out-of-bounds fixture", () => {

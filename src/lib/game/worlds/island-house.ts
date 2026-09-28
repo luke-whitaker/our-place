@@ -2,9 +2,9 @@
 //
 // Generated, like the island itself, so a new member gets a home the moment
 // their account exists: nothing here is stored, and every device rebuilds the
-// same room from the owner's id. It starts empty apart from the computer: a
-// home is for the member to fill (Luke, September 25), the desk comes next, and
-// seeds and movable things will follow.
+// same room from the owner's id. It starts empty apart from the computer and
+// the desk: a home is for the member to fill (Luke, September 25), and seeds
+// and movable things will follow.
 //
 // Who may come in follows the island. The island already answers "may this
 // member stand here?" through GET /api/users/[username]/island, and a house
@@ -21,6 +21,13 @@ const SIZE = 11;
 const DOOR_COL = 6;
 const PC = { col: 2, row: 2 };
 
+/** The desk's anchor tile; it also covers the tile west of it. It stands
+ * against the north wall (row 1 holds the wall segments) at the room's east
+ * end, under the window at col 8, leaving col 7 clear so the doorway at col 6
+ * never crowds it. Locked in place until members can rearrange their homes. */
+const DESK = { col: 9, row: 2 };
+export const HOUSE_DESK_ID = "desk";
+
 export interface HouseOptions {
   owner: IslandOwner;
   /** Whether the viewer owns this house: the labels and the PC's target differ. */
@@ -34,7 +41,7 @@ export interface HouseOptions {
  */
 export function buildIslandHouse({ owner, isOwn }: HouseOptions): IsoWorld {
   const place = isOwn ? "me" : owner.username;
-  return buildInterior({
+  const room = buildInterior({
     id: houseWorldId(owner.id),
     label: isOwn ? "Home" : `${owner.displayName}'s Place`,
     floor: [{ col: 1, row: 1, w: SIZE - 2, h: SIZE - 2 }],
@@ -49,4 +56,12 @@ export function buildIslandHouse({ owner, isOwn }: HouseOptions): IsoWorld {
     props: [],
     links: houseNetworkLinks(),
   });
+  // Everyone sees the same desk and prompt; only the owner holds the key, and
+  // a visitor who tries it hears it's locked (WorldOverlays).
+  return {
+    ...room,
+    fixtures: [
+      { id: HOUSE_DESK_ID, kind: "desk", ...DESK, label: "Open desk", owner: owner.username },
+    ],
+  };
 }

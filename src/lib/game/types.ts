@@ -51,22 +51,32 @@ export interface WorldNpc {
 // ── Fixtures (furniture you use, the fifth interaction kind) ──
 
 /** Furniture placed in a world that a member uses directly, rather than
- * talking to it (NPCs) or porting through it (doors/PCs/shrines). The
- * mailbox is the first; a desk inside each island house is the next, which is
- * why this stays a small general kind instead of a mailbox special case.
- * `label` is the prompt text ("Check mailbox"); `owner` is the island owner's
- * username, which the UI needs for its API calls. */
-export interface WorldFixture {
+ * talking to it (NPCs) or porting through it (doors/PCs/shrines): the island
+ * mailbox and the house desk. `label` is the prompt text ("Check mailbox");
+ * `owner` is the owner's username, which the UI needs for its API calls and to
+ * tell the owner from a visitor. `col`/`row` is the anchor tile; a desk also
+ * covers the tile west of it (see fixtureFootprint in world-model.ts). */
+interface FixtureBase {
   id: string;
-  kind: "mailbox";
   col: number;
   row: number;
   label: string;
   owner: string;
+}
+
+export interface MailboxFixture extends FixtureBase {
+  kind: "mailbox";
   /** The mailbox's paint color — a fixture attribute rather than a runtime
    * one, unlike the flag: it never changes without the owner choosing again. */
   color: MailboxColor;
 }
+
+/** The house desk: owner-only storage for anything that fits in pockets. */
+export interface DeskFixture extends FixtureBase {
+  kind: "desk";
+}
+
+export type WorldFixture = MailboxFixture | DeskFixture;
 
 // ── Mushroom warp network (mycelium fast-travel) ──
 

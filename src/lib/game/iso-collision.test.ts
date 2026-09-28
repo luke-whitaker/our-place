@@ -86,6 +86,16 @@ describe("buildSolidGrid", () => {
     expect(grid[1][1]).toBe(false);
   });
 
+  it("blocks both tiles of a desk: its anchor and the tile west of it", () => {
+    const world = grassWorld(5, 4);
+    world.fixtures = [{ id: "desk", kind: "desk", col: 3, row: 1, label: "Open desk", owner: "x" }];
+    const grid = buildSolidGrid(world);
+    expect(grid[1][3]).toBe(true);
+    expect(grid[1][2]).toBe(true);
+    expect(grid[1][1]).toBe(false);
+    expect(grid[1][4]).toBe(false);
+  });
+
   it("does not throw when a fixture sits out of bounds", () => {
     const world = grassWorld(3, 3);
     world.fixtures = [

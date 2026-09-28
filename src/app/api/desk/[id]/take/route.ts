@@ -1,12 +1,11 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
 import { moveOwnItem, toPocketItem, isUniqueConstraintError } from "@/lib/pockets";
 
-// POST: take one of the caller's own mailbox letters into their pockets.
-// `from` and `placed_at` come along for the ride, so the reader still shows
-// who sent it and when even after it's in a pocket.
+// POST: take one of the caller's own desk items into their pockets. The move
+// is guarded on the caller's own id and the "desk" location, so anyone else's
+// item, or one already out of the desk, is simply not found.
 export async function POST(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await requireAuth();
@@ -21,24 +20,16 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
     }
 
     const { id } = await params;
-    const letter = await prisma.item.findUnique({
-      where: { id },
-      select: { id: true, ownerId: true, location: true },
-    });
-    if (!letter || letter.ownerId !== auth.user.userId || letter.location !== "mailbox") {
-      return NextResponse.json({ error: "Letter not found." }, { status: 404 });
-    }
-
     try {
-      const result = await moveOwnItem(auth.user.userId, letter.id, "mailbox", "pocket");
+      const result = await moveOwnItem(auth.user.userId, id, "desk", "pocket");
       if (result.outcome === "full") {
         return NextResponse.json(
-          { error: "Your pockets are full. Make some room, then come back for it." },
+          { error: "Your pockets are full. Make some room first." },
           { status: 409 },
         );
       }
       if (result.outcome !== "moved") {
-        return NextResponse.json({ error: "Letter not found." }, { status: 404 });
+        return NextResponse.json({ error: "Item not found." }, { status: 404 });
       }
 
       return NextResponse.json({ message: "Taken.", item: toPocketItem(result.item) });
@@ -52,7 +43,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       throw error;
     }
   } catch (error) {
-    console.error("Take letter error:", error);
-    return NextResponse.json({ error: "Failed to take that letter." }, { status: 500 });
+    console.error("Take from desk error:", error);
+    return NextResponse.json({ error: "Failed to take that out of the desk." }, { status: 500 });
   }
 }

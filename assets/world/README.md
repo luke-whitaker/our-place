@@ -139,6 +139,19 @@ color differ only in the flag's pixels, so their anchors match and the
 mailbox never shifts when the flag goes up. Regenerate them straight into
 `public/world/objects/`, then run `npm run world:upload` before deploying.
 
+### The desk — drawn for Our Place
+
+`~/Desktop/pixel_art/tools/desk.py` writes `desk.png`, a 64x48 wooden desk two
+tiles long with four legs (three show) and one drawer front with a gold knob.
+It builds the desk from a few 3D boxes in tile space and casts an iso ray per
+pixel, so the faces shade by direction and the edges step cleanly at 2:1.
+
+A two-tile sprite can't use the usual bottom-centre anchor scan: its opaque
+centre sits between its two tiles, not on its anchor tile. So its catalog entry
+names `anchor` explicitly, the image pixel of the anchor tile's bottom vertex,
+which the script prints (currently `(40, 40)`). If you redraw it, keep that
+point or update `OBJECT_CATALOG.desk.anchor` to match.
+
 ## Authoring a town
 
 Towns are composed in code as `IsoWorld` documents under

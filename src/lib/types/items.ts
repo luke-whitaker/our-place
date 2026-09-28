@@ -2,8 +2,8 @@
 
 import type { ItemKind } from "@/lib/items";
 
-/** One item in a member's pockets or mailbox. Mailbox letters use the same
- * wire shape as pocket items; `slot` then indexes the mailbox's 20. */
+/** One item in a member's pockets, mailbox, or desk. All three share this
+ * wire shape; `slot` indexes whichever location the item sits in. */
 export interface PocketItem {
   id: string;
   kind: ItemKind;
@@ -23,6 +23,11 @@ export interface MailboxStatus {
 /** GET /api/mailbox: the caller's own mailbox contents. */
 export interface MailboxContents {
   letters: PocketItem[];
+}
+
+/** GET /api/desk: the caller's own desk contents, in slot order. */
+export interface DeskContents {
+  items: PocketItem[];
 }
 
 /** One draft page in a member's Notebook. */

@@ -11,12 +11,12 @@ import type { PocketItem } from "@/lib/types";
 interface NoteReaderProps {
   item: PocketItem;
   /** Where this note was opened from, so the reader knows both where Back
-   * goes and whether to offer Take: a letter still sitting in the mailbox
-   * can be taken into pockets from right here, but a note already in
-   * pockets has nowhere left to take it. */
-  returnTo: "pockets" | "mailbox";
-  /** Back to Pockets or the mailbox — also where a successful throw-away or
-   * take returns to, since both panels refetch fresh on every mount. */
+   * goes and whether to offer Take: a letter still sitting in the mailbox or
+   * the desk can be taken into pockets from right here, but a note already
+   * in pockets has nowhere left to take it. */
+  returnTo: "pockets" | "mailbox" | "desk";
+  /** Back to Pockets, the mailbox, or the desk — also where a successful
+   * throw-away or take returns to, since each panel refetches on mount. */
   onBack: () => void;
 }
 
@@ -46,10 +46,12 @@ export default function NoteReader({ item, returnTo, onBack }: NoteReaderProps) 
     setTaking(true);
     setError("");
     try {
-      await apiFetch(`/api/mailbox/${item.id}/take`, { method: "POST" });
+      // Take only shows for "mailbox" and "desk", each of which has its own
+      // take route at /api/<location>/[id]/take.
+      await apiFetch(`/api/${returnTo}/${item.id}/take`, { method: "POST" });
       onBack();
     } catch (err) {
-      setError(userMessage(err, "Failed to take that letter."));
+      setError(userMessage(err, "Failed to take that."));
       setTaking(false);
     }
   }
@@ -91,7 +93,7 @@ export default function NoteReader({ item, returnTo, onBack }: NoteReaderProps) 
           />
         ) : (
           <div className="flex flex-wrap gap-2">
-            {returnTo === "mailbox" && (
+            {returnTo !== "pockets" && (
               <OverlayActionButton onClick={take} disabled={taking}>
                 {taking ? "Taking..." : "Take"}
               </OverlayActionButton>
@@ -105,7 +107,7 @@ export default function NoteReader({ item, returnTo, onBack }: NoteReaderProps) 
             </OverlayActionButton>
             <OverlayActionButton
               onClick={onBack}
-              variant={returnTo === "mailbox" ? "secondary" : "primary"}
+              variant={returnTo === "pockets" ? "primary" : "secondary"}
               disabled={taking}
             >
               Back

@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { ITEM_CATALOG, POCKET_SLOTS } from "@/lib/items";
 import { PAL } from "@/lib/game/constants";
-import { worldAsset } from "@/lib/game/asset-url";
 import OverlayPanel from "@/components/OverlayPanel";
+import ItemSlotGrid, { slotCells } from "@/components/ItemSlotGrid";
 import InlineConfirm from "@/components/InlineConfirm";
 import OverlayActionButton from "@/components/OverlayActionButton";
 import type { PocketItem } from "@/lib/types";
@@ -66,43 +66,15 @@ export default function PocketsPanel({ onClose, onOpenNotebook, onReadNote }: Po
         </p>
       )}
       {items && (
-        <div className="grid grid-cols-5 gap-2">
-          {Array.from({ length: POCKET_SLOTS }, (_, slot) => {
-            const item = items.find((i) => i.slot === slot) ?? null;
-            const catalog = item ? ITEM_CATALOG[item.kind] : null;
-            const isSelected = item?.id === selectedId;
-            return (
-              <button
-                key={slot}
-                type="button"
-                disabled={!item}
-                onClick={() => {
-                  setSelectedId(item?.id ?? null);
-                  setConfirmingDiscard(false);
-                }}
-                aria-label={catalog?.name ?? "Empty pocket"}
-                title={catalog?.name}
-                className="flex min-h-11 items-center justify-center rounded-sm border p-1"
-                style={{
-                  borderColor: item ? PAL.textBorder : "rgba(238,228,218,0.2)",
-                  backgroundColor: isSelected ? "rgba(238,228,218,0.12)" : "transparent",
-                }}
-              >
-                {catalog && (
-                  // eslint-disable-next-line @next/next/no-img-element -- a tiny world-art icon, not a Next-optimized asset
-                  <img
-                    src={worldAsset(catalog.icon)}
-                    crossOrigin="anonymous"
-                    alt=""
-                    width={32}
-                    height={32}
-                    style={{ imageRendering: "pixelated" }}
-                  />
-                )}
-              </button>
-            );
-          })}
-        </div>
+        <ItemSlotGrid
+          cells={slotCells(items, 0, POCKET_SLOTS)}
+          selectedId={selectedId}
+          onSelect={(item) => {
+            setSelectedId(item.id);
+            setConfirmingDiscard(false);
+          }}
+          emptyLabel="Empty pocket"
+        />
       )}
       {selected && (
         <div className="flex flex-col gap-2 border-t pt-2" style={{ borderColor: PAL.textBorder }}>

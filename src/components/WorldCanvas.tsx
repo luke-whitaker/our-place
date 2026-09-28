@@ -4,7 +4,7 @@ import { useRef, useEffect, useCallback, useState, useMemo, useSyncExternalStore
 import { useAuth } from "@/components/AuthProvider";
 import WorldTouchControls from "@/components/WorldTouchControls";
 import WorldMenu from "@/components/WorldMenu";
-import WorldOverlays, { type OverlayScreen } from "@/components/WorldOverlays";
+import WorldOverlays, { fixtureScreen, type OverlayScreen } from "@/components/WorldOverlays";
 import { apiFetch } from "@/lib/api-client";
 import { TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
@@ -186,7 +186,7 @@ export default function WorldCanvas({
   // inside the "fixture" confirm branch of update()) by the time this fires, so
   // there's nothing to do here beyond choosing which screen to show.
   const handleFixture = useCallback((fixture: WorldFixture) => {
-    setOverlay({ kind: "mailbox", fixture });
+    setOverlay(fixtureScreen(fixture));
   }, []);
 
   const callbacksRef = useRef({

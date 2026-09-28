@@ -14,6 +14,7 @@ import {
   ISO_VIEW_W,
   ISO_VIEW_H,
   CONFIRM_TICKS,
+  INTERACT_TILES,
   nearestTarget,
   endNpcTalk,
   setMailboxFlag,
@@ -472,6 +473,33 @@ describe("fixture proximity and using it", () => {
     update(state, world, solid, keysHeld("ArrowDown"), { onFixture });
     expect(onFixture).toHaveBeenCalledTimes(1);
     expect(getLocalEntity(state).row).toBe(before);
+  });
+});
+
+describe("the two-tile desk", () => {
+  const desk: WorldFixture = {
+    id: "desk",
+    kind: "desk",
+    col: 4,
+    row: 2,
+    label: "Open desk",
+    owner: "luke",
+  };
+  const world: IsoWorld = { ...LAB_TOWN, fixtures: [desk] };
+
+  it("answers from beside its west end, out of reach of its anchor tile", () => {
+    const state = createIsoState(world, { spawnCol: 2, spawnRow: 3 });
+    const solid = buildWorldCollision(world);
+    update(state, world, solid, keyOnce(null));
+    const player = getLocalEntity(state);
+    expect(Math.hypot(player.col - desk.col, player.row - desk.row)).toBeGreaterThan(
+      INTERACT_TILES,
+    );
+    expect(state.nearbyFixture).toEqual(desk);
+  });
+
+  it("draws as its own catalog sprite", () => {
+    expect(fixtureSprite(desk, createIsoState(LAB_TOWN))).toBe("desk");
   });
 });
 
