@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TINT_PRESETS } from "@/lib/game/terrain-tint";
 import { MAILBOX_COLORS } from "@/lib/game/mailbox-colors";
 import { DESK_SLOTS, NOTE_MAX_CHARS } from "@/lib/items";
-import type { IslandVisibility } from "@/lib/types";
+import { EMOTES, PRESENCE_DIRS, type IslandVisibility } from "@/lib/types";
 
 const ISLAND_VISIBILITIES: readonly IslandVisibility[] = ["anyone", "friends", "nobody"];
 
@@ -226,3 +226,30 @@ export const deskStoreSchema = z.object({
 export function getZodErrorMessage(result: z.ZodSafeParseError<unknown>): string {
   return result.error.issues[0]?.message ?? "Invalid input.";
 }
+
+// ── Presence ──
+
+/** A world id as the engine names worlds: "capital", "<slug>-inside",
+ * "island:<uuid>", "island:<uuid>:inside". The route decides who may be there. */
+const worldIdSchema = z
+  .string()
+  .min(1)
+  .max(100)
+  .regex(/^[a-z0-9:-]+$/i, "Unknown world.");
+
+/** Tile coordinates stay well inside any world we build; the bound only stops
+ * absurd values reaching other members. */
+const tileCoordSchema = z.number().finite().min(-1000).max(1000);
+
+export const presenceMoveSchema = z.object({
+  world_id: worldIdSchema,
+  col: tileCoordSchema,
+  row: tileCoordSchema,
+  dir: z.enum(PRESENCE_DIRS),
+  moving: z.boolean(),
+});
+
+export const presenceEmoteSchema = z.object({
+  world_id: worldIdSchema,
+  emote: z.enum(EMOTES),
+});

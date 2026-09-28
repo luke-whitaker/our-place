@@ -41,3 +41,14 @@ export type {
   MailboxContents,
   DeskContents,
 } from "./items";
+
+export type {
+  Emote,
+  PresenceDir,
+  PresencePlayer,
+  PresenceMoveBody,
+  PresenceEmoteBody,
+  PresenceSnapshotEvent,
+  PresenceLeaveEvent,
+} from "./presence";
+export { EMOTES, PRESENCE_DIRS } from "./presence";
