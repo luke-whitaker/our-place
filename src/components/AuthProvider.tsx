@@ -18,6 +18,9 @@ interface User {
   biome?: string;
   mailbox_color?: string;
   island_visibility?: string;
+  /** Ghost Mode, set at the house armoire: the world draws you see-through and
+   * nobody else sees you. */
+  ghost?: boolean;
   is_verified: number;
   role: string;
   community_count?: number;

@@ -13,9 +13,10 @@ import type { IsoWorld } from "@/lib/game/world-model";
 import type { InputManager } from "@/lib/game/input";
 import type { NpcId } from "@/lib/npcs";
 import type { PocketItem } from "@/lib/types";
-import type { DeskFixture, MailboxFixture, WorldFixture } from "@/lib/game/types";
+import type { ArmoireFixture, DeskFixture, MailboxFixture, WorldFixture } from "@/lib/game/types";
 import WorldDialogue from "@/components/WorldDialogue";
 import DialogueBox from "@/components/DialogueBox";
+import ArmoirePanel from "@/components/ArmoirePanel";
 import DeskPanel from "@/components/DeskPanel";
 import PocketsPanel from "@/components/PocketsPanel";
 import NotebookPanel from "@/components/NotebookPanel";
@@ -38,19 +39,21 @@ export type OverlayScreen =
   | { kind: "notebook" }
   | { kind: "mailbox"; fixture: MailboxFixture }
   | { kind: "desk"; fixture: DeskFixture; page: number }
+  | { kind: "armoire"; fixture: ArmoireFixture }
   | { kind: "note"; item: PocketItem; returnTo: "pockets" }
   | { kind: "note"; item: PocketItem; returnTo: "mailbox"; fixture: MailboxFixture }
   | { kind: "note"; item: PocketItem; returnTo: "desk"; fixture: DeskFixture; page: number };
 
-/** What a visitor hears at someone else's desk: the desk is owner-only. */
-const DESK_LOCKED_LINE = "Oops! It's locked. You must not have the right key for this desk.";
+/** What a visitor hears at someone else's desk or armoire: both are owner-only. */
+const lockedLine = (thing: string) =>
+  `Oops! It's locked. You must not have the right key for this ${thing}.`;
 
 /** The screen a fixture opens once its confirm finishes. The desk opens on
  * its first page; who sees what (owner or visitor) is decided at render. */
 export function fixtureScreen(fixture: WorldFixture): OverlayScreen {
-  return fixture.kind === "desk"
-    ? { kind: "desk", fixture, page: 0 }
-    : { kind: "mailbox", fixture };
+  if (fixture.kind === "desk") return { kind: "desk", fixture, page: 0 };
+  if (fixture.kind === "armoire") return { kind: "armoire", fixture };
+  return { kind: "mailbox", fixture };
 }
 
 interface WorldOverlaysProps {
@@ -83,7 +86,7 @@ function isTypingTarget(target: EventTarget | null): boolean {
   return target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement;
 }
 
-/** Whether the signed-in member owns this mailbox or desk, rather than
+/** Whether the signed-in member owns this mailbox, desk, or armoire, rather than
  * visiting — usernames are lowercase by construction, but compared
  * case-insensitively anyway to match every other username comparison in the
  * app (e.g. the leave-a-letter route). */
@@ -244,10 +247,25 @@ export default function WorldOverlays({
           // items, so there's nothing a visitor could open anyway.
           <DialogueBox
             speaker={null}
-            text={DESK_LOCKED_LINE}
+            text={lockedLine("desk")}
             italic
             hasMore={false}
             ariaLabel="The desk"
+            onAdvance={closeToWorld}
+          />
+        ))}
+      {overlay.kind === "armoire" &&
+        (isOwner(overlay.fixture, username) ? (
+          <ArmoirePanel onClose={closeToWorld} />
+        ) : (
+          // No request, like the desk: the armoire's routes only ever reach
+          // the caller's own outfits.
+          <DialogueBox
+            speaker={null}
+            text={lockedLine("armoire")}
+            italic
+            hasMore={false}
+            ariaLabel="The armoire"
             onAdvance={closeToWorld}
           />
         ))}

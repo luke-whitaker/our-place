@@ -28,6 +28,12 @@ const PC = { col: 2, row: 2 };
 const DESK = { col: 9, row: 2 };
 export const HOUSE_DESK_ID = "desk";
 
+/** The armoire stands against the north-west wall (col 1 holds the wall
+ * segments), below that wall's windows at rows 5 and 6 and across the room
+ * from the desk. Locked in place like the desk. */
+const ARMOIRE = { col: 2, row: 8 };
+export const HOUSE_ARMOIRE_ID = "armoire";
+
 export interface HouseOptions {
   owner: IslandOwner;
   /** Whether the viewer owns this house: the labels and the PC's target differ. */
@@ -56,12 +62,19 @@ export function buildIslandHouse({ owner, isOwn }: HouseOptions): IsoWorld {
     props: [],
     links: houseNetworkLinks(),
   });
-  // Everyone sees the same desk and prompt; only the owner holds the key, and
-  // a visitor who tries it hears it's locked (WorldOverlays).
+  // Everyone sees the same desk, armoire, and prompts; only the owner holds
+  // the keys, and a visitor who tries either hears it's locked (WorldOverlays).
   return {
     ...room,
     fixtures: [
       { id: HOUSE_DESK_ID, kind: "desk", ...DESK, label: "Open desk", owner: owner.username },
+      {
+        id: HOUSE_ARMOIRE_ID,
+        kind: "armoire",
+        ...ARMOIRE,
+        label: "Open armoire",
+        owner: owner.username,
+      },
     ],
   };
 }

@@ -58,12 +58,13 @@ export async function POST(request: Request) {
 async function loadProfile(userId: string): Promise<PresenceProfile | null> {
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    select: { username: true, displayName: true, avatar: true },
+    select: { username: true, displayName: true, avatar: true, ghost: true },
   });
   if (!user) return null;
   return {
     username: user.username,
     display_name: user.displayName,
     avatar: isAvatarConfig(user.avatar) ? user.avatar : null,
+    ghost: user.ghost,
   };
 }

@@ -2,7 +2,7 @@ import { z } from "zod";
 import { TINT_PRESETS } from "@/lib/game/terrain-tint";
 import { MAILBOX_COLORS } from "@/lib/game/mailbox-colors";
 import { DESK_SLOTS, NOTE_MAX_CHARS } from "@/lib/items";
-import { EMOTES, PRESENCE_DIRS, type IslandVisibility } from "@/lib/types";
+import { EMOTES, OUTFIT_NAME_MAX, PRESENCE_DIRS, type IslandVisibility } from "@/lib/types";
 
 const ISLAND_VISIBILITIES: readonly IslandVisibility[] = ["anyone", "friends", "nobody"];
 
@@ -253,3 +253,27 @@ export const presenceEmoteSchema = z.object({
   world_id: worldIdSchema,
   emote: z.enum(EMOTES),
 });
+
+// ── Armoire ──
+
+const outfitColor = (part: string) => z.string().regex(hexColorRegex, `Invalid ${part} color.`);
+const outfitName = z
+  .string()
+  .trim()
+  .max(OUTFIT_NAME_MAX, `Keep an outfit's name to ${OUTFIT_NAME_MAX} characters.`);
+
+/** Save an outfit. Any hex color is allowed, like the avatar builder, so the
+ * clothes a member already wears can always be saved as they are. */
+export const createOutfitSchema = z.object({
+  name: outfitName.optional(),
+  shirt: outfitColor("shirt"),
+  pants: outfitColor("pants"),
+  shoes: outfitColor("shoes"),
+});
+
+/** Edit a saved outfit: its name, any of its colors, or both, at least one. */
+export const updateOutfitSchema = createOutfitSchema
+  .partial()
+  .refine((body) => Object.keys(body).length > 0, "Nothing to change.");
+
+export const ghostModeSchema = z.object({ on: z.boolean() });

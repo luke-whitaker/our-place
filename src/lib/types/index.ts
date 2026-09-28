@@ -52,3 +52,6 @@ export type {
   PresenceLeaveEvent,
 } from "./presence";
 export { EMOTES, PRESENCE_DIRS } from "./presence";
+
+export type { Outfit, OutfitColors, ArmoireContents } from "./outfits";
+export { MAX_OUTFITS, OUTFIT_NAME_MAX } from "./outfits";

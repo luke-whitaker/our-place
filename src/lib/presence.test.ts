@@ -14,8 +14,8 @@ import {
 
 const HERE = { col: 5, row: 6, dir: "S" as const, moving: false };
 
-function profile(name: string): PresenceProfile {
-  return { username: name, display_name: name.toUpperCase(), avatar: null };
+function profile(name: string, ghost = false): PresenceProfile {
+  return { username: name, display_name: name.toUpperCase(), avatar: null, ghost };
 }
 
 /** A subscriber that records every event it receives. */
@@ -194,6 +194,63 @@ describe("presence hub", () => {
     expect(fresh.move("one-more", "capital", HERE, profile("x"))).toBe("full");
     // A member already here can still move.
     expect(fresh.move("p0", "capital", { ...HERE, col: 1 })).toBe("ok");
+  });
+
+  it("never tells anyone about a ghost: no snapshot, no update, no emote, no leave", () => {
+    hub.move("ann", "capital", HERE, profile("ann", true));
+    const bo = listener("bo", "capital");
+    hub.subscribe(bo.sub);
+    hub.move("ann", "capital", { ...HERE, col: 8 });
+    expect(hub.emote("ann", "capital", "heart")).toBe("ok");
+    hub.move("ann", "music-inside", HERE);
+
+    expect(bo.events).toEqual([{ event: "snapshot", data: { players: [] } }]);
+    // Coming back while in another world only reaches that world.
+    hub.setGhost("ann", false);
+    expect(bo.events).toHaveLength(1);
+  });
+
+  it("going ghost is a leave to everyone else; coming back is an update", () => {
+    hub.move("ann", "capital", HERE, profile("ann"));
+    const bo = listener("bo", "capital");
+    hub.subscribe(bo.sub);
+
+    hub.setGhost("ann", true);
+    hub.move("ann", "capital", { ...HERE, col: 9 });
+    hub.emote("ann", "capital", "heart");
+    t += 500;
+    hub.setGhost("ann", false);
+
+    expect(bo.names()).toEqual(["snapshot", "leave", "update"]);
+    expect(bo.events[2].data).toEqual(expect.objectContaining({ user_id: "ann", col: 9 }));
+    // An emote sent as a ghost doesn't come back with them.
+    expect(bo.events[2].data).toEqual(expect.objectContaining({ emote: null }));
+    expect(bo.events[2].data).not.toHaveProperty("ghost");
+    // Setting the same state again says nothing.
+    hub.setGhost("ann", false);
+    expect(bo.events).toHaveLength(3);
+  });
+
+  it("shows a new outfit to everyone nearby at once, but never a ghost's", () => {
+    const avatar = {
+      hairStyle: "long" as const,
+      hairColor: "#1c1c22",
+      skinTone: "#FFE0BD",
+      shirtColor: "#ec4899",
+      pantsColor: "#1f2937",
+      shoesColor: "#111827",
+    };
+    hub.move("ann", "capital", HERE, profile("ann"));
+    hub.move("cy", "capital", HERE, profile("cy", true));
+    const bo = listener("bo", "capital");
+    hub.subscribe(bo.sub);
+
+    hub.setAvatar("ann", avatar);
+    hub.setAvatar("cy", avatar);
+    hub.setAvatar("nobody", avatar);
+
+    expect(bo.names()).toEqual(["snapshot", "update"]);
+    expect(bo.events[1].data).toEqual(expect.objectContaining({ user_id: "ann", avatar }));
   });
 
   it("only runs its sweep timer while someone is here", () => {

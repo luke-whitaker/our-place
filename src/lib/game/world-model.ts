@@ -302,6 +302,16 @@ export const OBJECT_CATALOG: Record<string, ObjectDef> = {
     tint: "building",
     anchor: { x: 36, y: 42 },
   },
+  // The house armoire, one tile against the north-west wall (see island-house.ts).
+  // Drawn by ~/Desktop/pixel_art/tools/armoire.py; the anchor is the tile's
+  // bottom vertex in the 32x64 image, which stands it flush against the wall.
+  armoire: {
+    src: "/world/objects/armoire.png",
+    footprint: SINGLE,
+    solid: true,
+    tint: "building",
+    anchor: { x: 16, y: 56 },
+  },
 };
 
 // ── World ──
@@ -391,6 +401,7 @@ const fixtureBase = {
 const fixtureSchema = z.discriminatedUnion("kind", [
   z.object({ ...fixtureBase, kind: z.literal("mailbox"), color: z.enum(MAILBOX_COLORS) }),
   z.object({ ...fixtureBase, kind: z.literal("desk") }),
+  z.object({ ...fixtureBase, kind: z.literal("armoire") }),
 ]);
 
 const mushroomSchema = z.object({

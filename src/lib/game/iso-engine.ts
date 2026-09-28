@@ -813,6 +813,11 @@ export interface PresenceFrame {
   emotes: ReadonlyMap<string, { kind: Emote; age: number }>;
 }
 
+/** How solid the local player looks to themselves in Ghost Mode. Nobody else
+ * sees them at all (the presence hub never sends a ghost), so this is only a
+ * reminder to the member that they're hidden. */
+const GHOST_ALPHA = 0.45;
+
 export function render(
   ctx: CanvasRenderingContext2D,
   state: IsoState,
@@ -824,6 +829,8 @@ export function render(
     promptKey: string;
     drawMenus?: boolean;
     presence?: PresenceFrame;
+    /** The local player is in Ghost Mode: draw them and their name see-through. */
+    ghost?: boolean;
   },
 ): void {
   const { worldScale, dpr, cssW, cssH } = frame.viewport;
@@ -875,16 +882,20 @@ export function render(
       h: ENTITY_CULL_MARGIN * 2,
     };
     if (!rectsOverlap(entityRect, view)) continue;
+    const alpha = frame.ghost && entity.id === state.localId ? GHOST_ALPHA : 1;
     drawables.push({
       depth: pos.y,
-      draw: () =>
+      draw: () => {
+        ctx.globalAlpha = alpha;
         drawEntity(
           ctx,
           entity,
           frame.presence?.sprites.get(entity.id) ?? assets.characters,
           camX,
           camY,
-        ),
+        );
+        ctx.globalAlpha = 1;
+      },
     });
   }
   for (const npc of world.npcs ?? []) {
@@ -923,7 +934,7 @@ export function render(
   // scaled to fit the screen. ──
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const hudSize = { w: cssW, h: cssH };
-  drawNameTags(ctx, state, assets.characters, view, frame.viewport);
+  drawNameTags(ctx, state, assets.characters, view, frame.viewport, frame.ghost ?? false);
   // Under the prompt pill: someone else's bubble may drift across it, and the
   // pill is what the local player needs to read.
   if (frame.presence) {
@@ -1130,12 +1141,15 @@ function drawNameTags(
   characters: CharacterSprites,
   view: ViewRect,
   viewport: Viewport,
+  localGhost: boolean,
 ): void {
   for (const entity of state.entities) {
     if (!entity.label) continue;
     const pos = tileToScreen(entity.col, entity.row);
     if (!rectsOverlap({ x: pos.x - 1, y: pos.y - 1, w: 2, h: 2 }, view)) continue;
     const hud = headHudPos(entity, characters, state.camera, viewport);
+    ctx.globalAlpha = localGhost && entity.id === state.localId ? GHOST_ALPHA : 1;
     drawNameTag(ctx, entity.label, Math.round(hud.x), Math.round(hud.y) - NAME_TAG_GAP);
+    ctx.globalAlpha = 1;
   }
 }

@@ -153,6 +153,16 @@ which the script prints (`(40, 40)`). In the game that stood the desk a little
 off the wall, so the catalog uses `(36, 42)`, flush like the computer. If you
 redraw it, check it in a house screenshot and update `OBJECT_CATALOG.desk.anchor`.
 
+### The armoire — drawn for Our Place
+
+`~/Desktop/pixel_art/tools/armoire.py` writes `armoire_a.png`, `armoire_b.png`,
+and `armoire_c.png` (32x64), the three options Luke chose between on September 28, 2026. He picked A, plain wood matching the desk, copied to `armoire.png`: a tall
+cabinet with two doors on the face turned into the room, a dark seam between them,
+a gold knob on each, a crown on top, and a base. It is built from boxes and cast
+one iso ray per pixel, like the desk. The catalog anchors it at `(16, 56)`, the
+anchor tile's bottom vertex, which the script prints; that stands it flush against
+the north-west wall at (2, 8).
+
 ### The shrine — drawn for Our Place
 
 `~/Desktop/pixel_art/tools/shrine_mushroom.py` writes `shrine.png` (32x40), the

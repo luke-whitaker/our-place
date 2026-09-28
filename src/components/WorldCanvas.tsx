@@ -165,6 +165,12 @@ export default function WorldCanvas({
   const solid = useMemo(() => buildWorldCollision(world), [world]);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState("");
+  // Ghost Mode, read by the game loop each frame through a ref so turning it
+  // on or off at the armoire takes effect without restarting the loop.
+  const ghostRef = useRef(false);
+  useEffect(() => {
+    ghostRef.current = user?.ghost === true;
+  }, [user?.ghost]);
   // The open terminal menu (PC or shrine network), mirrored into React state so
   // the touch overlay (WorldMenu) can render it as tappable DOM tiles. Desktop
   // never reads this — it keeps the canvas-drawn menu. menuKeyRef holds a cheap
@@ -405,6 +411,7 @@ export default function WorldCanvas({
           promptKey: isTouchDevice ? "A" : "Enter",
           drawMenus: !isTouchDevice,
           presence: presenceFrame,
+          ghost: ghostRef.current,
         });
       } else {
         accumulator = 0;

@@ -29,11 +29,14 @@ export interface PresenceSubscriber {
   send(event: PresenceEvent, data: unknown): void;
 }
 
-/** The parts of a player that come from their account, fetched once on arrival. */
+/** The parts of a player that come from their account, fetched once on arrival.
+ * `ghost` is Ghost Mode (users.ghost): it stays on the server and never goes
+ * out on the wire. */
 export interface PresenceProfile {
   username: string;
   display_name: string;
   avatar: PresencePlayer["avatar"];
+  ghost: boolean;
 }
 
 export interface PresencePosition {
@@ -47,6 +50,8 @@ interface PlayerEntry {
   worldId: string;
   player: PresencePlayer;
   lastSeen: number;
+  /** Ghost Mode: nobody else hears anything about this player. */
+  ghost: boolean;
 }
 
 export type MoveResult = "ok" | "needs-profile" | "full";
@@ -65,12 +70,11 @@ export function createPresenceHub({ now = Date.now, autoSweep = true }: Presence
   let subscriberCount = 0;
   let timer: ReturnType<typeof setInterval> | null = null;
 
-  // Ghost Mode (coming with the armoire) filters here and only here: a player
-  // this returns false for is never in a snapshot, an update, or a leave, so
-  // their position never leaves the server. Everyone is visible until then.
+  // Ghost Mode filters here and only here: a player this returns false for is
+  // never in a snapshot, an update, or a leave, so their position and emotes
+  // never leave the server.
   function isVisible(entry: PlayerEntry): boolean {
-    void entry;
-    return true;
+    return !entry.ghost;
   }
 
   function streamsFor(userId: string, worldId: string): number {
@@ -170,7 +174,9 @@ export function createPresenceHub({ now = Date.now, autoSweep = true }: Presence
       }
       const base = existing?.player ?? {
         user_id: userId,
-        ...profile!,
+        username: profile!.username,
+        display_name: profile!.display_name,
+        avatar: profile!.avatar,
         emote: null,
         emote_at: null,
       };
@@ -181,7 +187,8 @@ export function createPresenceHub({ now = Date.now, autoSweep = true }: Presence
         // An emote belongs to the world it was shown in.
         ...(switched ? { emote: null, emote_at: null } : {}),
       };
-      const entry = { worldId, player, lastSeen: now() };
+      const ghost = existing?.ghost ?? profile!.ghost;
+      const entry = { worldId, player, lastSeen: now(), ghost };
       players.set(userId, entry);
       startTimer();
       if (isVisible(entry)) broadcast(worldId, userId, "update", player);
@@ -193,10 +200,34 @@ export function createPresenceHub({ now = Date.now, autoSweep = true }: Presence
       sweep();
       const entry = players.get(userId);
       if (!entry || entry.worldId !== worldId) return "not-here";
-      entry.player = { ...entry.player, emote, emote_at: now() };
       entry.lastSeen = now();
-      if (isVisible(entry)) broadcast(worldId, userId, "update", entry.player);
+      // A ghost's emote is never kept, or coming back into view within its 3 s
+      // would replay it to everyone.
+      if (!isVisible(entry)) return "ok";
+      entry.player = { ...entry.player, emote, emote_at: now() };
+      broadcast(worldId, userId, "update", entry.player);
       return "ok";
+    },
+
+    /** Turn Ghost Mode on or off for a member already here, after the route has
+     * saved it. Going ghost is a `leave` to everyone else (sent while still
+     * visible); coming back is an `update`, as if they'd just walked in. A
+     * member not here yet reads the flag from their profile when they arrive. */
+    setGhost(userId: string, ghost: boolean): void {
+      const entry = players.get(userId);
+      if (!entry || entry.ghost === ghost) return;
+      if (ghost) broadcast(entry.worldId, userId, "leave", { user_id: userId });
+      entry.ghost = ghost;
+      if (!ghost) broadcast(entry.worldId, userId, "update", forSnapshot(entry.player, now()));
+    },
+
+    /** Swap a member's avatar (a new outfit) after the route has saved it, so
+     * everyone nearby sees the change without waiting for them to re-enter. */
+    setAvatar(userId: string, avatar: PresencePlayer["avatar"]): void {
+      const entry = players.get(userId);
+      if (!entry) return;
+      entry.player = { ...entry.player, avatar };
+      if (isVisible(entry)) broadcast(entry.worldId, userId, "update", entry.player);
     },
 
     /** Start listening to a world: the snapshot goes out at once, then every change. */

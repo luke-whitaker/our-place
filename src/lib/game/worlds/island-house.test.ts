@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildIslandHouse, HOUSE_DESK_ID } from "./island-house";
+import { buildIslandHouse, HOUSE_ARMOIRE_ID, HOUSE_DESK_ID } from "./island-house";
 import { buildIsland, housePlace, houseWorldId, islandWorldId, ISLAND_DOOR_ID } from "./island";
 import { EXIT_DOOR_ID } from "./interior";
 import { parseIsoWorld } from "../world-model";
@@ -103,6 +103,19 @@ describe("buildIslandHouse", () => {
     expect(isSolidAt(grid, home.doors[0].col, wallRow + 1)).toBe(false);
     const seen = reachable(grid, home.spawn.col, home.spawn.row);
     expect(seen.has(`${desk.col},${desk.row + 1}`)).toBe(true);
+  });
+
+  it("has one armoire against the north-west wall, owned by the house's owner, reachable", () => {
+    const armoires = (home.fixtures ?? []).filter((f) => f.kind === "armoire");
+    expect(armoires).toHaveLength(1);
+    const armoire = armoires[0];
+    expect(armoire).toMatchObject({ id: HOUSE_ARMOIRE_ID, owner: OWNER.username });
+    const grid = buildSolidGrid(home);
+    // Flush against the wall column, solid itself, with the tile in front of it open.
+    expect(isSolidAt(grid, armoire.col - 1, armoire.row)).toBe(true);
+    expect(isSolidAt(grid, armoire.col, armoire.row)).toBe(true);
+    const seen = reachable(grid, home.spawn.col, home.spawn.row);
+    expect(seen.has(`${armoire.col + 1},${armoire.row}`)).toBe(true);
   });
 
   it("gives a visitor the same desk, still keyed to the owner", () => {

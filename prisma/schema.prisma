@@ -26,6 +26,10 @@ model User {
   // The island mailbox's paint color, chosen independently of the biome so a
   // member can tell their mailbox apart after a biome change.
   mailboxColor       String    @default("slate") @map("mailbox_color")
+  // Ghost Mode, chosen at the house armoire: while true, nobody else in the
+  // world sees this member (the presence hub never sends their position). It
+  // stays on across visits until the member changes it at the armoire.
+  ghost              Boolean   @default(false)
   role               String    @default("user")
   isVerified         Boolean   @default(true) @map("is_verified")
   resetCode          String?   @map("reset_code")
@@ -53,6 +57,7 @@ model User {
   sentItems           Item[]            @relation("ItemSender")
   notebookPages       NotebookPage[]
   npcGifts            NpcGift[]
+  outfits             Outfit[]
 
   @@index([email])
   @@index([username])
@@ -279,6 +284,25 @@ model NotebookPage {
 
   @@unique([ownerId, page])
   @@map("notebook_pages")
+}
+
+// A saved outfit in a member's house armoire: shirt, pants, and shoes colors,
+// never skin or hair. @@unique([ownerId, slot]) with slots 0 to 4 caps a member
+// at five by construction, the same way items cap each location.
+model Outfit {
+  id        String   @id @default(uuid())
+  ownerId   String   @map("owner_id")
+  slot      Int
+  name      String   @default("")
+  shirt     String
+  pants     String
+  shoes     String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerId, slot])
+  @@map("outfits")
 }
 
 // Tracks which one-time NPC gifts (Gnomie's Notebook, and future gifts) a

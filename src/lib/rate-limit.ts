@@ -140,3 +140,6 @@ export const presenceEmoteLimiter = new RateLimiter({ maxAttempts: 30, windowMs:
 
 /** Presence streams opened: 60 per minute per user (reconnects included) */
 export const presenceStreamLimiter = new RateLimiter({ maxAttempts: 60, windowMs: 60 * 1000 });
+
+/** Armoire changes (save, edit, delete, wear, Ghost Mode): 60 per minute per user */
+export const armoireLimiter = new RateLimiter({ maxAttempts: 60, windowMs: 60 * 1000 });

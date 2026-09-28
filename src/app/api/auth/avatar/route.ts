@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { updateAvatarSchema, getZodErrorMessage } from "@/lib/schemas";
+import { presenceHub } from "@/lib/presence";
 
 export async function PUT(request: NextRequest) {
   try {
@@ -18,6 +19,8 @@ export async function PUT(request: NextRequest) {
       where: { id: auth.user.userId },
       data: { avatar: parsed.data },
     });
+    // Anyone in the world with this member sees the new look at once.
+    presenceHub().setAvatar(auth.user.userId, parsed.data);
 
     return NextResponse.json({ message: "Avatar saved!", avatar: parsed.data });
   } catch (error) {
