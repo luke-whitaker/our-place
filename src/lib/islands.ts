@@ -49,6 +49,44 @@ export interface IslandOwnerRow {
   islandVisibility: string;
 }
 
+/** Why the gate refused, worded for the member who was turned away. Shared by
+ * every island gate so the wording can never drift. */
+export interface IslandRefusal {
+  status: 403 | 404;
+  error: string;
+}
+
+const OWNER_SELECT = {
+  id: true,
+  username: true,
+  displayName: true,
+  biome: true,
+  mailboxColor: true,
+  islandVisibility: true,
+} as const;
+
+/** The gate itself, over an owner row that may not exist. */
+async function gateIsland(
+  viewerId: string,
+  owner: IslandOwnerRow | null,
+): Promise<{ owner: IslandOwnerRow; refusal?: never } | { owner?: never; refusal: IslandRefusal }> {
+  if (!owner) return { refusal: { status: 404, error: "This person doesn't exist." } };
+
+  const friends = await areFriends(viewerId, owner.id);
+  const access = islandAccess(viewerId, owner, friends);
+  if (access === "closed") {
+    return {
+      refusal: { status: 403, error: `${owner.displayName}'s island is closed to visitors.` },
+    };
+  }
+  if (access === "friends-only") {
+    return {
+      refusal: { status: 403, error: `${owner.displayName}'s island is open to friends only.` },
+    };
+  }
+  return { owner };
+}
+
 /**
  * Looks up `username` (case-insensitive) and checks whether `viewerId` may
  * visit their island: a ready 404 if no such member exists, a ready 403
@@ -62,38 +100,27 @@ export async function requireIslandAccess(
 ): Promise<{ owner: IslandOwnerRow; error?: never } | { owner?: never; error: Response }> {
   const owner = await prisma.user.findFirst({
     where: { username: { equals: username.toLowerCase(), mode: "insensitive" } },
-    select: {
-      id: true,
-      username: true,
-      displayName: true,
-      biome: true,
-      mailboxColor: true,
-      islandVisibility: true,
-    },
+    select: OWNER_SELECT,
   });
-  if (!owner) {
-    return { error: NextResponse.json({ error: "This person doesn't exist." }, { status: 404 }) };
-  }
-
-  const friends = await areFriends(viewerId, owner.id);
-  const access = islandAccess(viewerId, owner, friends);
-
-  if (access === "closed") {
+  const gate = await gateIsland(viewerId, owner);
+  if (gate.refusal) {
     return {
-      error: NextResponse.json(
-        { error: `${owner.displayName}'s island is closed to visitors.` },
-        { status: 403 },
-      ),
+      error: NextResponse.json({ error: gate.refusal.error }, { status: gate.refusal.status }),
     };
   }
-  if (access === "friends-only") {
-    return {
-      error: NextResponse.json(
-        { error: `${owner.displayName}'s island is open to friends only.` },
-        { status: 403 },
-      ),
-    };
-  }
+  return { owner: gate.owner };
+}
 
-  return { owner };
+/**
+ * The same gate by the owner's id, for callers that know a world id rather
+ * than a username (live presence on an island). Returns the refusal as data
+ * rather than a Response so the caller can cache it.
+ */
+export async function checkIslandAccessById(
+  viewerId: string,
+  ownerId: string,
+): Promise<{ ok: true } | { ok: false; refusal: IslandRefusal }> {
+  const owner = await prisma.user.findUnique({ where: { id: ownerId }, select: OWNER_SELECT });
+  const gate = await gateIsland(viewerId, owner);
+  return gate.refusal ? { ok: false, refusal: gate.refusal } : { ok: true };
 }

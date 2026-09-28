@@ -1,0 +1,207 @@
+import { describe, it, expect, beforeEach } from "vitest";
+import {
+  createPresenceHub,
+  EMOTE_SHOW_MS,
+  LEAVE_AFTER_SILENCE_MS,
+  LEAVE_AFTER_STREAM_MS,
+  MAX_PLAYERS,
+  MAX_SUBSCRIBERS,
+  MAX_SUBSCRIBERS_PER_USER,
+  type PresenceEvent,
+  type PresenceHub,
+  type PresenceProfile,
+} from "./presence";
+
+const HERE = { col: 5, row: 6, dir: "S" as const, moving: false };
+
+function profile(name: string): PresenceProfile {
+  return { username: name, display_name: name.toUpperCase(), avatar: null };
+}
+
+/** A subscriber that records every event it receives. */
+function listener(userId: string, worldId: string) {
+  const events: { event: PresenceEvent; data: unknown }[] = [];
+  return {
+    events,
+    sub: {
+      userId,
+      worldId,
+      send: (event: PresenceEvent, data: unknown) => events.push({ event, data }),
+    },
+    names: () => events.map((e) => e.event),
+  };
+}
+
+let t = 0;
+let hub: PresenceHub;
+
+beforeEach(() => {
+  t = 1_000_000;
+  hub = createPresenceHub({ now: () => t, autoSweep: false });
+});
+
+describe("presence hub", () => {
+  it("asks for a profile the first time a member appears, and not after", () => {
+    expect(hub.move("ann", "capital", HERE)).toBe("needs-profile");
+    expect(hub.move("ann", "capital", HERE, profile("ann"))).toBe("ok");
+    expect(hub.knows("ann")).toBe(true);
+    expect(hub.move("ann", "capital", { ...HERE, col: 6 })).toBe("ok");
+  });
+
+  it("sends a snapshot of everyone else in the world, never the listener", () => {
+    hub.move("ann", "capital", HERE, profile("ann"));
+    hub.move("bo", "capital", HERE, profile("bo"));
+    hub.move("cy", "music-inside", HERE, profile("cy"));
+
+    const ann = listener("ann", "capital");
+    hub.subscribe(ann.sub);
+
+    expect(ann.events).toEqual([
+      { event: "snapshot", data: { players: [expect.objectContaining({ user_id: "bo" })] } },
+    ]);
+  });
+
+  it("tells a world about a move, except the mover", () => {
+    const ann = listener("ann", "capital");
+    const bo = listener("bo", "capital");
+    hub.subscribe(ann.sub);
+    hub.subscribe(bo.sub);
+
+    hub.move("ann", "capital", { ...HERE, col: 9, moving: true }, profile("ann"));
+
+    expect(ann.names()).toEqual(["snapshot"]);
+    expect(bo.events[1]).toEqual({
+      event: "update",
+      data: expect.objectContaining({ user_id: "ann", col: 9, moving: true, display_name: "ANN" }),
+    });
+  });
+
+  it("moves a member between worlds: a leave in the old one, an update in the new", () => {
+    const inCapital = listener("bo", "capital");
+    const inRoom = listener("cy", "music-inside");
+    hub.subscribe(inCapital.sub);
+    hub.subscribe(inRoom.sub);
+    hub.move("ann", "capital", HERE, profile("ann"));
+
+    hub.move("ann", "music-inside", HERE);
+
+    expect(inCapital.events.at(-1)).toEqual({ event: "leave", data: { user_id: "ann" } });
+    expect(inRoom.events.at(-1)?.event).toBe("update");
+  });
+
+  it("broadcasts an emote and refuses one from a member who isn't in that world", () => {
+    const bo = listener("bo", "capital");
+    hub.subscribe(bo.sub);
+    hub.move("ann", "capital", HERE, profile("ann"));
+
+    expect(hub.emote("ann", "capital", "heart")).toBe("ok");
+    expect(bo.events.at(-1)?.data).toEqual(
+      expect.objectContaining({ emote: "heart", emote_at: t }),
+    );
+    expect(hub.emote("ann", "music-inside", "heart")).toBe("not-here");
+    expect(hub.emote("nobody", "capital", "heart")).toBe("not-here");
+  });
+
+  it("shows a late joiner an emote only while it's still showing", () => {
+    hub.move("ann", "capital", HERE, profile("ann"));
+    hub.emote("ann", "capital", "wow");
+
+    t += EMOTE_SHOW_MS - 1;
+    const early = listener("bo", "capital");
+    hub.subscribe(early.sub);
+    t += 2;
+    const late = listener("cy", "capital");
+    hub.subscribe(late.sub);
+
+    expect(early.events[0].data).toEqual({
+      players: [expect.objectContaining({ emote: "wow" })],
+    });
+    expect(late.events[0].data).toEqual({
+      players: [expect.objectContaining({ emote: null, emote_at: null })],
+    });
+  });
+
+  it("lets a member leave 10 s after their last stream closes", () => {
+    const bo = listener("bo", "capital");
+    hub.subscribe(bo.sub);
+    const ann = listener("ann", "capital");
+    const annSub = hub.subscribe(ann.sub);
+    hub.move("ann", "capital", HERE, profile("ann"));
+    if (annSub.ok) annSub.unsubscribe();
+
+    t += LEAVE_AFTER_STREAM_MS;
+    hub.sweep();
+    expect(hub.knows("ann")).toBe(true);
+
+    t += 1;
+    hub.sweep();
+    expect(hub.knows("ann")).toBe(false);
+    expect(bo.events.at(-1)).toEqual({ event: "leave", data: { user_id: "ann" } });
+  });
+
+  it("keeps a member with an open stream until 30 s of silence", () => {
+    hub.subscribe(listener("ann", "capital").sub);
+    hub.move("ann", "capital", HERE, profile("ann"));
+
+    t += LEAVE_AFTER_STREAM_MS + 1;
+    hub.sweep();
+    expect(hub.knows("ann")).toBe(true);
+
+    t += LEAVE_AFTER_SILENCE_MS;
+    hub.sweep();
+    expect(hub.knows("ann")).toBe(false);
+  });
+
+  it("drops a subscriber whose send throws, without disturbing the others", () => {
+    const bo = listener("bo", "capital");
+    hub.subscribe(bo.sub);
+    let calls = 0;
+    hub.subscribe({
+      userId: "cy",
+      worldId: "capital",
+      send: () => {
+        calls++;
+        if (calls > 1) throw new Error("connection gone");
+      },
+    });
+    expect(hub.stats().subscribers).toBe(2);
+
+    hub.move("ann", "capital", HERE, profile("ann"));
+
+    expect(hub.stats().subscribers).toBe(1);
+    expect(bo.events.at(-1)?.event).toBe("update");
+  });
+
+  it("caps streams per member", () => {
+    for (let i = 0; i < MAX_SUBSCRIBERS_PER_USER; i++) {
+      expect(hub.subscribe(listener("ann", "capital").sub).ok).toBe(true);
+    }
+    expect(hub.subscribe(listener("ann", "music-inside").sub)).toEqual({
+      ok: false,
+      reason: "user-limit",
+    });
+  });
+
+  it("caps streams and players overall", () => {
+    for (let i = 0; i < MAX_SUBSCRIBERS; i++) hub.subscribe(listener(`u${i}`, "capital").sub);
+    expect(hub.subscribe(listener("one-more", "capital").sub)).toEqual({
+      ok: false,
+      reason: "full",
+    });
+
+    const fresh = createPresenceHub({ now: () => t, autoSweep: false });
+    for (let i = 0; i < MAX_PLAYERS; i++) fresh.move(`p${i}`, "capital", HERE, profile(`p${i}`));
+    expect(fresh.move("one-more", "capital", HERE, profile("x"))).toBe("full");
+    // A member already here can still move.
+    expect(fresh.move("p0", "capital", { ...HERE, col: 1 })).toBe("ok");
+  });
+
+  it("only runs its sweep timer while someone is here", () => {
+    const timed = createPresenceHub({ now: () => t });
+    expect(timed.stats().sweeping).toBe(false);
+    const sub = timed.subscribe(listener("ann", "capital").sub);
+    expect(timed.stats().sweeping).toBe(true);
+    if (sub.ok) sub.unsubscribe();
+    expect(timed.stats().sweeping).toBe(false);
+  });
+});

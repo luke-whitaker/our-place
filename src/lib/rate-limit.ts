@@ -130,3 +130,13 @@ export function getClientIp(request: Request): string {
   }
   return request.headers.get("x-real-ip") || "unknown";
 }
+
+/** Presence positions: the client sends up to ~7 a second while walking plus a
+ * keepalive every 10 s, so 900 a minute per user leaves headroom. */
+export const presenceMoveLimiter = new RateLimiter({ maxAttempts: 900, windowMs: 60 * 1000 });
+
+/** Presence emotes: 30 per minute per user */
+export const presenceEmoteLimiter = new RateLimiter({ maxAttempts: 30, windowMs: 60 * 1000 });
+
+/** Presence streams opened: 60 per minute per user (reconnects included) */
+export const presenceStreamLimiter = new RateLimiter({ maxAttempts: 60, windowMs: 60 * 1000 });
