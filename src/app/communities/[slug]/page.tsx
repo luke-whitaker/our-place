@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import PostCard from "@/components/PostCard";
 import CreatePostForm from "@/components/CreatePostForm";
+import MushroomIcon from "@/components/MushroomIcon";
 import { ApiError, apiFetch, userMessage } from "@/lib/api-client";
 import { Community, CommunityMember, Post } from "@/lib/types";
 
@@ -152,7 +153,7 @@ export default function CommunityDetailPage() {
               title="Port into the 8-bit world at this community's building"
               className="mb-0.5 flex items-center gap-1.5 rounded-xl bg-surface/90 px-3 py-2 text-sm font-medium text-accent-600 shadow-lg backdrop-blur-sm transition-colors hover:bg-surface"
             >
-              <span aria-hidden>🍄</span> Portal
+              <MushroomIcon size={20} /> Portal
             </Link>
           </div>
         </div>

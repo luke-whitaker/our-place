@@ -7,6 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 import AccountSettings from "@/components/AccountSettings";
 import PostCard from "@/components/PostCard";
 import CreatePostForm from "@/components/CreatePostForm";
+import MushroomIcon from "@/components/MushroomIcon";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { CommunityWithMembership, Post } from "@/lib/types";
 
@@ -265,7 +266,7 @@ export default function ProfilePage() {
                 title="Port into the 8-bit world at your island's doorstep"
                 className="flex shrink-0 items-center gap-1.5 rounded-xl bg-surface px-3 py-2 text-sm font-medium text-violet-600 shadow-sm transition-colors hover:bg-violet-100"
               >
-                <span aria-hidden>🍄</span> Portal
+                <MushroomIcon size={20} /> Portal
               </Link>
             </div>
           </div>

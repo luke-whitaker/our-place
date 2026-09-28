@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { useState } from "react";
+import MushroomIcon from "@/components/MushroomIcon";
 
 // How long a new member sees the floating "Enter the World" note before it
 // becomes hover-only.
@@ -16,7 +17,7 @@ function isNewMember(createdAt?: string) {
   return Date.now() - created < WORLD_HINT_DAYS * 24 * 60 * 60 * 1000;
 }
 
-// The 🍄 next to the logo — the persistent door into the world. New members
+// The mushroom next to the logo — the persistent door into the world. New members
 // get a floating note so the world can't be missed; after that it only
 // appears on hover or focus. In the world itself the mushroom reads as
 // "you are here" and drops the note, which would be telling you to go
@@ -35,7 +36,7 @@ function WorldDoor({ createdAt }: { createdAt?: string }) {
           inWorld ? "bg-surface-emphasis" : ""
         }`}
       >
-        <span aria-hidden>🍄</span>
+        <MushroomIcon />
       </Link>
       {!inWorld && (
         <span

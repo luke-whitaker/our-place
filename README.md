@@ -252,7 +252,8 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Ports v2 — building interiors with PC sprites
 - [x] The world on a phone — a canvas sized to the screen, a touch joystick, and an interaction prompt you can't miss
 - [x] Pockets, the Notebook, and mailboxes — items you carry, notes you write, and letters you leave for friends
-- [ ] A desk in every island house, to keep letters at home
+- [x] A desk in every island house, to keep letters at home
+- [x] Add to Home Screen, with our own mushroom as the app icon
 - [ ] Seeds and flowers, to grow things on your island
 - [ ] Player identity bound to world position (the name above the avatar is in)
 - [ ] Real-time multiplayer presence (the engine is built with the seams for it)
@@ -260,6 +261,27 @@ Open [http://localhost:3000](http://localhost:3000).
 ---
 
 ## Version History
+
+### v0.13.0 — A Desk at Home, and Our Place on Your Home Screen (September 2026)
+
+**Why:** Letters had nowhere to live once you took them out of the mailbox, so every house now
+has a desk to keep them in. And the world is at its best filling the whole screen, which on a
+phone only a home-screen app can do, so Our Place is now installable, with its own mushroom.
+
+**What changed:**
+
+- **A desk in every island house,** against the back wall under the window. It holds 100 things
+  across 10 pages of 10: letters, notes, the Notebook, anything that fits in your pockets. Read,
+  take, or throw away from the desk, just like the mailbox.
+- **The desk is yours alone.** A visitor who tries it finds it locked.
+- **Add Our Place to your home screen** on a phone, tablet, or laptop. It opens without the
+  browser around it.
+- **Our own mushroom,** drawn for Our Place, is the app icon, the browser tab icon, and every
+  door into the world: the button beside the logo, Portal, and Visit island.
+- **A letter from Our Place** waits in every mailbox with the steps for your device.
+
+**What didn't change:** existing APIs. Items gain a third location, the desk; the only
+migration adds the welcome letter.
 
 ### v0.12.0 — Mailboxes, and Islands That Start Bare (September 2026)
 

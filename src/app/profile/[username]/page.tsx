@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import PostCard from "@/components/PostCard";
 import FriendActionButton from "@/components/FriendActionButton";
+import MushroomIcon from "@/components/MushroomIcon";
 import { apiFetch } from "@/lib/api-client";
 import type { FriendshipStatus, Post, PublicProfile } from "@/lib/types";
 
@@ -119,7 +120,7 @@ export default function PublicProfilePage() {
                   title={`Port into ${profile.display_name}'s island`}
                   className="flex shrink-0 items-center gap-1.5 rounded-xl bg-surface px-3 py-2 text-sm font-medium text-violet-600 shadow-sm transition-colors hover:bg-violet-100"
                 >
-                  <span aria-hidden>🍄</span> Visit island
+                  <MushroomIcon size={20} /> Visit island
                 </Link>
               )}
               <FriendActionButton
