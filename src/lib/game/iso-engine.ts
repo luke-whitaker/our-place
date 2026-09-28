@@ -6,6 +6,7 @@
 // WorldCanvas will run in Phase 3, replacing the top-down engine.
 
 import type { NpcId } from "@/lib/npcs";
+import type { Emote } from "@/lib/types";
 import { tileToScreen, HALF_W, HALF_H } from "./iso";
 import { groundCell, type Terrain } from "./forest-autotile";
 import { waterCell, WATER_FRAMES, WATER_FRAME_COLS } from "./water-autotile";
@@ -30,6 +31,8 @@ import {
   type ViewRect,
 } from "./iso-cull";
 import { FADE_SPEED, PAL } from "./constants";
+import { drawEmoteBubble } from "./emote-art";
+import { EMOTE_MS } from "./remote-players";
 import type { Viewport } from "./viewport";
 import type { GameMode, Door, MushroomWarp, Pc, WorldFixture, WorldLink, WorldNpc } from "./types";
 import type { IsoWorld } from "./world-model";
@@ -802,13 +805,26 @@ export function buildWorldCollision(world: IsoWorld): SolidGrid {
   return buildSolidGrid(world);
 }
 
+/** What live presence adds to a frame: other members' own character art, and
+ * the emote bubbles showing, both keyed by entity id. Passed per frame rather
+ * than kept in state, so the engine stays unaware of the network. */
+export interface PresenceFrame {
+  sprites: ReadonlyMap<string, CharacterSprites>;
+  emotes: ReadonlyMap<string, { kind: Emote; age: number }>;
+}
+
 export function render(
   ctx: CanvasRenderingContext2D,
   state: IsoState,
   world: IsoWorld,
   grass: Terrain,
   assets: IsoAssets,
-  frame: { viewport: Viewport; promptKey: string; drawMenus?: boolean },
+  frame: {
+    viewport: Viewport;
+    promptKey: string;
+    drawMenus?: boolean;
+    presence?: PresenceFrame;
+  },
 ): void {
   const { worldScale, dpr, cssW, cssH } = frame.viewport;
   // Touch devices draw the open menu as a DOM overlay (WorldMenu) instead —
@@ -861,7 +877,14 @@ export function render(
     if (!rectsOverlap(entityRect, view)) continue;
     drawables.push({
       depth: pos.y,
-      draw: () => drawEntity(ctx, entity, assets.characters, camX, camY),
+      draw: () =>
+        drawEntity(
+          ctx,
+          entity,
+          frame.presence?.sprites.get(entity.id) ?? assets.characters,
+          camX,
+          camY,
+        ),
     });
   }
   for (const npc of world.npcs ?? []) {
@@ -901,6 +924,11 @@ export function render(
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const hudSize = { w: cssW, h: cssH };
   drawNameTags(ctx, state, assets.characters, view, frame.viewport);
+  // Under the prompt pill: someone else's bubble may drift across it, and the
+  // pill is what the local player needs to read.
+  if (frame.presence) {
+    drawEmotes(ctx, state, assets.characters, view, frame.viewport, frame.presence.emotes);
+  }
   if (state.fade === 0 && state.mode === "overworld") {
     // Yellow while just in reach, green for the confirm flash right before the
     // action fires; door > PC > shrine > NPC > fixture when more than one is
@@ -1053,6 +1081,45 @@ function headHudPos(
     x: ((pos.x - camera.x) * viewport.worldScale) / viewport.dpr,
     y: ((headY - camera.y) * viewport.worldScale) / viewport.dpr,
   };
+}
+
+/** Gap between the top of a name tag and the tip of an emote bubble's tail. */
+const EMOTE_GAP = 2;
+
+/** Emote bubbles over every entity showing one, just above its name tag. The
+ * local player's bubble climbs above the interaction prompt when one shows,
+ * so the two never cover each other. */
+function drawEmotes(
+  ctx: CanvasRenderingContext2D,
+  state: IsoState,
+  characters: CharacterSprites,
+  view: ViewRect,
+  viewport: Viewport,
+  emotes: ReadonlyMap<string, { kind: Emote; age: number }>,
+): void {
+  for (const entity of state.entities) {
+    const emote = emotes.get(entity.id);
+    if (!emote) continue;
+    const pos = tileToScreen(entity.col, entity.row);
+    if (!rectsOverlap({ x: pos.x - 1, y: pos.y - 1, w: 2, h: 2 }, view)) continue;
+    const hud = headHudPos(entity, characters, state.camera, viewport);
+    let bottom = hud.y - NAME_TAG_GAP - NAME_TAG_TEXT_H - EMOTE_GAP;
+    if (entity.id === state.localId && hasPrompt(state)) bottom -= PROMPT_H + PROMPT_GAP;
+    drawEmoteBubble(ctx, emote.kind, Math.round(hud.x), Math.round(bottom), emote.age, EMOTE_MS);
+  }
+}
+
+/** Whether the interaction prompt pill is showing over the local player. */
+function hasPrompt(state: IsoState): boolean {
+  if (state.fade !== 0 || state.mode !== "overworld") return false;
+  return Boolean(
+    state.confirm ??
+    state.nearbyDoor ??
+    state.nearbyPc ??
+    state.nearbyMushroom ??
+    state.nearbyNpc ??
+    state.nearbyFixture,
+  );
 }
 
 /** Name tags for every labelled entity in view, drawn in the HUD's CSS-px layer

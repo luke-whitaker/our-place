@@ -5,6 +5,7 @@ import { useAuth } from "@/components/AuthProvider";
 import WorldTouchControls from "@/components/WorldTouchControls";
 import WorldMenu from "@/components/WorldMenu";
 import WorldOverlays, { fixtureScreen, type OverlayScreen } from "@/components/WorldOverlays";
+import EmotePicker from "@/components/EmotePicker";
 import { apiFetch } from "@/lib/api-client";
 import { TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
@@ -27,6 +28,7 @@ import {
   type MenuEntry,
 } from "@/lib/game/iso-engine";
 import { loadIsoSave, persistIsoSave, isValidIsoPosition } from "@/lib/game/iso-save";
+import { usePresence } from "@/lib/game/use-presence";
 import type { IsoWorld } from "@/lib/game/world-model";
 import type { SolidGrid } from "@/lib/game/iso-collision";
 import type { Door, WorldFixture, WorldLink } from "@/lib/game/types";
@@ -205,6 +207,14 @@ export default function WorldCanvas({
       onFixture: handleFixture,
     };
   }, [onDoorInteract, onWorldLink, onPcPort, handleNpcTalk, handleFixture]);
+
+  // ── Live presence: other members here, and emotes ──
+  // Members only; a logged-out visitor makes no presence requests at all.
+  const { frame: presenceFrameFn, emote: sendEmote } = usePresence(
+    world.id,
+    !authLoading && !!user,
+    stateRef,
+  );
 
   // ── Spawn resolution (deep-link → saved position → default) ──
   const playerLabel = user?.display_name;
@@ -387,10 +397,14 @@ export default function WorldCanvas({
           }
         }
         ctx.imageSmoothingEnabled = false;
+        // Once per frame, not per tick: other members are placed on the
+        // frame's clock, interpolated between the positions the stream sent.
+        const presenceFrame = presenceFrameFn(state, now);
         render(ctx, state, world, grass, assets, {
           viewport,
           promptKey: isTouchDevice ? "A" : "Enter",
           drawMenus: !isTouchDevice,
+          presence: presenceFrame,
         });
       } else {
         accumulator = 0;
@@ -401,7 +415,7 @@ export default function WorldCanvas({
 
     rafId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafId);
-  }, [world, solid, grass, isTouchDevice]);
+  }, [world, solid, grass, isTouchDevice, presenceFrameFn]);
 
   // ── Keyboard focus ──
   // Drop whatever holds focus on every arrival (each place remounts this
@@ -480,6 +494,9 @@ export default function WorldCanvas({
               <ScreenModeIcon immersive={immersive} />
             </button>
           )}
+          {/* Emotes: members only, hidden under a menu or overlay like the
+              buttons beside it. */}
+          {user && !menu && !overlayOpen && <EmotePicker onPick={sendEmote} />}
           <WorldOverlays
             stateRef={stateRef}
             world={world}
