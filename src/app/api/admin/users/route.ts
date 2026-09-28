@@ -3,6 +3,7 @@ import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { adminCreateUserSchema, getZodErrorMessage, normalizePhone } from "@/lib/schemas";
 import { AVATAR_COLORS } from "@/lib/types";
+import { leaveWelcomeLetter, WELCOME_LETTER_SENDER } from "@/lib/welcome-letter";
 import bcrypt from "bcryptjs";
 
 export async function GET() {
@@ -92,6 +93,12 @@ export async function POST(request: NextRequest) {
       where: { slug: "welcome-center" },
       select: { id: true },
     });
+    // The first letter in every mailbox is from Our Place. Skipped quietly if
+    // that account doesn't exist, like the Welcome Center above.
+    const letterSender = await prisma.user.findUnique({
+      where: { username: WELCOME_LETTER_SENDER },
+      select: { id: true },
+    });
 
     const user = await prisma.$transaction(async (tx) => {
       const created = await tx.user.create({
@@ -115,6 +122,7 @@ export async function POST(request: NextRequest) {
           data: { memberCount: { increment: 1 } },
         });
       }
+      if (letterSender) await leaveWelcomeLetter(tx, created.id, letterSender.id);
       return created;
     });
 

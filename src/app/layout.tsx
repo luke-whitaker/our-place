@@ -1,7 +1,8 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono, Pixelify_Sans, VT323, IBM_Plex_Mono } from "next/font/google";
 import { headers } from "next/headers";
 import "./globals.css";
+import { APP_THEME_COLOR } from "@/lib/theme";
 import { AuthProvider } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
 import ErrorBoundary from "@/components/ErrorBoundary";
@@ -57,7 +58,14 @@ export const metadata: Metadata = {
   title: "Our Place — Community-First Social Platform",
   description:
     "A safe, secure, and collaborative social platform built around real communities. One human, one account.",
+  // Opened from an iPhone home screen: no Safari bars, and a solid black status
+  // bar ("black-translucent" would slide the navbar under the clock). The
+  // favicon and apple-touch-icon come from the favicon.ico and apple-icon.png
+  // file conventions in this folder.
+  appleWebApp: { capable: true, title: "Our Place", statusBarStyle: "black" },
 };
+
+export const viewport: Viewport = { themeColor: APP_THEME_COLOR };
 
 export default async function RootLayout({
   children,

@@ -2,6 +2,10 @@
 // lives on the user record (users.theme); localStorage ("op-theme") is an echo
 // so the pre-paint script in layout.tsx can apply it before hydration.
 
+/** The app icon's night sky: the home-screen splash, title bar, and browser
+ * theme color all match the icon rather than any one site theme. */
+export const APP_THEME_COLOR = "#1f1a36";
+
 export const THEMES = ["auto", "platinum", "terminal", "dusk"] as const;
 export type Theme = (typeof THEMES)[number];
 
