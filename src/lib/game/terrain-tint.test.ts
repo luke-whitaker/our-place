@@ -100,6 +100,17 @@ describe("tintPixels", () => {
       expect(hslAt(px, 0)[2]).toBeLessThan(rgbToHsl(...color)[2]);
     }
   });
+
+  it("dims brand art at dusk without shifting its hue", () => {
+    const brandPink: [number, number, number] = [0xd9, 0x6a, 0xa0];
+    const px = pixels(brandPink);
+    tintPixels(px, "dusk", "brand");
+    const [hue, sat, light] = rgbToHsl(...brandPink);
+    // Within 8-bit rounding: a degree of hue, a hundredth of saturation.
+    expect(Math.abs(hslAt(px, 0)[0] - hue)).toBeLessThan(1);
+    expect(Math.abs(hslAt(px, 0)[1] - sat)).toBeLessThan(0.01);
+    expect(hslAt(px, 0)[2]).toBeLessThan(light);
+  });
 });
 
 describe("isTintPreset", () => {

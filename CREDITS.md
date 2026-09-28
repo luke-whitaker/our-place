@@ -54,7 +54,8 @@ pack.
 
 The mushroom in the app icon, the home-screen icons, and the favicon was **drawn
 for Our Place** from scratch, after the Lanmaoa pallidorosea mushroom. It is not
-from any pack, not an emoji vendor's art, and not the world's shrine mushroom,
-because it is meant to become the Our Place brand mark. Unlike the world art, these
+from any pack and not an emoji vendor's art, because it is meant to become the
+Our Place brand mark. The world's shrine mushrooms (`shrine.png`) are drawn in the
+same colors, also for Our Place, and replaced the pack's mushroom in September 2026. Unlike the world art, these
 files are committed: `public/icons/`, `src/app/apple-icon.png`, and
 `src/app/favicon.ico`.

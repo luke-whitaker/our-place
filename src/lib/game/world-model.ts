@@ -172,7 +172,17 @@ export const OBJECT_CATALOG: Record<string, ObjectDef> = {
   bush_large: nature("bush_large"),
   bush: nature("bush"),
   rock: nature("rock"),
-  mushroom: nature("mushroom"),
+  // The Mycelium Network shrine, drawn for Our Place in the brand mushroom's
+  // colors (see assets/world/README.md). It takes only the scene's brightness,
+  // so no biome or dusk turns the brand's pink orange or red. Explicit anchor: the
+  // specks of light at its feet sit below the stems and would throw off the scan.
+  mushroom: {
+    src: "/world/objects/shrine.png",
+    footprint: SINGLE,
+    solid: true,
+    tint: "brand",
+    anchor: { x: 16, y: 32 },
+  },
 
   // ── Outskirts nature (Evergrow Nature_Assets_Separated) ──
   // Source: Forest_Deccoration_Assets_FallenLog{1,2}_48x48.png.

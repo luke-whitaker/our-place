@@ -149,8 +149,22 @@ pixel, so the faces shade by direction and the edges step cleanly at 2:1.
 A two-tile sprite can't use the usual bottom-centre anchor scan: its opaque
 centre sits between its two tiles, not on its anchor tile. So its catalog entry
 names `anchor` explicitly, the image pixel of the anchor tile's bottom vertex,
-which the script prints (currently `(40, 40)`). If you redraw it, keep that
-point or update `OBJECT_CATALOG.desk.anchor` to match.
+which the script prints (`(40, 40)`). In the game that stood the desk a little
+off the wall, so the catalog uses `(36, 42)`, flush like the computer. If you
+redraw it, check it in a house screenshot and update `OBJECT_CATALOG.desk.anchor`.
+
+### The shrine — drawn for Our Place
+
+`~/Desktop/pixel_art/tools/shrine_mushroom.py` writes `shrine.png` (32x40), the
+Mycelium Network shrine: one big mushroom and two little ones in the brand
+mushroom's colors, with specks of light at their feet. It replaced the Evergrow
+`mushroom.png`, which stays on disk but is no longer drawn. Each mushroom is a
+leaning cylinder stem under a half-ellipsoid cap, ray-marched in tile space like
+the desk. The script also writes the three options Luke chose between
+(`shrine_a/b/c.png`); he picked A with C's specks. The catalog anchors it at
+`(16, 32)`, the ground point at the cluster's centre, because the specks sit
+below the stems and would move a scanned anchor. Its `tint` is `brand`: biomes and
+dusk dim it but never shift its hue.
 
 ## Authoring a town
 

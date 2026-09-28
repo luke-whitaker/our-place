@@ -36,10 +36,11 @@ describe("OBJECT_CATALOG", () => {
   it("gives each object a non-empty footprint and a tint target", () => {
     for (const def of Object.values(OBJECT_CATALOG)) {
       expect(def.footprint.length).toBeGreaterThan(0);
-      expect(["nature", "evergreen", "building", "ground"]).toContain(def.tint);
+      expect(["nature", "evergreen", "building", "ground", "brand"]).toContain(def.tint);
     }
     expect(OBJECT_CATALOG.pine1.tint).toBe("evergreen");
     expect(OBJECT_CATALOG.cottage_blue.tint).toBe("building");
+    expect(OBJECT_CATALOG.mushroom.tint).toBe("brand");
   });
 
   it("defines both flag states of every mailbox color as solid, building-tinted, single-tile props", () => {

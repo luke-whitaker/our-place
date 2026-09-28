@@ -12,6 +12,9 @@
 //             foliage change (pines stay green in autumn)
 //   building  houses: only the preset's scene lighting, so a red roof is still
 //             red in autumn and only darkens at dusk
+//   brand     art in Our Place's own colors (the shrine): only the scene's
+//             brightness, never its hue, so dusk dims the brand pink without
+//             turning it red
 //
 // Like avatar-recolor.ts this is one pass per image at load; the game loop
 // never pays for it. The presets are a starting palette: tune by eye.
@@ -27,7 +30,7 @@ export const TINT_PRESETS: readonly TintPreset[] = [
   "scorched",
 ];
 
-export type TintTarget = "ground" | "nature" | "evergreen" | "building";
+export type TintTarget = "ground" | "nature" | "evergreen" | "building" | "brand";
 
 /**
  * One HSL adjustment. `hue` shifts in degrees; `setHue` instead pins the hue
@@ -177,6 +180,7 @@ function applyAdjust(
 /** Which adjustment and band a pixel gets for a target. */
 function pick(spec: TintSpec, target: TintTarget, hue: number, sat: number): [Adjust, Band | null] {
   if (target === "building") return [spec.scene, null];
+  if (target === "brand") return [{ light: spec.scene.light, lightAdd: spec.scene.lightAdd }, null];
   if (target === "ground") {
     return inBand(GRASS, hue, sat) ? [spec.grass, GRASS] : [spec.rest, null];
   }
