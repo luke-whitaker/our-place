@@ -31,7 +31,9 @@ function EmoteIcon({ emote, scale = EMOTE_SCALE }: { emote: Emote; scale?: numbe
 }
 
 /**
- * The emote button, beside Pockets, and the small picker it opens. On a
+ * The emote button, under full screen in the world's top-right corner, and the
+ * small picker it opens below it. The three corner buttons sit within one
+ * thumb's reach on a phone (Luke's call). On a
  * keyboard, 1 to 6 do the same without opening it. The world page hides this
  * while a menu or overlay is open, which also closes the picker.
  */
@@ -59,7 +61,7 @@ export default function EmotePicker({ onPick }: { onPick: (emote: Emote) => void
         aria-label="Emotes"
         aria-expanded={open}
         title="Emotes (1 to 6)"
-        className="absolute right-30 top-2 z-[5] flex h-11 w-11 touch-manipulation select-none items-center justify-center rounded-full border border-white/25 bg-surface/10 hover:bg-surface/20 active:bg-surface/25"
+        className="absolute right-2 top-15 z-[5] flex h-11 w-11 touch-manipulation select-none items-center justify-center rounded-full border border-white/25 bg-surface/10 hover:bg-surface/20 active:bg-surface/25"
       >
         <EmoteIcon emote="laugh" scale={1} />
       </button>
@@ -67,7 +69,7 @@ export default function EmotePicker({ onPick }: { onPick: (emote: Emote) => void
         <div
           role="menu"
           aria-label="Choose an emote"
-          className="absolute right-2 top-15 z-[6] flex gap-1 rounded-xl border border-white/25 bg-surface-inverse/90 p-1.5 shadow-lg"
+          className="absolute right-2 top-28 z-[6] flex gap-1 rounded-xl border border-white/25 bg-surface-inverse/90 p-1.5 shadow-lg"
         >
           {EMOTES.map((emote, i) => (
             <button
