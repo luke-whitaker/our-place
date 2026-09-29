@@ -119,8 +119,32 @@ describe("the grown Capital world", () => {
         expect(seen.has(`${c},${r}`)).toBe(false);
       }
     }
+    // At least eight rows of open water between the beach and the island,
+    // looking straight out from the shore beside it.
+    for (let c = ISLAND.col - 3; c <= ISLAND.col + 3; c++) {
+      let r = ISLAND.row;
+      while (CAPITAL.terrain[r - 1][c] !== "water") r--; // up to the island's shore
+      let water = 0;
+      for (; CAPITAL.terrain[r - 1][c] === "water"; r--) water++;
+      expect(water, `column ${c}`).toBeGreaterThanOrEqual(8);
+    }
     // The island's shrine is scenery, never a warp.
     expect(CAPITAL.mushrooms.some((m) => m.col === ISLAND.col && m.row === ISLAND.row)).toBe(false);
+  });
+
+  it("leaves almost no walkable ground cut off from spawn, besides the island", () => {
+    let walkable = 0;
+    let cutOff = 0;
+    grid.forEach((row, r) =>
+      row.forEach((solid, c) => {
+        if (solid) return;
+        walkable++;
+        const onIsland = Math.hypot(c - ISLAND.col, r - ISLAND.row) < 6;
+        if (!seen.has(`${c},${r}`) && !onIsland) cutOff++;
+      }),
+    );
+    // Open woodland: people may wander anywhere the walls and water allow.
+    expect(cutOff / walkable).toBeLessThan(0.005);
   });
 
   it("gives every region at least one tile reachable from spawn", () => {

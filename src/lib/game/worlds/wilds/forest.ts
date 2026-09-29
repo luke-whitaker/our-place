@@ -14,8 +14,13 @@ import {
   type WildMap,
 } from "./map-builder";
 
-const WOODS = ["oak1", "oak2", "pine1", "pine2", "oak_big", "oak_tall1", "oak_tall2", "pine_tall1"];
-const SNOW_TREES = ["pine1", "pine2", "pine_tall1", "pine_tall2", "rock1"];
+// Small trees for the open woods; the tall ones, whose canopies cover several
+// tiles on screen, only at the heart of a grove.
+const WOODS = ["oak1", "oak2", "pine1", "pine2", "bush", "oak1", "pine1"];
+const GROVE_HEART = ["oak_big", "oak_tall1", "oak_tall2", "pine_tall1"];
+const SNOW_TREES = ["pine1", "pine2", "pine1", "rock1"];
+const SNOW_HEART = ["pine_tall1", "pine_tall2"];
+const HEART = 0.3;
 const SWAMP_GROWTH = ["bush", "bush_large", "stump1", "stump2", "oak1", "rock2", "log2"];
 const SHORE = ["rock1", "rock2", "bush", "grass_patch2", "boulder"];
 
@@ -25,13 +30,15 @@ interface Growth {
 }
 
 function growthAt(map: WildMap, c: number, r: number): Growth {
-  if (ellipseDist(LAKE, c, r) < 1) return { density: 0.05, pool: SHORE };
-  if (ellipseDist(SWAMP, c, r) < 1) return { density: 0.16, pool: SWAMP_GROWTH };
-  const grove = noise2(c, r, 13, 71);
+  if (ellipseDist(LAKE, c, r) < 1) return { density: 0.04, pool: SHORE };
+  if (ellipseDist(SWAMP, c, r) < 1) return { density: 0.1, pool: SWAMP_GROWTH };
+  // Cubed, so most ground is open glade and trees gather in a few groves.
+  const grove = noise2(c, r, 13, 71) ** 3;
+  const heart = grove > HEART;
   if (map.presets[map.biome[r][c]] === "snow") {
-    return { density: 0.05 + 0.2 * grove, pool: SNOW_TREES };
+    return { density: 0.03 + 0.2 * grove, pool: heart ? SNOW_HEART : SNOW_TREES };
   }
-  return { density: 0.04 + 0.34 * grove * grove, pool: WOODS };
+  return { density: 0.02 + 0.32 * grove, pool: heart ? GROVE_HEART : WOODS };
 }
 
 /** Plant over every open grass tile outside `skip` (the old Capital, which

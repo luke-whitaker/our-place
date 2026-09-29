@@ -21,6 +21,7 @@ import { OBJECT_CATALOG } from "../world-model";
 import { ISLAND_SHRINE_ID } from "./island";
 import { EXIT_DOOR_ID } from "./interior";
 import { interiorPlace } from "./interiors";
+import { noise2 } from "./wilds/map-builder";
 import type { Door, MushroomWarp, Region, WorldLink, WorldNpc } from "../types";
 
 // ── Map + the town's offset within it ──
@@ -420,9 +421,11 @@ const mushrooms: MushroomWarp[] = [
 for (const m of mushrooms) placeRequired("mushroom", m.col, m.row);
 
 // ── The forest ring ──
-// Density grows with distance from the town rectangle, so the woods thin out
-// near town and wall up toward the map edge. Deterministic hashing (not
-// Math.random) keeps the authored map reproducible from run to run.
+// Open woodland you can wander through: trees gather into groves (smooth
+// noise) with glades between them, a little thicker away from town. This used
+// to wall up toward the map edge, back when the edge was the end of the world;
+// now the wilds lie beyond it (Luke, September 28: "much more walking room").
+// Deterministic hashing and noise (not Math.random) keep it reproducible.
 
 const FAR_TREE_KINDS = [
   "oak_tall1",
@@ -445,11 +448,11 @@ function distFromTown(c: number, r: number): number {
   return Math.max(dc, dr);
 }
 
-function forestThreshold(dist: number): number {
-  if (dist <= 3) return 15; // thin edge right outside town
-  if (dist <= 8) return 45;
-  if (dist <= 14) return 70;
-  return 92; // dense wall toward the map perimeter
+/** Chance (0 to 1) of a tree on an open tile: low in glades, higher in groves. */
+function forestChance(c: number, r: number, dist: number): number {
+  const base = dist <= 3 ? 0.06 : 0.12; // a thin edge right outside town
+  const grove = noise2(c, r, 11, 3); // 0 in a glade, 1 at a grove's heart
+  return base * (0.3 + 1.7 * grove * grove);
 }
 
 /** Scatter trees over every outskirts grass tile not reserved for a clearing.
@@ -462,8 +465,10 @@ function plantForest(): void {
       if (inRect(c, r, MILLERS_INTERIOR) || inRect(c, r, MIRROR_INTERIOR)) continue;
       if (terrain[r][c] !== "grass") continue;
       const dist = distFromTown(c, r);
-      if (hash32(c, r, 1) % 100 >= forestThreshold(dist)) continue;
-      const pool = dist >= 9 ? FAR_TREE_KINDS : TREE_KINDS;
+      if ((hash32(c, r, 1) % 1000) / 1000 >= forestChance(c, r, dist)) continue;
+      // Tall trees cover several tiles on screen, so they stand only at a
+      // grove's heart; everywhere else the woods stay small and open.
+      const pool = noise2(c, r, 11, 3) > 0.7 ? FAR_TREE_KINDS : TREE_KINDS;
       place(pool[hash32(c, r, 2) % pool.length], c, r);
     }
   }

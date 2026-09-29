@@ -43,6 +43,7 @@ import { fixtureFootprint } from "./world-model";
 import type { InputManager } from "./input";
 import type { TintPreset } from "./terrain-tint";
 import { biomeAt } from "./biomes";
+import { drawsAsSand } from "./sand";
 
 // ── Tuning ──
 
@@ -799,6 +800,9 @@ export interface IsoAssets {
   /** Tinted copies for a world that mixes biomes (see biomes.ts): the ground
    * sheets and object sprites for every preset beyond the world's base. */
   biomes?: BiomeAssets;
+  /** Ground sheets with the dirt repainted as sand, per biome, for beach
+   * tiles and the grass beside them (see sand.ts). */
+  sand?: Partial<Record<TintPreset, HTMLImageElement>>;
 }
 
 export interface BiomeAssets {
@@ -1043,6 +1047,22 @@ export function render(
   }
 }
 
+/** The ground sheet a land tile draws from: its biome's sand copy on and
+ * beside a beach, else its biome's sheet, else the world's own. */
+function groundSheetFor(
+  world: IsoWorld,
+  assets: IsoAssets,
+  preset: TintPreset | null,
+  col: number,
+  row: number,
+): HTMLImageElement {
+  if (assets.sand && drawsAsSand(world.terrain, col, row)) {
+    const sand = assets.sand[preset ?? biomeAt(world, col, row)];
+    if (sand) return sand;
+  }
+  return (preset && assets.biomes?.forest[preset]) || assets.forest;
+}
+
 function drawGround(
   ctx: CanvasRenderingContext2D,
   world: IsoWorld,
@@ -1074,7 +1094,7 @@ function drawGround(
       ctx.drawImage(sheet, sc * CELL, br * CELL, CELL, CELL, dx, dy, CELL, CELL);
     } else {
       const [sc, sr] = groundCell(grass, col, row);
-      const sheet = (preset && assets.biomes?.forest[preset]) || assets.forest;
+      const sheet = groundSheetFor(world, assets, preset, col, row);
       ctx.drawImage(sheet, sc * CELL, sr * CELL, CELL, CELL, dx, dy, CELL, CELL);
     }
   }

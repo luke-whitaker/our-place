@@ -30,8 +30,15 @@ export const SNOW_LINE = 36;
 /** Rough first row of open sea; the real coast wanders a few rows. */
 export const COAST_ROW = 223;
 
-/** The island just offshore, straight south of the Capital: seen, not reached. */
-export const ISLAND = { col: 156, row: 233 } as const;
+/** The island offshore, south of the Capital: seen, not reached. Placed for
+ * the view from where the Old Road meets the beach (158, 223): six columns
+ * east of it, the island lands down and to the left on screen, inside the
+ * view on a laptop and on a phone held upright. Straight down would cost 16
+ * px of screen height per row of water, and the view is shorter than wide. */
+export const ISLAND = { col: 164, row: 234 } as const;
+/** Near the island, the coast's first row of water never wanders past this,
+ * which keeps nine rows of open water between the beach and the island's sand. */
+export const ISLAND_COAST_ROW = COAST_ROW + 1;
 
 /** Where a wall-opening's trail starts outside the wall and ends inside it,
  * as fractions of the ellipse's radius. */

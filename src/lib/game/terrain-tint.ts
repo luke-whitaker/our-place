@@ -247,3 +247,41 @@ export function tintToImage(
     out.src = source.toDataURL();
   });
 }
+
+// ── Sand ──
+// The pack has no sand, so beach tiles borrow the ground sheet's dirt band,
+// repainted pale and warm. Only pixels outside the grass band change, so a
+// grass tile drawn from the sand sheet keeps its grass and gets a sandy edge.
+
+const SAND: Adjust = { setHue: 40, sat: 0.7, lightAdd: 0.2 };
+
+/** Repaint the dirt in ground-sheet pixels as sand, in place. */
+export function sandPixels(px: Uint8ClampedArray): void {
+  for (let i = 0; i < px.length; i += 4) {
+    if (px[i + 3] === 0) continue;
+    const [hue, sat, light] = rgbToHsl(px[i], px[i + 1], px[i + 2]);
+    if (inBand(GRASS, hue, sat)) continue;
+    const [r, g, b] = applyAdjust(SAND, null, hue, sat, light);
+    px[i] = r;
+    px[i + 1] = g;
+    px[i + 2] = b;
+  }
+}
+
+/** A sand copy of a ground sheet (already tinted for its biome), as an <img>. */
+export function sandSheet(img: HTMLImageElement): Promise<HTMLImageElement> {
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth;
+  canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext("2d")!;
+  ctx.drawImage(img, 0, 0);
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  sandPixels(imageData.data);
+  ctx.putImageData(imageData, 0, 0);
+  return new Promise((resolve, reject) => {
+    const out = new Image();
+    out.onload = () => resolve(out);
+    out.onerror = () => reject(new Error("Sand sheet failed to load"));
+    out.src = canvas.toDataURL();
+  });
+}

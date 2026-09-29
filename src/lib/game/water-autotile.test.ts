@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { waterEdgeCode, waterCell, isWaterAt, WATER_BLOB } from "./water-autotile";
+import { waterEdgeCode, waterCell, isWaterAt, WATER_BLOB, PURE_WATER } from "./water-autotile";
+import { pickVariant } from "./forest-autotile";
+import { CAPITAL_CORE } from "./worlds/capital";
 import type { TerrainGrid } from "./water-autotile";
 import type { TerrainKind } from "./world-model";
 
@@ -66,5 +68,35 @@ describe("waterCell", () => {
         expect(sr).toBeLessThan(10);
       }
     }
+  });
+});
+
+describe("waterCell on open water", () => {
+  it("draws the middle of a lake or the sea as pure water, never the tufted variant", () => {
+    const sea = pond(60, 30, 30, 25);
+    let interior = 0;
+    for (let r = 20; r <= 40; r++) {
+      for (let c = 20; c <= 40; c++) {
+        if (waterEdgeCode(sea, c, r) !== 0x0) continue;
+        expect(waterCell(sea, c, r)).toEqual(PURE_WATER);
+        interior++;
+      }
+    }
+    expect(interior).toBeGreaterThan(300);
+  });
+
+  it("keeps the Capital's two ponds exactly as they drew before", () => {
+    // What waterCell returned before open water learned a pond from a lake.
+    const before = (c: number, r: number) =>
+      pickVariant(WATER_BLOB[waterEdgeCode(CAPITAL_CORE.terrain, c, r)] ?? WATER_BLOB[0x0], c, r);
+    let checked = 0;
+    CAPITAL_CORE.terrain.forEach((row, r) =>
+      row.forEach((kind, c) => {
+        if (kind !== "water") return;
+        expect(waterCell(CAPITAL_CORE.terrain, c, r)).toEqual(before(c, r));
+        checked++;
+      }),
+    );
+    expect(checked).toBeGreaterThan(40); // both ponds, not an empty loop
   });
 });

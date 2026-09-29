@@ -49,10 +49,38 @@ export function waterEdgeCode(t: TerrainGrid, col: number, row: number): number 
   return code;
 }
 
+/** The one open-water cell with no grass at all. */
+export const PURE_WATER: readonly [number, number] = [1, 0];
+
+/** A pond at most this many tiles across on both axes keeps the tufted
+ * open-water variant, [3, 0], which has grass at its north and south tips.
+ * In a small pond it reads as lily pads; across a lake or the sea it tiles
+ * into a grid of grass, so wider water is always pure. */
+const SMALL_POND_SPAN = 7;
+
+/** Tiles of water in a straight line through (col, row), counting itself,
+ * capped at SMALL_POND_SPAN + 1 so a long coast costs a bounded scan. */
+function waterSpan(t: TerrainGrid, col: number, row: number, dc: number, dr: number): number {
+  let span = 1;
+  for (const sign of [1, -1]) {
+    for (let k = 1; k <= SMALL_POND_SPAN; k++) {
+      if (!isWaterAt(t, col + dc * k * sign, row + dr * k * sign)) break;
+      span++;
+    }
+  }
+  return span;
+}
+
 /** Frame-0 sheet cell [col, row] for the water tile at (col,row). The renderer
  * offsets the column by the current ripple frame. Unmapped codes (a non-convex
  * shore) fall back to open water. */
 export function waterCell(t: TerrainGrid, col: number, row: number): readonly [number, number] {
-  const cells = WATER_BLOB[waterEdgeCode(t, col, row)] ?? WATER_BLOB[0x0];
-  return pickVariant(cells, col, row);
+  const code = waterEdgeCode(t, col, row);
+  if (code === 0x0) {
+    const small =
+      waterSpan(t, col, row, 1, 0) <= SMALL_POND_SPAN &&
+      waterSpan(t, col, row, 0, 1) <= SMALL_POND_SPAN;
+    return small ? pickVariant(WATER_BLOB[0x0], col, row) : PURE_WATER;
+  }
+  return pickVariant(WATER_BLOB[code] ?? [PURE_WATER], col, row);
 }

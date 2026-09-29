@@ -5,7 +5,7 @@
 // is what keeps it out of reach until boats arrive.
 
 import type { MushroomWarp, Region } from "../../types";
-import { COAST_ROW, ISLAND, WORLD_COLS, WORLD_ROWS } from "./layout";
+import { COAST_ROW, ISLAND, ISLAND_COAST_ROW, WORLD_COLS, WORLD_ROWS } from "./layout";
 import {
   forEachTile,
   noise2,
@@ -20,13 +20,14 @@ import {
 const BEACH_ROWS = 3;
 const ISLAND_GRASS = 2.3;
 const ISLAND_SAND = 3.6;
+/** The island's decorative shrine: scenery, never a warp. */
+export const ISLAND_SHRINE = { col: ISLAND.col, row: ISLAND.row - 2 } as const;
 
 /** The first row of open water at a column. Near the island the coast never
- * dips south of COAST_ROW + 2, which keeps a few rows of water between the
- * beach and the island's shore. */
+ * dips south of ISLAND_COAST_ROW, so the gap to the island stays wide. */
 export function coastRowAt(col: number): number {
   const row = Math.round(COAST_ROW + 2 * Math.sin(col / 17) + wobble(col, 2, 23));
-  return Math.abs(col - ISLAND.col) <= 20 ? Math.min(row, COAST_ROW + 2) : row;
+  return Math.abs(col - ISLAND.col) <= 24 ? Math.min(row, ISLAND_COAST_ROW) : row;
 }
 
 /** The shrine on the beach just south-east of the lake. */
@@ -76,10 +77,11 @@ function buildIsland(map: WildMap): void {
     if (d < ISLAND_GRASS) setTerrain(map, c, r, "grass");
     else if (d < ISLAND_SAND) setTerrain(map, c, r, "sand");
   });
-  // A shrine on the island, for looking at: it's not in the network. The rest
-  // of the island stays clear, so no forest tree grows out there.
-  placeRequired(map, "mushroom", ISLAND.col, ISLAND.row);
+  // A shrine on the island, for looking at: it's not in the network. It stands
+  // on the north side, facing the beach, so it rises into view sooner. The
+  // rest of the island stays clear, so no forest tree grows out there.
+  placeRequired(map, "mushroom", ISLAND_SHRINE.col, ISLAND_SHRINE.row);
   reserveDisc(map, ISLAND.col, ISLAND.row, Math.ceil(ISLAND_SAND) + 1);
   placeRequired(map, "bush", ISLAND.col - 1, ISLAND.row + 1);
-  placeRequired(map, "rock1", ISLAND.col + 1, ISLAND.row - 1);
+  placeRequired(map, "rock1", ISLAND.col + 1, ISLAND.row);
 }

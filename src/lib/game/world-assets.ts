@@ -16,7 +16,8 @@ import {
 } from "./character-sheet";
 import { loadObjectSprite, type ObjectSprite } from "./world-object";
 import { worldAsset, newWorldImage } from "./asset-url";
-import { tintImage, tintToImage, type TintPreset } from "./terrain-tint";
+import { sandSheet, tintImage, tintToImage, type TintPreset } from "./terrain-tint";
+import { sandBiomes } from "./sand";
 import { NPC_DIALOGUE } from "./npc-dialogue";
 import { extraGroundBiomes, extraObjectBiomes } from "./biomes";
 
@@ -65,7 +66,26 @@ export async function loadWorldAssets(
     npcs[id] = npcSheets[i];
   });
   const biomes = world.biomes ? await loadBiomeAssets(world, ground) : undefined;
-  return { characters, forest, water, objects, npcs, biomes };
+  const sand = await loadSandSheets(world, forest, biomes);
+  return { characters, forest, water, objects, npcs, biomes, sand };
+}
+
+/** A sand copy of each biome's ground sheet that has sand in it (or grass
+ * beside sand), or undefined for a world without a beach. */
+async function loadSandSheets(
+  world: IsoWorld,
+  base: HTMLImageElement,
+  biomes: BiomeAssets | undefined,
+): Promise<IsoAssets["sand"]> {
+  const presets = sandBiomes(world);
+  if (presets.length === 0) return undefined;
+  const out: NonNullable<IsoAssets["sand"]> = {};
+  await Promise.all(
+    presets.map(async (preset) => {
+      out[preset] = await sandSheet(biomes?.forest[preset] ?? base);
+    }),
+  );
+  return out;
 }
 
 /**
