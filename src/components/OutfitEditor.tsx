@@ -130,6 +130,12 @@ export default function OutfitEditor(props: OutfitEditorProps) {
                 }}
               />
             ))}
+            <CustomColor
+              label={label}
+              value={look[key]}
+              palette={palette}
+              onChange={(color) => setLook((l) => ({ ...l, [key]: color }))}
+            />
           </div>
         </fieldset>
       ))}
@@ -155,5 +161,48 @@ export default function OutfitEditor(props: OutfitEditorProps) {
         </OverlayActionButton>
       </div>
     </div>
+  );
+}
+
+/** The color wheel after a part's palette, as in the avatar builder: any exact
+ * color. It shows the chosen color once one is picked outside the palette. */
+function CustomColor({
+  label,
+  value,
+  palette,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  palette: readonly string[];
+  onChange: (color: string) => void;
+}) {
+  const isCustom = !palette.some((c) => c.toLowerCase() === value.toLowerCase());
+  return (
+    <label
+      title={`Pick a custom ${label.toLowerCase()} color`}
+      className="relative h-9 w-9 cursor-pointer touch-manipulation overflow-hidden rounded-sm border-2"
+      style={{
+        borderColor: PAL.textBorder,
+        outline: isCustom ? `2px solid ${PAL.white}` : undefined,
+        outlineOffset: 1,
+        background: isCustom
+          ? value
+          : "conic-gradient(red, orange, yellow, lime, aqua, blue, magenta, red)",
+      }}
+    >
+      {!isCustom && (
+        <span className="absolute inset-0 flex items-center justify-center text-base font-bold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.6)]">
+          +
+        </span>
+      )}
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+        aria-label={`Pick a custom ${label.toLowerCase()} color`}
+      />
+    </label>
   );
 }

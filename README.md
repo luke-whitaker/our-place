@@ -248,7 +248,8 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] API route tests — the reaction, comment, post, and island routes run against a real Postgres in CI
 - [ ] Polls (designed, not built)
 - [ ] Welcome tour — a once-per-version walkthrough for new members on their first visit and everyone else on their next (designed, not built)
-- [ ] Wilderness with tinted biomes and user-placed content sprites
+- [x] A bigger world: snow, swamp, lake, autumn, and the sea, from Luke's hand-drawn map
+- [ ] User-placed content sprites in the wilds
 - [x] Ports v2 — building interiors with PC sprites
 - [x] The world on a phone — a canvas sized to the screen, a touch joystick, and an interaction prompt you can't miss
 - [x] Pockets, the Notebook, and mailboxes — items you carry, notes you write, and letters you leave for friends
@@ -261,6 +262,31 @@ Open [http://localhost:3000](http://localhost:3000).
 ---
 
 ## Version History
+
+### v0.15.0 — A Bigger World, and an Armoire at Home (September 2026)
+
+**Why:** Now that members can see each other, the world needed room to go exploring together,
+and a way to choose how you show up in it, including not at all.
+
+**What changed:**
+
+- **The world is three times bigger in every direction,** grown from Luke's hand-drawn map
+  around the Capital, which is unchanged in the middle: snow across the north (The Frostline),
+  a walled swamp to the west (Mirewood), a walled lake to the east (Stillwater Lake), autumn
+  woods in the south-west (Emberwood), and open woodland everywhere between. Trails guide you
+  out from town, but you're free to wander off them.
+- **The sea** runs along the whole south, with sandy beaches and an island just out of reach.
+  It's uncharted for now.
+- **Three new mushroom shrines** join the network once you find them: in the snow, in the
+  swamp, and on the coast past the lake.
+- **An armoire in every island house.** Save up to five outfits (hair style and color, shirt,
+  pants, and shoes, with a color wheel for any exact color), wear one, and everyone nearby sees
+  the change right away. Your skin tone stays as you chose it.
+- **Ghost Mode,** in the armoire: you see yourself see-through, and nobody else sees you at all
+  until you wear an outfit again.
+
+**What didn't change:** existing APIs. Two migrations add the `outfits` table and
+`users.ghost`, then hair to outfits. Your saved spot in the Capital moves with the town.
 
 ### v0.14.0 — See Each Other in the World (September 2026)
 
