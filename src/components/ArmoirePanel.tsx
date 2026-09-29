@@ -9,33 +9,41 @@ import AvatarPreview from "@/components/AvatarPreview";
 import InlineConfirm from "@/components/InlineConfirm";
 import OverlayActionButton from "@/components/OverlayActionButton";
 import OverlayPanel from "@/components/OverlayPanel";
-import OutfitEditor from "@/components/OutfitEditor";
+import OutfitEditor, { previewOf } from "@/components/OutfitEditor";
 import {
   MAX_OUTFITS,
   type ArmoireContents,
   type AvatarConfig,
   type Outfit,
-  type OutfitColors,
+  type OutfitLook,
 } from "@/lib/types";
 
 /** What's picked in the list: Ghost Mode, or one saved outfit by id. */
 type Selection = "ghost" | string | null;
 
+/** What the editor is open on: a saved outfit by id, or "new" (the "+" on
+ * Wearing now, starting from what you're wearing). */
+type Editing = string | "new" | null;
+
 /** How see-through the ghost preview is, matching the world (GHOST_ALPHA). */
 const GHOST_PREVIEW_OPACITY = 0.45;
-
-function dressed(avatar: AvatarConfig, colors: OutfitColors): AvatarConfig {
-  return {
-    ...avatar,
-    shirtColor: colors.shirt,
-    pantsColor: colors.pants,
-    shoesColor: colors.shoes,
-  };
-}
 
 function outfitTitle(outfit: Outfit): string {
   return outfit.name || `Outfit ${outfit.slot + 1}`;
 }
+
+/** Just the look of an outfit, without its id, slot, or name. */
+function lookOf(o: OutfitLook): OutfitLook {
+  return {
+    hair_style: o.hair_style,
+    hair_color: o.hair_color,
+    shirt: o.shirt,
+    pants: o.pants,
+    shoes: o.shoes,
+  };
+}
+
+const FULL_REASON = `Your armoire holds ${MAX_OUTFITS} outfits. Remove one to save another.`;
 
 /**
  * <ArmoirePanel /> — the owner's armoire: up to five saved outfits and Ghost
@@ -49,7 +57,7 @@ export default function ArmoirePanel({ onClose }: { onClose: () => void }) {
   const avatar = isAvatarConfig(user?.avatar) ? user.avatar : null;
   const [contents, setContents] = useState<ArmoireContents | null>(null);
   const [selection, setSelection] = useState<Selection>(null);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<Editing>(null);
   const [confirmingRemove, setConfirmingRemove] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -97,12 +105,13 @@ export default function ArmoirePanel({ onClose }: { onClose: () => void }) {
     }
   }
 
-  function saveWearing(wearing: OutfitColors) {
+  /** Save a look as a new outfit in the first empty spot, and pick it. */
+  function save(name: string, look: OutfitLook) {
     void act(async () => {
       const res = await apiFetch<{ outfit: Outfit }>("/api/outfits", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(wearing),
+        body: JSON.stringify({ name, ...lookOf(look) }),
       });
       setSelection(res.outfit.id);
       return (c) => ({ ...c, outfits: [...c.outfits, res.outfit].sort((a, b) => a.slot - b.slot) });
@@ -113,20 +122,36 @@ export default function ArmoirePanel({ onClose }: { onClose: () => void }) {
     void act(
       async () => {
         await apiFetch(`/api/outfits/${outfit.id}/wear`, { method: "POST" });
-        const { shirt, pants, shoes } = outfit;
-        return (c) => ({ ...c, wearing: { shirt, pants, shoes }, ghost: false });
+        return (c) => ({ ...c, wearing: lookOf(outfit), ghost: false });
       },
       "Failed to put that outfit on.",
       true,
     );
   }
 
-  function edit(outfit: Outfit, name: string, colors: OutfitColors) {
+  /** Put a look on straight from the "+" editor, without saving it. */
+  function wearLook(look: OutfitLook) {
+    void act(
+      async () => {
+        await apiFetch("/api/outfits/wear", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(lookOf(look)),
+        });
+        setSelection(null);
+        return (c) => ({ ...c, wearing: lookOf(look), ghost: false });
+      },
+      "Failed to put that on.",
+      true,
+    );
+  }
+
+  function edit(outfit: Outfit, name: string, look: OutfitLook) {
     void act(async () => {
       const res = await apiFetch<{ outfit: Outfit }>(`/api/outfits/${outfit.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, ...colors }),
+        body: JSON.stringify({ name, ...lookOf(look) }),
       });
       return (c) => ({
         ...c,
@@ -160,6 +185,14 @@ export default function ArmoirePanel({ onClose }: { onClose: () => void }) {
 
   const outfit = contents?.outfits.find((o) => o.id === selection) ?? null;
   const editing = outfit && editingId === outfit.id ? outfit : null;
+  const full = (contents?.outfits.length ?? 0) >= MAX_OUTFITS;
+
+  function openNewLook() {
+    setSelection(null);
+    setConfirmingRemove(false);
+    setError("");
+    setEditingId("new");
+  }
 
   return (
     <OverlayPanel title="Armoire" onClose={onClose}>
@@ -176,14 +209,35 @@ export default function ArmoirePanel({ onClose }: { onClose: () => void }) {
       )}
       {contents && avatar && (
         <>
-          <ArmoireList contents={contents} selection={selection} onPick={pick} />
-          {editing ? (
+          <ArmoireList
+            contents={contents}
+            selection={selection}
+            busy={busy}
+            onPick={pick}
+            onNewLook={openNewLook}
+          />
+          {editingId === "new" && contents.wearing ? (
             <OutfitEditor
+              key="new"
+              avatar={avatar}
+              initialName=""
+              initial={contents.wearing}
+              busy={busy}
+              saveLabel="Save as new outfit"
+              saveBlockedReason={full ? FULL_REASON : undefined}
+              onSave={save}
+              onWear={wearLook}
+              onCancel={() => setEditingId(null)}
+            />
+          ) : editing ? (
+            <OutfitEditor
+              key={editing.id}
               avatar={avatar}
               initialName={editing.name}
-              initial={editing}
+              initial={lookOf(editing)}
               busy={busy}
-              onSave={(name, colors) => edit(editing, name, colors)}
+              saveLabel="Save"
+              onSave={(name, look) => edit(editing, name, look)}
               onCancel={() => setEditingId(null)}
             />
           ) : (
@@ -200,7 +254,7 @@ export default function ArmoirePanel({ onClose }: { onClose: () => void }) {
               onCancelRemove={() => setConfirmingRemove(false)}
               onRemove={remove}
               onGhost={setGhost}
-              onSaveWearing={saveWearing}
+              onSaveWearing={(look) => save("", look)}
             />
           )}
         </>
@@ -214,27 +268,48 @@ export default function ArmoirePanel({ onClose }: { onClose: () => void }) {
 function ArmoireList({
   contents,
   selection,
+  busy,
   onPick,
+  onNewLook,
 }: {
   contents: ArmoireContents;
   selection: Selection;
+  busy: boolean;
   onPick: (s: Selection) => void;
+  onNewLook: () => void;
 }) {
   const rowClass =
     "flex min-h-11 w-full touch-manipulation items-center gap-2 rounded-sm border px-2 text-left text-sm aria-pressed:border-2 aria-pressed:bg-white/10";
   return (
     <div className="flex flex-col gap-1.5">
       {contents.wearing && (
-        <button
-          type="button"
-          aria-pressed={selection === null}
-          onClick={() => onPick(null)}
-          className={rowClass}
-          style={{ borderColor: PAL.textBorder, color: PAL.white }}
-        >
-          <Swatches colors={contents.wearing} />
-          <span className="flex-1 font-bold">Wearing now</span>
-        </button>
+        // Two sibling buttons, not one inside the other: a button can't hold a
+        // button, and the "+" does something different from picking the row.
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            aria-pressed={selection === null}
+            onClick={() => onPick(null)}
+            className={rowClass}
+            style={{ borderColor: PAL.textBorder, color: PAL.white }}
+          >
+            <Swatches look={contents.wearing} />
+            <span className="flex-1 font-bold">Wearing now</span>
+          </button>
+          <button
+            type="button"
+            onClick={onNewLook}
+            // A save still in flight closes the editor when it finishes, so
+            // opening a new one meanwhile would vanish from under the member.
+            disabled={busy}
+            aria-label="Change what you're wearing"
+            title="Change what you're wearing"
+            className="flex min-h-11 w-11 shrink-0 touch-manipulation items-center justify-center rounded-sm border text-xl font-bold hover:bg-white/10 disabled:opacity-40"
+            style={{ borderColor: PAL.textBorder, color: PAL.white }}
+          >
+            +
+          </button>
+        </div>
       )}
       <button
         type="button"
@@ -243,7 +318,7 @@ function ArmoireList({
         className={rowClass}
         style={{ borderColor: PAL.textBorder, color: PAL.white }}
       >
-        <span aria-hidden className="w-12 text-center text-lg">
+        <span aria-hidden className="w-16 text-center text-lg">
           👻
         </span>
         <span className="flex-1 font-bold">Ghost Mode</span>
@@ -258,7 +333,7 @@ function ArmoireList({
           className={rowClass}
           style={{ borderColor: PAL.textBorder, color: PAL.white }}
         >
-          <Swatches colors={o} />
+          <Swatches look={o} />
           <span className="flex-1 truncate font-bold">{outfitTitle(o)}</span>
         </button>
       ))}
@@ -269,10 +344,11 @@ function ArmoireList({
   );
 }
 
-function Swatches({ colors }: { colors: OutfitColors }) {
+/** Hair, shirt, pants, shoes: one small swatch each. */
+function Swatches({ look }: { look: OutfitLook }) {
   return (
-    <span aria-hidden className="flex w-12 justify-center gap-0.5">
-      {[colors.shirt, colors.pants, colors.shoes].map((c, i) => (
+    <span aria-hidden className="flex w-16 justify-center gap-0.5">
+      {[look.hair_color, look.shirt, look.pants, look.shoes].map((c, i) => (
         <span
           key={i}
           className="h-4 w-3.5 rounded-sm border"
@@ -296,7 +372,7 @@ interface SelectionDetailProps {
   onCancelRemove: () => void;
   onRemove: (o: Outfit) => void;
   onGhost: (on: boolean) => void;
-  onSaveWearing: (wearing: OutfitColors) => void;
+  onSaveWearing: (wearing: OutfitLook) => void;
 }
 
 /** Your character in whatever's picked, and what you can do with it. With
@@ -328,7 +404,7 @@ function SelectionDetail(props: SelectionDetailProps) {
   if (outfit) {
     return (
       <div className={border} style={{ borderColor: PAL.textBorder }}>
-        <AvatarPreview config={dressed(avatar, outfit)} scale={3} />
+        <AvatarPreview config={previewOf(avatar, outfit)} scale={3} />
         <div className="flex flex-1 flex-col gap-2">
           <p className="text-sm font-bold" style={{ color: PAL.white }}>
             {outfitTitle(outfit)}

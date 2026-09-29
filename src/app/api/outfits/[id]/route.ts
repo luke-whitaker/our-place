@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { updateOutfitSchema, getZodErrorMessage } from "@/lib/schemas";
-import { armoireRateLimited, OUTFIT_SELECT, toOutfit } from "@/lib/outfits";
+import { armoireRateLimited, lookColumns, OUTFIT_SELECT, toOutfit } from "@/lib/outfits";
 
 type Params = { params: Promise<{ id: string }> };
 
-// PATCH: rename a saved outfit or change its colors. Only the caller's own;
-// anyone else's is simply not found.
+// PATCH: rename a saved outfit or change its look. Only the caller's own;
+// anyone else's is simply not found. Fields left out stay as they are
+// (Prisma skips an undefined column).
 export async function PATCH(request: Request, { params }: Params) {
   try {
     const auth = await requireAuth();
@@ -23,9 +24,10 @@ export async function PATCH(request: Request, { params }: Params) {
     }
 
     const { id } = await params;
+    const { name, ...look } = parsed.data;
     const { count } = await prisma.outfit.updateMany({
       where: { id, ownerId: userId },
-      data: parsed.data,
+      data: { name, ...lookColumns(look) },
     });
     if (count === 0) return NextResponse.json({ error: "Outfit not found." }, { status: 404 });
 

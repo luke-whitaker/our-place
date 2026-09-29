@@ -13,7 +13,13 @@ function actAs(user: AuthPayload) {
   mockRequireAuth.mockResolvedValue({ user });
 }
 
-const PINK = { shirt: "#ec4899", pants: "#1e3a5f", shoes: "#ede4da" };
+const PINK_ROW = {
+  hairStyle: "long",
+  hairColor: "#e6be8a",
+  shirt: "#ec4899",
+  pants: "#1e3a5f",
+  shoes: "#ede4da",
+};
 const AVATAR = {
   hairStyle: "short" as const,
   hairColor: "#922724",
@@ -31,7 +37,7 @@ function wear(id: string) {
 
 async function outfitOf(ownerId: string) {
   const row = await prisma.outfit.create({
-    data: { ownerId, slot: 0, ...PINK },
+    data: { ownerId, slot: 0, ...PINK_ROW },
     select: { id: true },
   });
   return row.id;
@@ -40,7 +46,7 @@ async function outfitOf(ownerId: string) {
 describe("POST /api/outfits/[id]/wear", () => {
   beforeEach(() => mockRequireAuth.mockReset());
 
-  it("dresses the avatar in the outfit, keeps skin and hair, and ends Ghost Mode", async () => {
+  it("dresses the avatar in the outfit's hair and clothes, keeps skin, and ends Ghost Mode", async () => {
     const me = await createTestUser();
     await prisma.user.update({ where: { id: me.userId }, data: { avatar: AVATAR, ghost: true } });
     const id = await outfitOf(me.userId);
@@ -53,10 +59,12 @@ describe("POST /api/outfits/[id]/wear", () => {
       select: { avatar: true, ghost: true },
     });
     expect(user.avatar).toEqual({
-      ...AVATAR,
-      shirtColor: PINK.shirt,
-      pantsColor: PINK.pants,
-      shoesColor: PINK.shoes,
+      hairStyle: "long",
+      hairColor: PINK_ROW.hairColor,
+      skinTone: AVATAR.skinTone,
+      shirtColor: PINK_ROW.shirt,
+      pantsColor: PINK_ROW.pants,
+      shoesColor: PINK_ROW.shoes,
     });
     expect(user.ghost).toBe(false);
   });
@@ -87,7 +95,7 @@ describe("POST /api/outfits/[id]/wear", () => {
     expect(heard[1].data).toEqual(
       expect.objectContaining({
         user_id: me.userId,
-        avatar: expect.objectContaining({ shirtColor: PINK.shirt, skinTone: AVATAR.skinTone }),
+        avatar: expect.objectContaining({ shirtColor: PINK_ROW.shirt, skinTone: AVATAR.skinTone }),
       }),
     );
     if (sub.ok) sub.unsubscribe();

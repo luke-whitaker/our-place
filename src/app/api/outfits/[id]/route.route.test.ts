@@ -12,11 +12,17 @@ function actAs(user: AuthPayload) {
   mockRequireAuth.mockResolvedValue({ user });
 }
 
-const PINK = { shirt: "#ec4899", pants: "#353540", shoes: "#ede4da" };
+const PINK_ROW = {
+  hairStyle: "long",
+  hairColor: "#3b2219",
+  shirt: "#ec4899",
+  pants: "#353540",
+  shoes: "#ede4da",
+};
 
 async function outfitOf(ownerId: string) {
   const row = await prisma.outfit.create({
-    data: { ownerId, slot: 0, name: "Old", ...PINK },
+    data: { ownerId, slot: 0, name: "Old", ...PINK_ROW },
     select: { id: true },
   });
   return row.id;
@@ -46,7 +52,27 @@ describe("PATCH /api/outfits/[id]", () => {
     expect(res.status).toBe(200);
     const { outfit } = await res.json();
     expect(outfit).toEqual(
-      expect.objectContaining({ name: "New", shirt: PINK.shirt, shoes: "#1e3a5f" }),
+      expect.objectContaining({ name: "New", shirt: PINK_ROW.shirt, shoes: "#1e3a5f" }),
+    );
+  });
+
+  it("saves a new name sent with the whole look, the way the armoire's editor sends it", async () => {
+    const me = await createTestUser();
+    const id = await outfitOf(me.userId);
+    actAs(me);
+
+    const res = await edit(id, {
+      name: "Renamed",
+      hair_style: "short",
+      hair_color: "#e6be8a",
+      shirt: "#8b5cf6",
+      pants: "#1e3a5f",
+      shoes: "#353540",
+    });
+    expect(res.status).toBe(200);
+    const row = await prisma.outfit.findUniqueOrThrow({ where: { id } });
+    expect(row).toEqual(
+      expect.objectContaining({ name: "Renamed", hairStyle: "short", hairColor: "#e6be8a" }),
     );
   });
 

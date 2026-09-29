@@ -13,7 +13,21 @@ function actAs(user: AuthPayload) {
   mockRequireAuth.mockResolvedValue({ user });
 }
 
-const PINK = { shirt: "#ec4899", pants: "#353540", shoes: "#ede4da" };
+/** An outfit's look on the wire, and the same look as table columns. */
+const PINK = {
+  hair_style: "short",
+  hair_color: "#922724",
+  shirt: "#ec4899",
+  pants: "#353540",
+  shoes: "#ede4da",
+} as const;
+const PINK_ROW = {
+  hairStyle: "short",
+  hairColor: "#922724",
+  shirt: "#ec4899",
+  pants: "#353540",
+  shoes: "#ede4da",
+};
 const AVATAR = {
   hairStyle: "long",
   hairColor: "#3b2219",
@@ -41,9 +55,11 @@ describe("GET /api/outfits", () => {
     const me = await createTestUser();
     const other = await createTestUser();
     await prisma.user.update({ where: { id: me.userId }, data: { avatar: AVATAR, ghost: true } });
-    await prisma.outfit.create({ data: { ownerId: me.userId, slot: 3, name: "Late", ...PINK } });
-    await prisma.outfit.create({ data: { ownerId: me.userId, slot: 0, name: "", ...PINK } });
-    await prisma.outfit.create({ data: { ownerId: other.userId, slot: 1, ...PINK } });
+    await prisma.outfit.create({
+      data: { ownerId: me.userId, slot: 3, name: "Late", ...PINK_ROW },
+    });
+    await prisma.outfit.create({ data: { ownerId: me.userId, slot: 0, name: "", ...PINK_ROW } });
+    await prisma.outfit.create({ data: { ownerId: other.userId, slot: 1, ...PINK_ROW } });
     actAs(me);
 
     const res = await GET();
@@ -51,7 +67,13 @@ describe("GET /api/outfits", () => {
     const body = await res.json();
     expect(body.outfits.map((o: { slot: number }) => o.slot)).toEqual([0, 3]);
     expect(body.outfits[1]).toEqual(expect.objectContaining({ name: "Late", ...PINK }));
-    expect(body.wearing).toEqual({ shirt: "#3b82f6", pants: "#353540", shoes: "#4d3f38" });
+    expect(body.wearing).toEqual({
+      hair_style: "long",
+      hair_color: "#3b2219",
+      shirt: "#3b82f6",
+      pants: "#353540",
+      shoes: "#4d3f38",
+    });
     expect(body.ghost).toBe(true);
   });
 
@@ -68,7 +90,7 @@ describe("POST /api/outfits", () => {
 
   it("saves into the first empty slot, with an optional name", async () => {
     const me = await createTestUser();
-    await prisma.outfit.create({ data: { ownerId: me.userId, slot: 0, ...PINK } });
+    await prisma.outfit.create({ data: { ownerId: me.userId, slot: 0, ...PINK_ROW } });
     actAs(me);
 
     const res = await save({ name: "  Picnic  ", ...PINK });
@@ -80,13 +102,29 @@ describe("POST /api/outfits", () => {
   it(`refuses a ${MAX_OUTFITS + 1}th outfit`, async () => {
     const me = await createTestUser();
     for (let slot = 0; slot < MAX_OUTFITS; slot++) {
-      await prisma.outfit.create({ data: { ownerId: me.userId, slot, ...PINK } });
+      await prisma.outfit.create({ data: { ownerId: me.userId, slot, ...PINK_ROW } });
     }
     actAs(me);
 
     const res = await save(PINK);
     expect(res.status).toBe(409);
     expect(await prisma.outfit.count({ where: { ownerId: me.userId } })).toBe(MAX_OUTFITS);
+  });
+
+  it("keeps the name through a reload of the armoire", async () => {
+    const me = await createTestUser();
+    actAs(me);
+    expect((await save({ name: "Rainy day", ...PINK })).status).toBe(201);
+
+    const { outfits } = await (await GET()).json();
+    expect(outfits).toEqual([expect.objectContaining({ name: "Rainy day", ...PINK })]);
+  });
+
+  it("rejects a hair style other than short or long", async () => {
+    const me = await createTestUser();
+    actAs(me);
+    expect((await save({ ...PINK, hair_style: "mohawk" })).status).toBe(400);
+    expect(await prisma.outfit.count({ where: { ownerId: me.userId } })).toBe(0);
   });
 
   it("rejects a color that isn't a hex color, and a name that's too long", async () => {

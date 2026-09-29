@@ -53,5 +53,5 @@ export type {
 } from "./presence";
 export { EMOTES, PRESENCE_DIRS } from "./presence";
 
-export type { Outfit, OutfitColors, ArmoireContents } from "./outfits";
-export { MAX_OUTFITS, OUTFIT_NAME_MAX } from "./outfits";
+export type { Outfit, OutfitLook, HairStyle, ArmoireContents } from "./outfits";
+export { MAX_OUTFITS, OUTFIT_NAME_MAX, HAIR_STYLES } from "./outfits";

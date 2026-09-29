@@ -286,14 +286,16 @@ model NotebookPage {
   @@map("notebook_pages")
 }
 
-// A saved outfit in a member's house armoire: shirt, pants, and shoes colors,
-// never skin or hair. @@unique([ownerId, slot]) with slots 0 to 4 caps a member
+// A saved outfit in a member's house armoire: a look of hair (style and color)
+// and shirt, pants, and shoes colors, never skin. @@unique([ownerId, slot]) with slots 0 to 4 caps a member
 // at five by construction, the same way items cap each location.
 model Outfit {
   id        String   @id @default(uuid())
   ownerId   String   @map("owner_id")
   slot      Int
   name      String   @default("")
+  hairStyle String   @map("hair_style")
+  hairColor String   @map("hair_color")
   shirt     String
   pants     String
   shoes     String

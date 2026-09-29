@@ -3,7 +3,7 @@ import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { createOutfitSchema, getZodErrorMessage } from "@/lib/schemas";
 import { isUniqueConstraintError } from "@/lib/pockets";
-import { armoireRateLimited, OUTFIT_SELECT, toOutfit, wearingOf } from "@/lib/outfits";
+import { armoireRateLimited, lookColumns, OUTFIT_SELECT, toOutfit, wearingOf } from "@/lib/outfits";
 import { MAX_OUTFITS, type ArmoireContents } from "@/lib/types";
 
 // The house armoire belongs to the signed-in member alone. Nothing here takes
@@ -69,9 +69,9 @@ export async function POST(request: Request) {
     }
 
     try {
-      const { name, shirt, pants, shoes } = parsed.data;
+      const { name, ...look } = parsed.data;
       const outfit = await prisma.outfit.create({
-        data: { ownerId: userId, slot, name: name ?? "", shirt, pants, shoes },
+        data: { ownerId: userId, slot, name: name ?? "", ...lookColumns(look) },
         select: OUTFIT_SELECT,
       });
       return NextResponse.json(

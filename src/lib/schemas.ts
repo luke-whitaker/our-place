@@ -2,7 +2,13 @@ import { z } from "zod";
 import { TINT_PRESETS } from "@/lib/game/terrain-tint";
 import { MAILBOX_COLORS } from "@/lib/game/mailbox-colors";
 import { DESK_SLOTS, NOTE_MAX_CHARS } from "@/lib/items";
-import { EMOTES, OUTFIT_NAME_MAX, PRESENCE_DIRS, type IslandVisibility } from "@/lib/types";
+import {
+  EMOTES,
+  HAIR_STYLES,
+  OUTFIT_NAME_MAX,
+  PRESENCE_DIRS,
+  type IslandVisibility,
+} from "@/lib/types";
 
 const ISLAND_VISIBILITIES: readonly IslandVisibility[] = ["anyone", "friends", "nobody"];
 
@@ -262,16 +268,21 @@ const outfitName = z
   .trim()
   .max(OUTFIT_NAME_MAX, `Keep an outfit's name to ${OUTFIT_NAME_MAX} characters.`);
 
-/** Save an outfit. Any hex color is allowed, like the avatar builder, so the
- * clothes a member already wears can always be saved as they are. */
-export const createOutfitSchema = z.object({
-  name: outfitName.optional(),
+/** A look: hair and clothes. Any hex color is allowed, like the avatar
+ * builder, so what a member already wears can always be saved as it is. There
+ * is no skin here, on purpose: the armoire never changes skin. */
+export const outfitLookSchema = z.object({
+  hair_style: z.enum(HAIR_STYLES),
+  hair_color: outfitColor("hair"),
   shirt: outfitColor("shirt"),
   pants: outfitColor("pants"),
   shoes: outfitColor("shoes"),
 });
 
-/** Edit a saved outfit: its name, any of its colors, or both, at least one. */
+/** Save an outfit: a look and an optional name. */
+export const createOutfitSchema = outfitLookSchema.extend({ name: outfitName.optional() });
+
+/** Edit a saved outfit: its name, any part of its look, or both, at least one. */
 export const updateOutfitSchema = createOutfitSchema
   .partial()
   .refine((body) => Object.keys(body).length > 0, "Nothing to change.");
