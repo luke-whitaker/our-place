@@ -54,11 +54,22 @@ export const MAX_IMAGE_SIZE = 10 * 1024 * 1024; // 10MB
 export const MAX_VIDEO_SIZE = 100 * 1024 * 1024; // 100MB
 export const MAX_IMAGES_PER_POST = 10;
 
-export function getFileExtension(filename: string): string {
-  const ext = filename.split(".").pop()?.toLowerCase() || "";
-  // Normalize .mov to .mp4 extension mapping isn't needed here,
-  // just return the actual extension
-  return ext;
+// The stored extension comes from the MIME type we validated, never from the
+// uploader's filename: the filename is client-controlled, and it once let a
+// member write outside images/ (see uploadToStorage's key check).
+const EXTENSION_BY_TYPE: Record<string, string> = {
+  "image/jpeg": "jpg",
+  "image/png": "png",
+  "image/gif": "gif",
+  "image/webp": "webp",
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+  "video/quicktime": "mov",
+};
+
+/** The file extension for an accepted MIME type, or null for anything else. */
+export function extensionForType(mimeType: string): string | null {
+  return EXTENSION_BY_TYPE[mimeType] ?? null;
 }
 
 export function isImageType(mimeType: string): boolean {

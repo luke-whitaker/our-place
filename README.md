@@ -263,6 +263,24 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.15.1 — Uploads Stay in Their Folder (September 2026)
+
+**Why:** The upload route named each stored file with the extension from the uploader's
+filename. A crafted filename with percent-encoded `..` segments could send a signed-in member's
+upload outside `images/`, for example over a piece of world art in the same bucket. It was
+found in a review before anyone used it, and each storage key was already limited to its own
+bucket.
+
+**What changed:**
+
+- **The extension comes from the file type the server already checked** (`image/jpeg` is always
+  `.jpg`), never from the filename.
+- **Storage refuses any unsafe key.** `uploadToStorage` accepts only plain path segments ending
+  in an extension, so every caller, including `npm run world:upload`, is covered.
+- Route tests upload hostile filenames and confirm each one lands in `images/`.
+
+**What didn't change:** accepted file types, size limits, and API responses.
+
 ### v0.15.0 — A Bigger World, and an Armoire at Home (September 2026)
 
 **Why:** Now that members can see each other, the world needed room to go exploring together,

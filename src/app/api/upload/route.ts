@@ -9,7 +9,7 @@ import {
   MAX_VIDEO_SIZE,
   isImageType,
   isVideoType,
-  getFileExtension,
+  extensionForType,
 } from "@/lib/media-utils";
 import { StorageConfigError, StorageUploadError, uploadToStorage } from "@/lib/storage";
 
@@ -41,8 +41,9 @@ export async function POST(request: NextRequest) {
     const mimeType = file.type;
     const isImage = isImageType(mimeType);
     const isVideo = isVideoType(mimeType);
+    const ext = extensionForType(mimeType);
 
-    if (!isImage && !isVideo) {
+    if ((!isImage && !isVideo) || !ext) {
       return NextResponse.json(
         {
           error: `Unsupported file type: ${mimeType}. Accepted: ${[...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_VIDEO_TYPES].join(", ")}`,
@@ -63,7 +64,6 @@ export async function POST(request: NextRequest) {
 
     // Object key mirrors the old /uploads/<subdir>/<uuid>.<ext> layout
     const subDir = isImage ? "images" : "videos";
-    const ext = getFileExtension(file.name) || (isImage ? "jpg" : "mp4");
     const key = `${subDir}/${uuidv4()}.${ext}`;
 
     const arrayBuffer = await file.arrayBuffer();

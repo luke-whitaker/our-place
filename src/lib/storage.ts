@@ -86,6 +86,14 @@ function getR2(): R2Config {
 }
 
 /**
+ * The key becomes a URL path, and the URL parser resolves "." and ".." segments,
+ * percent-encoded ones included, so a key like "images/x.a/%2e%2e/world/y"
+ * would land outside its folder or even its bucket. Only plain segments of
+ * letters, digits, "_" and "-", ending in a file extension, pass.
+ */
+const SAFE_KEY = /^[a-z0-9_-]+(\/[a-z0-9_-]+)*\.[a-z0-9]+$/i;
+
+/**
  * Upload a file to R2 and return its public URL.
  *
  * @param key object key, e.g. "images/<uuid>.jpg" — becomes the URL path
@@ -95,6 +103,11 @@ export async function uploadToStorage(
   body: ArrayBuffer,
   contentType: string,
 ): Promise<string> {
+  // Callers build keys from trusted parts, so a bad one is a bug: refuse it
+  // before any request leaves the server.
+  if (!SAFE_KEY.test(key)) {
+    throw new Error(`Refusing to upload to unsafe storage key "${key.slice(0, 100)}".`);
+  }
   const r2 = getR2();
 
   const response = await r2.client.fetch(`${r2.endpoint}/${r2.bucket}/${key}`, {

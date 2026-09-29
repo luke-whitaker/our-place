@@ -3,7 +3,9 @@ import {
   getYouTubeId,
   getVimeoId,
   parseVideoUrl,
-  getFileExtension,
+  extensionForType,
+  ACCEPTED_IMAGE_TYPES,
+  ACCEPTED_VIDEO_TYPES,
   isImageType,
   isVideoType,
   formatFileSize,
@@ -79,17 +81,19 @@ describe("parseVideoUrl", () => {
 
 // ── File utilities ──
 
-describe("getFileExtension", () => {
-  it("returns lowercase extension", () => {
-    expect(getFileExtension("photo.JPG")).toBe("jpg");
+describe("extensionForType", () => {
+  it("maps every accepted type to an extension", () => {
+    for (const type of [...ACCEPTED_IMAGE_TYPES, ...ACCEPTED_VIDEO_TYPES]) {
+      expect(extensionForType(type)).toMatch(/^[a-z0-9]+$/);
+    }
+    expect(extensionForType("image/jpeg")).toBe("jpg");
+    expect(extensionForType("video/quicktime")).toBe("mov");
   });
 
-  it("handles multiple dots", () => {
-    expect(getFileExtension("my.photo.png")).toBe("png");
-  });
-
-  it("returns empty string for no extension", () => {
-    expect(getFileExtension("README")).toBe("readme");
+  it("returns null for anything we don't accept", () => {
+    expect(extensionForType("image/svg+xml")).toBeNull();
+    expect(extensionForType("text/html")).toBeNull();
+    expect(extensionForType("")).toBeNull();
   });
 });
 
