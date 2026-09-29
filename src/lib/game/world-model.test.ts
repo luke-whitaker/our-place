@@ -8,7 +8,7 @@ import {
   type IsoWorld,
 } from "./world-model";
 import { LAB_TOWN } from "./worlds/lab-town";
-import { CAPITAL } from "./worlds/capital";
+import { CAPITAL } from "./worlds/world-map";
 import { MAILBOX_COLORS } from "./mailbox-colors";
 
 describe("terrain", () => {

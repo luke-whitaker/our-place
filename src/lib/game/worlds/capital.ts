@@ -505,7 +505,10 @@ const regions: Region[] = [
   { id: "mirror-pond", label: "Mirror Pond", bounds: { col: 80, row: 28, w: 24, h: 24 } },
 ];
 
-export const CAPITAL: IsoWorld = {
+/** The Capital as it was before the wilds grew around it (104x88). The world
+ * members walk is `CAPITAL` in world-map.ts, which sets this in the middle of a
+ * larger map; this module stays the authoring home for the town itself. */
+export const CAPITAL_CORE: IsoWorld = {
   id: "capital",
   cols: COLS,
   rows: ROWS,

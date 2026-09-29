@@ -15,6 +15,7 @@ import { isNpcId } from "@/lib/npcs";
 import { TINT_PRESETS, type TintPreset, type TintTarget } from "./terrain-tint";
 import { MAILBOX_COLORS } from "./mailbox-colors";
 import type { Door, MushroomWarp, Pc, Region, WorldFixture, WorldLink, WorldNpc } from "./types";
+import type { BiomeMap } from "./biomes";
 
 // ── Terrain ──
 // Iso ground is a small set of surface types — in iso, structures (walls, roofs,
@@ -328,6 +329,9 @@ export interface IsoWorld {
   id: string;
   /** Biome recolor baked into the art at load; absent means the forest as painted. */
   tint?: TintPreset;
+  /** A biome per tile, for a world that mixes them (see biomes.ts). Where it
+   * is absent, `tint` covers the whole world. */
+  biomes?: BiomeMap;
   /** Ground tile sheet, painted in the Forest_Tiles cell layout so the autotiler
    * needs no change. Absent means the forest sheet: an interior names the wooden
    * one, where `grass` reads as floorboards and `dirt` as stone flags. */
@@ -435,6 +439,12 @@ const regionSchema = z.object({
 export const isoWorldSchema = z.object({
   id: z.string().min(1),
   tint: z.enum(TINT_PRESETS).optional(),
+  biomes: z
+    .object({
+      presets: z.array(z.enum(TINT_PRESETS)).min(1),
+      grid: z.array(z.array(z.number().int().min(0))),
+    })
+    .optional(),
   groundSheet: z.string().min(1).optional(),
   cols: z.number().int().positive(),
   rows: z.number().int().positive(),
@@ -465,6 +475,7 @@ export function parseIsoWorld(data: unknown): IsoWorld {
       throw new Error(`terrain row ${r} has ${row.length} cols, expected ${world.cols}`);
     }
   });
+  if (world.biomes) validateBiomeGrid(world, world.biomes);
   world.objects.forEach((obj, i) => {
     if (!(obj.kind in OBJECT_CATALOG)) {
       throw new Error(`objects[${i}] has unknown kind "${obj.kind}"`);
@@ -474,6 +485,21 @@ export function parseIsoWorld(data: unknown): IsoWorld {
   (world.fixtures ?? []).forEach((fixture, i) => validateFixturePlacement(world, fixture, i));
 
   return world;
+}
+
+/** A biome map must match the terrain's dimensions and only name presets it lists. */
+function validateBiomeGrid(world: IsoWorld, biomes: BiomeMap): void {
+  if (biomes.grid.length !== world.rows) {
+    throw new Error(`biomes has ${biomes.grid.length} rows, expected ${world.rows}`);
+  }
+  biomes.grid.forEach((row, r) => {
+    if (row.length !== world.cols) {
+      throw new Error(`biomes row ${r} has ${row.length} cols, expected ${world.cols}`);
+    }
+    if (row.some((index) => index >= biomes.presets.length)) {
+      throw new Error(`biomes row ${r} names a preset beyond the ${biomes.presets.length} listed`);
+    }
+  });
 }
 
 /** Whether `world`'s solid terrain or a solid object's footprint covers (col,

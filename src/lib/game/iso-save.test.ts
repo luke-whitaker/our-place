@@ -1,6 +1,7 @@
 import { describe, it, expect, vi } from "vitest";
 import { isValidIsoPosition, loadIsoSave, persistIsoSave } from "./iso-save";
 import type { SolidGrid } from "./iso-collision";
+import { CORE_OFFSET } from "./worlds/wilds/layout";
 
 describe("isValidIsoPosition", () => {
   const grid: SolidGrid = [
@@ -42,6 +43,26 @@ describe("save (with a localStorage)", () => {
       length: 0,
     };
   }
+
+  it("moves a Capital save from before the world grew by the core offset", () => {
+    const storage = fakeStorage();
+    const old = (col: number, row: number) =>
+      JSON.stringify({ version: 3, col, row, discovered: ["pond-shrine"] });
+    storage.setItem("ourplace.world.save:capital", old(52, 60));
+    storage.setItem("ourplace.world.save:island:u1", old(12, 14));
+    vi.stubGlobal("window", { localStorage: storage });
+    try {
+      expect(loadIsoSave("capital")).toMatchObject({
+        col: 52 + CORE_OFFSET.col,
+        row: 60 + CORE_OFFSET.row,
+        discovered: ["pond-shrine"],
+      });
+      // Islands didn't move, so their saves carry over untouched.
+      expect(loadIsoSave("island:u1")).toMatchObject({ col: 12, row: 14 });
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 
   it("keeps one slot per world and drops the pre-islands single slot", () => {
     const storage = fakeStorage();

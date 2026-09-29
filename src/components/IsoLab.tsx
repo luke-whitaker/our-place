@@ -31,7 +31,7 @@ import {
   type IsoAssets,
 } from "@/lib/game/iso-engine";
 import { LAB_TOWN } from "@/lib/game/worlds/lab-town";
-import { CAPITAL } from "@/lib/game/worlds/capital";
+import { CAPITAL } from "@/lib/game/worlds/world-map";
 import { buildIsland } from "@/lib/game/worlds/island";
 
 const SAMPLE_ISLAND_OWNER = { id: "lab-island", username: "lab", displayName: "Lab" };

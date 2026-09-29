@@ -8,11 +8,18 @@
 // the same shape.
 
 import { isSolidAt, type SolidGrid } from "./iso-collision";
+import { CORE_OFFSET } from "./worlds/wilds/layout";
 
 const SAVE_KEY_PREFIX = "ourplace.world.save:";
 /** The pre-islands single-slot key; removed on sight so it never lingers. */
 const LEGACY_SAVE_KEY = "ourplace.world.save";
-const SAVE_VERSION = 3;
+const SAVE_VERSION = 4;
+
+/** Version 3 saves predate the Capital growing into a bigger map (September
+ * 2026), which moved the old Capital by CORE_OFFSET. A version 3 save for a
+ * world listed here shifts by its offset; any other version 3 save (islands,
+ * houses, rooms) is still exactly right as it is. */
+const V3_SHIFT: Record<string, { col: number; row: number }> = { capital: CORE_OFFSET };
 
 export interface IsoSave {
   version: number;
@@ -32,10 +39,12 @@ export function loadIsoSave(worldId: string): IsoSave | null {
     const raw = window.localStorage.getItem(saveKey(worldId));
     if (!raw) return null;
     const save = JSON.parse(raw) as IsoSave;
-    if (save.version !== SAVE_VERSION) return null;
     if (typeof save.col !== "number" || typeof save.row !== "number") return null;
     if (!Array.isArray(save.discovered)) return null;
-    return save;
+    if (save.version === SAVE_VERSION) return save;
+    if (save.version !== 3) return null;
+    const shift = V3_SHIFT[worldId] ?? { col: 0, row: 0 };
+    return { ...save, version: SAVE_VERSION, col: save.col + shift.col, row: save.row + shift.row };
   } catch {
     return null;
   }

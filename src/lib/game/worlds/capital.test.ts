@@ -1,5 +1,13 @@
 import { describe, it, expect } from "vitest";
-import { CAPITAL, TOWN, POND, MIRROR_POND, OLD_ROAD, WEST_TRAIL, EAST_TRAIL } from "./capital";
+import {
+  CAPITAL_CORE as CAPITAL,
+  TOWN,
+  POND,
+  MIRROR_POND,
+  OLD_ROAD,
+  WEST_TRAIL,
+  EAST_TRAIL,
+} from "./capital";
 import { parseIsoWorld, OBJECT_CATALOG } from "../world-model";
 import { buildSolidGrid, isSolidAt, type SolidGrid } from "../iso-collision";
 import { visibleGroundTiles } from "../iso-cull";

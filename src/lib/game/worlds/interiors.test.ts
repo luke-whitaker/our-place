@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { INTERIORS, INTERIOR_SLUGS, interiorPlace, houseNetworkLinks, PC_ID } from "./interiors";
 import { EXIT_DOOR_ID } from "./interior";
-import { CAPITAL } from "./capital";
+import { CAPITAL } from "./world-map";
 import { parseIsoWorld } from "../world-model";
 import { buildSolidGrid, isSolidAt, type SolidGrid } from "../iso-collision";
 import { INTERACT_TILES, nearestTarget } from "../iso-engine";

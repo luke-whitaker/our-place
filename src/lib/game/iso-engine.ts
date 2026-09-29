@@ -28,6 +28,9 @@ import {
   visibleGroundTiles,
   rectsOverlap,
   objectCullView,
+  buildObjectIndex,
+  objectsNearView,
+  type ObjectIndex,
   type ViewRect,
 } from "./iso-cull";
 import { FADE_SPEED, PAL } from "./constants";
@@ -38,6 +41,8 @@ import type { GameMode, Door, MushroomWarp, Pc, WorldFixture, WorldLink, WorldNp
 import type { IsoWorld } from "./world-model";
 import { fixtureFootprint } from "./world-model";
 import type { InputManager } from "./input";
+import type { TintPreset } from "./terrain-tint";
+import { biomeAt } from "./biomes";
 
 // ── Tuning ──
 
@@ -791,6 +796,55 @@ export interface IsoAssets {
   characters: CharacterSprites;
   /** Standing NPC frames, keyed by NpcId, for every NPC the world places. */
   npcs: Record<string, NpcSprites>;
+  /** Tinted copies for a world that mixes biomes (see biomes.ts): the ground
+   * sheets and object sprites for every preset beyond the world's base. */
+  biomes?: BiomeAssets;
+}
+
+export interface BiomeAssets {
+  forest: Partial<Record<TintPreset, HTMLImageElement>>;
+  water: Partial<Record<TintPreset, HTMLImageElement>>;
+  /** Sprites keyed by catalog kind, only for kinds placed in that biome. */
+  objects: Partial<Record<TintPreset, Record<string, ObjectSprite>>>;
+}
+
+// Built once per object list and reused every frame; a list that changes
+// length (an object placed or removed) gets a fresh index.
+const objectIndexes = new WeakMap<object, ObjectIndex>();
+function objectIndexFor(world: IsoWorld): ObjectIndex {
+  const cached = objectIndexes.get(world.objects);
+  if (cached && cached.size === world.objects.length) return cached;
+  const index = buildObjectIndex(world.objects);
+  objectIndexes.set(world.objects, index);
+  return index;
+}
+
+// The largest drawn sprite, which bounds how far from the view an object's
+// anchor can sit and still show. Biome copies share their base's size.
+const spriteBoundsCache = new WeakMap<object, { maxW: number; maxH: number }>();
+function spriteBounds(assets: IsoAssets): { maxW: number; maxH: number } {
+  const cached = spriteBoundsCache.get(assets.objects);
+  if (cached) return cached;
+  const sprites = Object.values(assets.objects);
+  const bounds = {
+    maxW: Math.max(0, ...sprites.map((s) => s.drawW)),
+    maxH: Math.max(0, ...sprites.map((s) => s.drawH)),
+  };
+  spriteBoundsCache.set(assets.objects, bounds);
+  return bounds;
+}
+
+/** The sprite for an object of `kind` standing on (col, row): its biome's
+ * tinted copy where the world mixes biomes, the base sprite otherwise. */
+function objectSpriteAt(
+  assets: IsoAssets,
+  world: IsoWorld,
+  kind: string,
+  col: number,
+  row: number,
+): ObjectSprite | undefined {
+  if (!assets.biomes) return assets.objects[kind];
+  return assets.biomes.objects[biomeAt(world, col, row)]?.[kind] ?? assets.objects[kind];
 }
 
 /** Project a world's terrain to the grass grid the forest autotiler reads. Water
@@ -863,8 +917,10 @@ export function render(
   const view = objectCullView(camX, camY, state.view.w, state.view.h);
   type Drawable = { depth: number; draw: () => void };
   const drawables: Drawable[] = [];
-  for (const obj of world.objects) {
-    const sprite = assets.objects[obj.kind];
+  const { maxW, maxH } = spriteBounds(assets);
+  for (const i of objectsNearView(objectIndexFor(world), view, maxW, maxH)) {
+    const obj = world.objects[i];
+    const sprite = objectSpriteAt(assets, world, obj.kind, obj.col, obj.row);
     if (!sprite) continue;
     const placed = { sprite, col: obj.col, row: obj.row };
     if (!rectsOverlap(objectDrawRect(placed), view)) continue;
@@ -1009,13 +1065,17 @@ function drawGround(
     const s = tileToScreen(col, row);
     const dx = Math.round(s.x - 16 - camX);
     const dy = Math.round(s.y - 8 - camY);
+    // A mixed-biome world draws each tile from its own biome's sheets.
+    const preset = assets.biomes ? biomeAt(world, col, row) : null;
     if (kind === "water") {
       const [bc, br] = waterCell(terrain, col, row);
       const sc = bc + waterFrame * WATER_FRAME_COLS;
-      ctx.drawImage(assets.water, sc * CELL, br * CELL, CELL, CELL, dx, dy, CELL, CELL);
+      const sheet = (preset && assets.biomes?.water[preset]) || assets.water;
+      ctx.drawImage(sheet, sc * CELL, br * CELL, CELL, CELL, dx, dy, CELL, CELL);
     } else {
       const [sc, sr] = groundCell(grass, col, row);
-      ctx.drawImage(assets.forest, sc * CELL, sr * CELL, CELL, CELL, dx, dy, CELL, CELL);
+      const sheet = (preset && assets.biomes?.forest[preset]) || assets.forest;
+      ctx.drawImage(sheet, sc * CELL, sr * CELL, CELL, CELL, dx, dy, CELL, CELL);
     }
   }
 }

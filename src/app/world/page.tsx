@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import WorldCanvas from "@/components/WorldCanvas";
 import { useAuth } from "@/components/AuthProvider";
 import { apiFetch, userMessage } from "@/lib/api-client";
-import { CAPITAL } from "@/lib/game/worlds/capital";
+import { CAPITAL } from "@/lib/game/worlds/world-map";
 import { buildIsland } from "@/lib/game/worlds/island";
 import { buildIslandHouse } from "@/lib/game/worlds/island-house";
 import { findInterior } from "@/lib/game/worlds/interiors";

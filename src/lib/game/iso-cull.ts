@@ -144,3 +144,66 @@ export function objectCullView(camX: number, camY: number, viewW: number, viewH:
     h: viewH + 2 * RECT_CULL_PAD,
   };
 }
+
+// ── Object index ──
+// A big world holds thousands of objects, and testing every one against the
+// view each frame costs more than drawing the ones that show. The index
+// buckets objects by where their anchor lands on screen, in chunks along the
+// two screen diagonals (col+row sets screen y, col−row sets screen x), so a
+// frame only visits the chunks near the view. The caller still applies the
+// exact rectangle test to each candidate, so the index only skips work.
+
+/** Tiles per chunk along each diagonal. */
+const INDEX_CHUNK = 8;
+
+export interface ObjectIndex {
+  /** Object indices per chunk, each list in ascending (world) order. */
+  chunks: Map<string, number[]>;
+  /** How many objects were indexed, so a changed list is noticed. */
+  size: number;
+}
+
+const chunkKey = (sumChunk: number, diffChunk: number) => `${sumChunk},${diffChunk}`;
+
+export function buildObjectIndex(
+  objects: ReadonlyArray<{ col: number; row: number }>,
+): ObjectIndex {
+  const chunks = new Map<string, number[]>();
+  objects.forEach((obj, i) => {
+    const k = chunkKey(
+      Math.floor((obj.col + obj.row) / INDEX_CHUNK),
+      Math.floor((obj.col - obj.row) / INDEX_CHUNK),
+    );
+    const list = chunks.get(k);
+    if (list) list.push(i);
+    else chunks.set(k, [i]);
+  });
+  return { chunks, size: objects.length };
+}
+
+/**
+ * Indices of every object whose anchor could put its sprite inside `view`,
+ * in ascending order (the order render always drew them in, which keeps
+ * depth-sort ties stable). `maxW` and `maxH` bound any sprite's drawn size:
+ * an anchor further than that from the view can't reach into it.
+ */
+export function objectsNearView(
+  index: ObjectIndex,
+  view: ViewRect,
+  maxW: number,
+  maxH: number,
+): number[] {
+  // tileToScreen: x = (col − row)·HALF_W, y = (col + row)·HALF_H.
+  const sumLo = Math.floor((view.y - maxH) / HALF_H / INDEX_CHUNK) - 1;
+  const sumHi = Math.ceil((view.y + view.h + maxH) / HALF_H / INDEX_CHUNK) + 1;
+  const diffLo = Math.floor((view.x - maxW) / HALF_W / INDEX_CHUNK) - 1;
+  const diffHi = Math.ceil((view.x + view.w + maxW) / HALF_W / INDEX_CHUNK) + 1;
+  const found: number[] = [];
+  for (let s = sumLo; s <= sumHi; s++) {
+    for (let d = diffLo; d <= diffHi; d++) {
+      const list = index.chunks.get(chunkKey(s, d));
+      if (list) for (const i of list) found.push(i);
+    }
+  }
+  return found.sort((a, b) => a - b);
+}

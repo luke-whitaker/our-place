@@ -1,7 +1,15 @@
 import { describe, it, expect } from "vitest";
 import { tileToScreen, HALF_W, HALF_H } from "./iso";
 import { ISO_VIEW_W, ISO_VIEW_H } from "./iso-engine";
-import { groundCullRange, visibleGroundTiles, rectsOverlap, CELL, type ViewRect } from "./iso-cull";
+import {
+  groundCullRange,
+  visibleGroundTiles,
+  rectsOverlap,
+  buildObjectIndex,
+  objectsNearView,
+  CELL,
+  type ViewRect,
+} from "./iso-cull";
 
 /** The exact CELL×CELL rect drawGround blits a tile into, in absolute
  * world-screen (pre-zoom, pre-camera-subtraction) pixels — mirrors drawGround's
@@ -103,5 +111,42 @@ describe("rectsOverlap", () => {
     expect(rectsOverlap(a, { x: 5, y: 5, w: 10, h: 10 })).toBe(true);
     expect(rectsOverlap(a, { x: 10, y: 10, w: 10, h: 10 })).toBe(false); // half-open: touching edges don't overlap
     expect(rectsOverlap(a, { x: 100, y: 100, w: 10, h: 10 })).toBe(false);
+  });
+});
+
+describe("objectsNearView", () => {
+  // Scattered objects with sprites of mixed sizes, anchored at their base.
+  const objects = Array.from({ length: 4000 }, (_, i) => ({
+    col: (i * 37) % 300,
+    row: (i * 53) % 250,
+    w: 16 + ((i * 7) % 5) * 32,
+    h: 16 + ((i * 11) % 7) * 32,
+  }));
+  const maxW = Math.max(...objects.map((o) => o.w));
+  const maxH = Math.max(...objects.map((o) => o.h));
+  const rectOf = (o: (typeof objects)[number]): ViewRect => {
+    const s = tileToScreen(o.col, o.row);
+    return { x: s.x - o.w / 2, y: s.y - o.h, w: o.w, h: o.h };
+  };
+  const index = buildObjectIndex(objects);
+
+  it("finds every object a full scan would draw, in the same order", () => {
+    for (let k = 0; k < 40; k++) {
+      const view: ViewRect = {
+        x: ((k * 997) % 8000) - 4000,
+        y: (k * 613) % 4400,
+        w: ISO_VIEW_W,
+        h: ISO_VIEW_H,
+      };
+      const brute = objects.flatMap((o, i) => (rectsOverlap(rectOf(o), view) ? [i] : []));
+      const near = objectsNearView(index, view, maxW, maxH);
+      const drawn = near.filter((i) => rectsOverlap(rectOf(objects[i]), view));
+      expect(drawn).toEqual(brute);
+    }
+  });
+
+  it("visits a small fraction of a big world", () => {
+    const view: ViewRect = { x: 0, y: 2000, w: ISO_VIEW_W, h: ISO_VIEW_H };
+    expect(objectsNearView(index, view, maxW, maxH).length).toBeLessThan(objects.length / 4);
   });
 });

@@ -4,7 +4,7 @@
 // page and the engine sandbox so the two can never drift apart.
 
 import type { AvatarConfig } from "@/lib/types";
-import type { IsoAssets } from "./iso-engine";
+import type { BiomeAssets, IsoAssets } from "./iso-engine";
 import type { IsoWorld } from "./world-model";
 import { OBJECT_CATALOG } from "./world-model";
 import type { WorldFixture } from "./types";
@@ -18,6 +18,7 @@ import { loadObjectSprite, type ObjectSprite } from "./world-object";
 import { worldAsset, newWorldImage } from "./asset-url";
 import { tintImage, tintToImage, type TintPreset } from "./terrain-tint";
 import { NPC_DIALOGUE } from "./npc-dialogue";
+import { extraGroundBiomes, extraObjectBiomes } from "./biomes";
 
 /** Every OBJECT_CATALOG key a fixture can render as. A mailbox needs both its
  * raised and lowered art loaded up front, in its own color, so toggling the
@@ -63,7 +64,41 @@ export async function loadWorldAssets(
   npcIds.forEach((id, i) => {
     npcs[id] = npcSheets[i];
   });
-  return { characters, forest, water, objects, npcs };
+  const biomes = world.biomes ? await loadBiomeAssets(world, ground) : undefined;
+  return { characters, forest, water, objects, npcs, biomes };
+}
+
+/**
+ * Tinted copies for a world that mixes biomes: each extra preset's ground and
+ * water sheets, and a sprite for each kind actually placed in that biome. The
+ * base preset's art is what loadWorldAssets already built.
+ */
+async function loadBiomeAssets(world: IsoWorld, ground: string): Promise<BiomeAssets> {
+  const [groundImg, waterImg] = await Promise.all([
+    loadImage(worldAsset(ground)),
+    loadImage(worldAsset("/world/tiles/water.png")),
+  ]);
+  const out: BiomeAssets = { forest: {}, water: {}, objects: {} };
+  await Promise.all(
+    extraGroundBiomes(world).map(async (preset) => {
+      out.forest[preset] = await tintToImage(groundImg, preset, "ground");
+      out.water[preset] = await tintToImage(waterImg, preset, "ground");
+    }),
+  );
+  await Promise.all(
+    [...extraObjectBiomes(world)].map(async ([preset, kinds]) => {
+      const sprites: Record<string, ObjectSprite> = {};
+      await Promise.all(
+        [...kinds].map(async (kind) => {
+          const def = OBJECT_CATALOG[kind];
+          const sprite = await loadObjectSprite(worldAsset(def.src), def.scale, def.anchor);
+          sprites[kind] = tintSprite(sprite, preset, def.tint);
+        }),
+      );
+      out.objects[preset] = sprites;
+    }),
+  );
+  return out;
 }
 
 function tintSprite(
