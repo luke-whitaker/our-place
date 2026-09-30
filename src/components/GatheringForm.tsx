@@ -90,7 +90,7 @@ export default function GatheringForm({ initialCommunityId }: { initialCommunity
           starts_at: new Date(fields.starts).toISOString(),
           ends_at: new Date(fields.ends).toISOString(),
           community_id: fields.communityId || null,
-          invitee_ids: fields.communityId ? [] : invitees.map((i) => i.id),
+          invitee_ids: invitees.map((i) => i.id),
         }),
       });
       router.push(`/gatherings/${data.gathering.id}`);
@@ -104,8 +104,11 @@ export default function GatheringForm({ initialCommunityId }: { initialCommunity
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8 sm:px-6">
-      <Link href="/profile" className="text-sm text-ink-muted hover:text-ink-secondary">
-        ← My Place
+      <Link
+        href="/profile?tab=gatherings"
+        className="text-sm text-ink-muted hover:text-ink-secondary"
+      >
+        ← My Gatherings
       </Link>
       <h1 className="mt-4 text-2xl font-bold text-ink">Host a gathering</h1>
       <p className="mt-2 text-sm text-ink-muted">
@@ -219,18 +222,23 @@ export default function GatheringForm({ initialCommunityId }: { initialCommunity
           </select>
         </div>
 
-        {fields.communityId ? (
+        {fields.communityId && (
           <p className="rounded-xl bg-accent-50 px-4 py-3 text-sm text-accent-600">
             Everyone in {community?.name ?? "this community"} is invited, and it shows on the
             community&apos;s calendar.
           </p>
-        ) : (
-          <InviteePicker
-            value={invitees}
-            onChange={setInvitees}
-            selfUsername={user?.username ?? ""}
-          />
         )}
+        <InviteePicker
+          value={invitees}
+          onChange={setInvitees}
+          selfUsername={user?.username ?? ""}
+          label={fields.communityId ? "Additional invitees" : "Who's invited"}
+          hint={
+            fields.communityId
+              ? `Anyone outside ${community?.name ?? "the community"} you'd also like to invite.`
+              : undefined
+          }
+        />
 
         <button
           type="submit"

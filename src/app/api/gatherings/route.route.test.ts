@@ -158,7 +158,7 @@ describe("POST /api/gatherings", () => {
     expect((await host(owner, { community_id: communityId })).status).toBe(201);
   });
 
-  it("invites the whole community: rows, letters, and notifications, skipping only full mailboxes' letters", async () => {
+  it("invites the whole community plus additional invitees: rows, letters, and notifications, skipping only full mailboxes' letters", async () => {
     const [me, ada, ben, outsider] = [
       await createTestUser(),
       await createTestUser(),
@@ -172,21 +172,38 @@ describe("POST /api/gatherings", () => {
     }
     await createTestLetter({ ownerId: ada.userId, slot: 0, body: "Earlier letter" });
 
-    const { id } = await host(me, { community_id: communityId, invitee_ids: [outsider.userId] });
+    // Ada is picked too, though she's already a member: she's invited once.
+    const { id } = await host(me, {
+      community_id: communityId,
+      invitee_ids: [outsider.userId, ada.userId],
+    });
 
     const invited = await prisma.gatheringInvite.findMany({
       where: { gatheringId: id, status: "pending" },
       select: { userId: true },
     });
-    expect(invited.map((i) => i.userId).sort()).toEqual([ada.userId, ben.userId].sort());
+    expect(invited.map((i) => i.userId).sort()).toEqual(
+      [ada.userId, ben.userId, outsider.userId].sort(),
+    );
 
     const letters = await prisma.item.findMany({
       where: { gatheringId: id },
       select: { ownerId: true, slot: true, fromId: true, body: true },
+      orderBy: { slot: "asc" },
     });
-    expect(letters).toEqual([
-      { ownerId: ada.userId, slot: 1, fromId: me.userId, body: expect.any(String) },
-    ]);
+    expect(letters).toHaveLength(2);
+    expect(letters).toContainEqual({
+      ownerId: ada.userId,
+      slot: 1,
+      fromId: me.userId,
+      body: expect.any(String),
+    });
+    expect(letters).toContainEqual({
+      ownerId: outsider.userId,
+      slot: 0,
+      fromId: me.userId,
+      body: expect.any(String),
+    });
     expect(letters[0].body).toContain("Picnic in the park");
     expect(letters[0].body).not.toContain("Linden");
 
@@ -194,7 +211,9 @@ describe("POST /api/gatherings", () => {
       where: { gatheringId: id, kind: "gathering_invite" },
       select: { recipientId: true },
     });
-    expect(notified.map((n) => n.recipientId).sort()).toEqual([ada.userId, ben.userId].sort());
+    expect(notified.map((n) => n.recipientId).sort()).toEqual(
+      [ada.userId, ben.userId, outsider.userId].sort(),
+    );
   });
 
   it("refuses a community larger than the invitation cap", async () => {

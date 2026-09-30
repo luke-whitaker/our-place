@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import AccountSettings from "@/components/AccountSettings";
@@ -12,12 +12,12 @@ import GatheringsCalendar from "@/components/GatheringsCalendar";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { CommunityWithMembership, Post } from "@/lib/types";
 
-type ProfileTab = "my-place" | "communities" | "account";
+type ProfileTab = "posts" | "communities" | "gatherings" | "account";
 
 const TABS: { id: ProfileTab; label: string; icon: React.ReactNode }[] = [
   {
-    id: "my-place",
-    label: "My Place",
+    id: "posts",
+    label: "My Posts",
     icon: (
       <svg
         className="h-4 w-4"
@@ -36,7 +36,7 @@ const TABS: { id: ProfileTab; label: string; icon: React.ReactNode }[] = [
   },
   {
     id: "communities",
-    label: "Communities",
+    label: "My Communities",
     icon: (
       <svg
         className="h-4 w-4"
@@ -54,8 +54,27 @@ const TABS: { id: ProfileTab; label: string; icon: React.ReactNode }[] = [
     ),
   },
   {
+    id: "gatherings",
+    label: "My Gatherings",
+    icon: (
+      <svg
+        className="h-4 w-4"
+        fill="none"
+        viewBox="0 0 24 24"
+        strokeWidth={1.5}
+        stroke="currentColor"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5"
+        />
+      </svg>
+    ),
+  },
+  {
     id: "account",
-    label: "Account",
+    label: "My Account",
     icon: (
       <svg
         className="h-4 w-4"
@@ -79,10 +98,27 @@ const TABS: { id: ProfileTab; label: string; icon: React.ReactNode }[] = [
   },
 ];
 
+/** `/profile?tab=gatherings` opens that tab, so gathering pages can link back to it. */
+function tabFromQuery(value: string | null): ProfileTab {
+  return TABS.find((t) => t.id === value)?.id ?? "posts";
+}
+
+// useSearchParams needs a Suspense boundary above it in the App Router.
 export default function ProfilePage() {
+  return (
+    <Suspense>
+      <ProfileContent />
+    </Suspense>
+  );
+}
+
+function ProfileContent() {
   const { user, loading } = useAuth();
   const router = useRouter();
-  const [activeTab, setActiveTab] = useState<ProfileTab>("my-place");
+  const searchParams = useSearchParams();
+  const [activeTab, setActiveTab] = useState<ProfileTab>(() =>
+    tabFromQuery(searchParams.get("tab")),
+  );
   const [communities, setCommunities] = useState<CommunityWithMembership[]>([]);
   const [myPlacePosts, setMyPlacePosts] = useState<Post[]>([]);
   const [loadingProfile, setLoadingProfile] = useState(true);
@@ -234,8 +270,8 @@ export default function ProfilePage() {
         ))}
       </div>
 
-      {/* ── My Place Tab ── */}
-      {activeTab === "my-place" && (
+      {/* ── My Posts Tab ── */}
+      {activeTab === "posts" && (
         <div className="mt-6 space-y-6">
           {/* Description */}
           <div className="op-tint rounded-2xl border border-violet-100 bg-gradient-to-r from-violet-50 to-accent-50 p-5">
@@ -271,13 +307,6 @@ export default function ProfilePage() {
               </Link>
             </div>
           </div>
-
-          {/* Your own calendar: this page is only ever yours, and the API
-              serves it only to you. */}
-          <GatheringsCalendar
-            description="Only you see this calendar. It shows gatherings you're hosting, invited to, or going to, in your time zone. Declined and cancelled ones drop off."
-            hostHref="/gatherings/new"
-          />
 
           {/* Create Post Form */}
           <CreatePostForm onPostCreated={loadMyPlacePosts} />
@@ -366,7 +395,19 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ── Account Tab ── */}
+      {/* ── My Gatherings Tab ── */}
+      {activeTab === "gatherings" && (
+        <div className="mt-6">
+          {/* Your own calendar: this page is only ever yours, and the API
+              serves it only to you. */}
+          <GatheringsCalendar
+            description="Only you see this calendar. It shows gatherings you're hosting, invited to, or going to, in your time zone. Declined and cancelled ones drop off."
+            hostHref="/gatherings/new"
+          />
+        </div>
+      )}
+
+      {/* ── My Account Tab ── */}
       {activeTab === "account" && <AccountSettings />}
     </div>
   );

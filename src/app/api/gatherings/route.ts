@@ -12,38 +12,39 @@ function refuse(error: string, status: number): Invitees {
   return { ok: false, response: NextResponse.json({ error }, { status }) };
 }
 
-/** Who a new gathering invites: the whole community when it's tied to one
- * (the host must be a member), otherwise the members the host picked. */
+/** Who a new gathering invites: the members the host picked, plus the whole
+ * community when it's tied to one (the host must be a member). */
 async function resolveInvitees(
   hostId: string,
   communityId: string | null,
   pickedIds: string[],
 ): Promise<Invitees> {
-  if (communityId) {
-    const membership = await prisma.communityMember.findUnique({
-      where: { userId_communityId: { userId: hostId, communityId } },
-      select: { id: true },
-    });
-    if (!membership) {
-      return refuse("You can only host a gathering for a community you belong to.", 403);
-    }
-    const members = await prisma.communityMember.findMany({
-      where: { communityId },
-      select: { userId: true },
-      take: MAX_COMMUNITY_INVITEES + 1,
-    });
-    if (members.length > MAX_COMMUNITY_INVITEES) {
-      return refuse(
-        `Community gatherings can invite up to ${MAX_COMMUNITY_INVITEES} members, and this community has more.`,
-        400,
-      );
-    }
-    return { ok: true, ids: members.map((m) => m.userId) };
+  const picked = [...new Set(pickedIds)].filter((id) => id !== hostId);
+  const found = await prisma.user.count({ where: { id: { in: picked } } });
+  if (found !== picked.length) return refuse("Some of those members couldn't be found.", 400);
+  if (!communityId) return { ok: true, ids: picked };
+
+  const membership = await prisma.communityMember.findUnique({
+    where: { userId_communityId: { userId: hostId, communityId } },
+    select: { id: true },
+  });
+  if (!membership) {
+    return refuse("You can only host a gathering for a community you belong to.", 403);
   }
-  const ids = [...new Set(pickedIds)].filter((id) => id !== hostId);
-  const found = await prisma.user.count({ where: { id: { in: ids } } });
-  if (found !== ids.length) return refuse("Some of those members couldn't be found.", 400);
-  return { ok: true, ids };
+  const members = await prisma.communityMember.findMany({
+    where: { communityId },
+    select: { userId: true },
+    take: MAX_COMMUNITY_INVITEES + 1,
+  });
+  if (members.length > MAX_COMMUNITY_INVITEES) {
+    return refuse(
+      `Community gatherings can invite up to ${MAX_COMMUNITY_INVITEES} members, and this community has more.`,
+      400,
+    );
+  }
+  // Additional invitees from outside the community ride along; inviteMembers
+  // drops duplicates, so picking someone who is already a member is harmless.
+  return { ok: true, ids: [...members.map((m) => m.userId), ...picked] };
 }
 
 // POST: host a gathering. In person only until v0.20.0 brings gatherings in

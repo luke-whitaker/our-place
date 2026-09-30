@@ -272,9 +272,12 @@ plan that here. Events come back as Gatherings, rebuilt around invitations peopl
 
 **What changed:**
 
-- **Host a gathering** from "Host a gathering" on your My Place calendar or a community's
-  calendar: a name, a start and end, an address, and optional details. Any member can host.
-- **Invite people by name,** or **tie it to a community you belong to** to invite everyone in it.
+- **Host a gathering** from "Host a gathering" on your calendar (the new **My Gatherings** tab
+  of your profile) or a community's calendar: a name, a start and end, an address, and optional
+  details. Any member can host.
+- **Invite your friends with a tap,** search for anyone else by name, or **tie it to a community
+  you belong to** to invite everyone in it, plus any additional invitees from outside it.
+- **Your profile's tabs are now My Posts, My Communities, My Gatherings, and My Account.**
 - **Invitations arrive twice:** as a letter from the host in your mailbox and as a notification.
   Accept or Decline from either one; your answer shows in both, and you can change it until the
   gathering starts. The letter never includes the address, since letters can be handed on.

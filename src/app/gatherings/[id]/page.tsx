@@ -55,8 +55,8 @@ export default function GatheringPage() {
     return (
       <div className="mx-auto max-w-2xl px-4 py-16 text-center sm:px-6">
         <p className="text-ink-muted">{error}</p>
-        <Link href="/profile" className="mt-4 inline-block text-sm text-accent-600">
-          Back to My Place
+        <Link href="/profile?tab=gatherings" className="mt-4 inline-block text-sm text-accent-600">
+          Back to My Gatherings
         </Link>
       </div>
     );
