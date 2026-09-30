@@ -29,6 +29,10 @@ Every route that enforces a rule (a permission, a counter, a gate) gets a `route
 - Build rows with `src/test/route-helpers.ts` (`createTestUser`, `createTestCommunity`, `joinCommunity`, `createTestPost`, `jsonRequest`) and call the exported handler directly with `params: Promise.resolve({...})`.
 - Tables truncate after every test and files run serially, so tests never depend on each other. `npm run test` stays database-free; do not put a route test under the plain `*.test.ts` pattern.
 
+## Notifications
+
+A route that should tell someone about something calls `notify(tx, {...})` from `@/lib/notifications` inside the same `prisma.$transaction` as the write it's about, so the notification exists exactly when that thing does. `notify` skips the actor's own notifications. Point the row at its cause (`friendshipId`, `reactionId`, `commentId`, `postId`): the foreign keys cascade, so undoing the thing removes its notification with no cleanup code. Today's kinds are `friend_request`, `friend_accepted` (both through `acceptFriendRequest` in `@/lib/friends`), `reaction` (never a dislike), and `comment`. The page groups reactions per post (`groupNotifications`); the navbar shows a dot, never a count. After a schema change, restart the dev server: it caches its Prisma client, so a new model is undefined until it restarts.
+
 ## Responses
 
 - Errors: `{ error: "Human-readable message." }` with the right status: 400 validation, 401 not logged in, 403 not allowed, 404, 409 conflict, 429 rate limited, 500.

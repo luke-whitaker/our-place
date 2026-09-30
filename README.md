@@ -263,6 +263,26 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.17.0 — Notifications (September 2026)
+
+**Why:** Friend requests sat unanswered because nobody knew they were there, and people had no
+way to know someone had reacted to or commented on their post.
+
+**What changed:**
+
+- **A Notifications page,** from the menu under your name. It lists friend requests, friends
+  accepting yours, and reactions and comments on your posts, newest first, from the last 90 days.
+- **Answer friend requests right there** with Accept or Decline.
+- **Reactions are grouped per post** ("Ada and Ben reacted to your post"), rather than one line
+  per like. Dislikes never notify. Nobody is ever notified about their own activity.
+- **A dot, never a number.** A small dot on your avatar and beside Notifications means something
+  new; opening the page clears it. Nothing is emailed or pushed to your phone.
+- **Notifications tidy themselves up:** a canceled request, a removed reaction, or a deleted
+  comment takes its notification with it.
+
+**What didn't change:** existing APIs. One migration adds the `notifications` table; a second gives
+every friend request still waiting for an answer its notification, so older requests show up too.
+
 ### v0.16.0 — Visit Friends from Any Shrine or Computer (September 2026)
 
 **Why:** A friend's island was only reachable from their profile page. Inside the world, where

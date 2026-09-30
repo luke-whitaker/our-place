@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { acceptFriendRequest } from "@/lib/friends";
 
 // PATCH: Accept a pending friend request. Only the person it was sent to can accept.
 export async function PATCH(_request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -31,7 +32,7 @@ export async function PATCH(_request: Request, { params }: { params: Promise<{ i
       );
     }
 
-    await prisma.friendship.update({ where: { id }, data: { status: "accepted" } });
+    await acceptFriendRequest(friendship);
 
     return NextResponse.json({
       message: `You're now friends with ${friendship.user.displayName}!`,

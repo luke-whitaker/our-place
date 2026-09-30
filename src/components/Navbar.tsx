@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MushroomIcon from "@/components/MushroomIcon";
+import { apiFetch } from "@/lib/api-client";
 
 // How long a new member sees the floating "Enter the World" note before it
 // becomes hover-only.
@@ -15,6 +16,46 @@ function isNewMember(createdAt?: string) {
   const created = new Date(createdAt).getTime();
   if (Number.isNaN(created)) return false;
   return Date.now() - created < WORLD_HINT_DAYS * 24 * 60 * 60 * 1000;
+}
+
+/**
+ * Whether to show the notifications dot. Checked on every page change and
+ * whenever the tab comes back into focus, never on a timer: the dot is a quiet
+ * hint, not something to watch. Hidden on the Notifications page itself, which
+ * marks everything read.
+ */
+function useNotificationDot(signedIn: boolean): boolean {
+  const pathname = usePathname();
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useEffect(() => {
+    if (!signedIn) return;
+    let cancelled = false;
+    function check() {
+      apiFetch<{ has_unread: boolean }>("/api/notifications/unread", {
+        redirectOnUnauthorized: false,
+      })
+        .then((data) => {
+          if (!cancelled) setHasUnread(data.has_unread);
+        })
+        // Deliberately quiet: the dot is only a hint, so a failed check leaves
+        // it as it was and the next page change or focus tries again. The
+        // Notifications page itself reports any real failure.
+        .catch(() => {});
+    }
+    check();
+    window.addEventListener("focus", check);
+    return () => {
+      cancelled = true;
+      window.removeEventListener("focus", check);
+    };
+  }, [signedIn, pathname]);
+
+  return signedIn && hasUnread && pathname !== "/notifications";
+}
+
+function NotificationDot() {
+  return <span aria-hidden="true" className="h-2 w-2 shrink-0 rounded-full bg-accent-500" />;
 }
 
 // The mushroom next to the logo — the persistent door into the world. New members
@@ -56,6 +97,7 @@ function WorldDoor({ createdAt }: { createdAt?: string }) {
 export default function Navbar() {
   const { user, loading, logout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
+  const showDot = useNotificationDot(!loading && !!user);
 
   return (
     <nav className="op-navbar sticky top-0 z-50 border-b border-line bg-surface/80 backdrop-blur-lg">
@@ -107,15 +149,21 @@ export default function Navbar() {
               <div className="relative">
                 <button
                   onClick={() => setMenuOpen(!menuOpen)}
-                  aria-label="User menu"
+                  aria-label={showDot ? "User menu, new notifications" : "User menu"}
                   aria-expanded={menuOpen}
                   className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 transition-colors hover:bg-surface-emphasis"
                 >
                   <div
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-ink-inverse text-xs font-bold"
+                    className="relative flex h-8 w-8 items-center justify-center rounded-full text-ink-inverse text-xs font-bold"
                     style={{ backgroundColor: user.avatar_color }}
                   >
                     {user.display_name.charAt(0).toUpperCase()}
+                    {showDot && (
+                      <span
+                        aria-hidden="true"
+                        className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-accent-500"
+                      />
+                    )}
                   </div>
                   <span className="hidden sm:block text-sm font-medium text-ink-secondary">
                     {user.display_name.split(" ")[0]}
@@ -157,6 +205,14 @@ export default function Navbar() {
                           className="block px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted"
                         >
                           Profile
+                        </Link>
+                        <Link
+                          href="/notifications"
+                          onClick={() => setMenuOpen(false)}
+                          className="flex items-center justify-between px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted"
+                        >
+                          Notifications
+                          {showDot && <NotificationDot />}
                         </Link>
                         {user.role === "admin" && (
                           <Link

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { reactionLimiter } from "@/lib/rate-limit";
+import { notify } from "@/lib/notifications";
 import { createReactionSchema } from "@/lib/schemas";
 import { v4 as uuidv4 } from "uuid";
 
@@ -10,6 +11,9 @@ import { v4 as uuidv4 } from "uuid";
 // type) and dislike_count rather than double-counting. Both counters are
 // floored at zero with the same GREATEST(0, ...) raw update used elsewhere,
 // since a toggle-off or a switch can race with itself across requests.
+// The post's author hears about every reaction except a dislike: a like that
+// becomes a dislike takes its notification away, and one that turns back
+// brings it back. Removing a reaction cascades its notification away.
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
@@ -33,7 +37,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const post = await prisma.post.findUnique({
       where: { id },
-      select: { id: true, allowReactions: true, allowDislikes: true },
+      select: { id: true, authorId: true, allowReactions: true, allowDislikes: true },
     });
     if (!post) {
       return NextResponse.json({ error: "Post not found." }, { status: 404 });
@@ -77,21 +81,37 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         if (existing.type === "dislike" && reactionType !== "dislike") {
           await tx.$executeRaw`UPDATE posts SET dislike_count = GREATEST(0, dislike_count - 1) WHERE id = ${id}`;
           await tx.post.update({ where: { id }, data: { reactionCount: { increment: 1 } } });
+          await notify(tx, {
+            recipientId: post.authorId,
+            actorId: auth.user.userId,
+            kind: "reaction",
+            postId: id,
+            reactionId: existing.id,
+          });
         } else if (existing.type !== "dislike" && reactionType === "dislike") {
           await tx.$executeRaw`UPDATE posts SET reaction_count = GREATEST(0, reaction_count - 1) WHERE id = ${id}`;
           await tx.post.update({ where: { id }, data: { dislikeCount: { increment: 1 } } });
+          await tx.notification.deleteMany({ where: { reactionId: existing.id } });
         }
         return;
       }
 
       // New reaction.
+      const reactionId = uuidv4();
       await tx.reaction.create({
-        data: { id: uuidv4(), postId: id, userId: auth.user.userId, type: reactionType },
+        data: { id: reactionId, postId: id, userId: auth.user.userId, type: reactionType },
       });
       if (reactionType === "dislike") {
         await tx.post.update({ where: { id }, data: { dislikeCount: { increment: 1 } } });
       } else {
         await tx.post.update({ where: { id }, data: { reactionCount: { increment: 1 } } });
+        await notify(tx, {
+          recipientId: post.authorId,
+          actorId: auth.user.userId,
+          kind: "reaction",
+          postId: id,
+          reactionId,
+        });
       }
     });
 

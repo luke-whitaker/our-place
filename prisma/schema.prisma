@@ -58,6 +58,8 @@ model User {
   notebookPages       NotebookPage[]
   npcGifts            NpcGift[]
   outfits             Outfit[]
+  notifications       Notification[]    @relation("NotificationRecipient")
+  causedNotifications Notification[]    @relation("NotificationActor")
 
   @@index([email])
   @@index([username])
@@ -130,6 +132,8 @@ model Post {
   comments  Comment[]
   reactions Reaction[]
 
+  notifications Notification[]
+
   @@index([communityId])
   @@index([authorId])
   @@index([createdAt(sort: Desc)])
@@ -167,6 +171,8 @@ model Comment {
   post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
 
+  notification Notification?
+
   @@index([postId])
   @@index([authorId])
   @@map("comments")
@@ -181,6 +187,8 @@ model Reaction {
 
   post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  notification Notification?
 
   @@unique([postId, userId])
   @@index([postId])
@@ -197,6 +205,8 @@ model Friendship {
 
   user   User @relation("FriendshipSender", fields: [userId], references: [id], onDelete: Cascade)
   friend User @relation("FriendshipReceiver", fields: [friendId], references: [id], onDelete: Cascade)
+
+  notifications Notification[]
 
   @@unique([userId, friendId])
   @@index([userId])
@@ -319,4 +329,34 @@ model NpcGift {
   // Makes each gift once-only per member.
   @@id([userId, giftId])
   @@map("npc_gifts")
+}
+
+// One thing that happened to a member: a friend request, a request accepted,
+// a reaction, or a comment. Each row points at what caused it and cascades
+// with it, so a canceled request, a removed reaction, or a deleted comment
+// takes its notification along. Reactions are grouped per post when read.
+model Notification {
+  id           String    @id @default(uuid())
+  recipientId  String    @map("recipient_id")
+  actorId      String    @map("actor_id")
+  // "friend_request" | "friend_accepted" | "reaction" | "comment"
+  kind         String
+  friendshipId String?   @map("friendship_id")
+  postId       String?   @map("post_id")
+  reactionId   String?   @unique @map("reaction_id")
+  commentId    String?   @unique @map("comment_id")
+  readAt       DateTime? @map("read_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  recipient  User        @relation("NotificationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  actor      User        @relation("NotificationActor", fields: [actorId], references: [id], onDelete: Cascade)
+  friendship Friendship? @relation(fields: [friendshipId], references: [id], onDelete: Cascade)
+  post       Post?       @relation(fields: [postId], references: [id], onDelete: Cascade)
+  reaction   Reaction?   @relation(fields: [reactionId], references: [id], onDelete: Cascade)
+  comment    Comment?    @relation(fields: [commentId], references: [id], onDelete: Cascade)
+
+  @@index([recipientId, createdAt])
+  @@index([friendshipId])
+  @@index([postId])
+  @@map("notifications")
 }

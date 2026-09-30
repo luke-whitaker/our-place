@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { findFriendshipBetween } from "@/lib/friends";
+import { acceptFriendRequest, findFriendshipBetween } from "@/lib/friends";
+import { notify } from "@/lib/notifications";
 import { friendRequestLimiter } from "@/lib/rate-limit";
 import { sendFriendRequestSchema, getZodErrorMessage } from "@/lib/schemas";
 import type { FriendEntry } from "@/lib/types";
@@ -118,10 +119,7 @@ export async function POST(request: NextRequest) {
         );
       }
       // They asked first — a request back means both sides said yes.
-      await prisma.friendship.update({
-        where: { id: existing.id },
-        data: { status: "accepted" },
-      });
+      await acceptFriendRequest(existing);
       return NextResponse.json({
         message: `You're now friends with ${target.displayName}!`,
         status: "friends",
@@ -129,8 +127,17 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    const created = await prisma.friendship.create({
-      data: { userId: me, friendId: target.id },
+    const created = await prisma.$transaction(async (tx) => {
+      const friendship = await tx.friendship.create({
+        data: { userId: me, friendId: target.id },
+      });
+      await notify(tx, {
+        recipientId: target.id,
+        actorId: me,
+        kind: "friend_request",
+        friendshipId: friendship.id,
+      });
+      return friendship;
     });
 
     return NextResponse.json(

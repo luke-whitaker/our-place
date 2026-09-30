@@ -3,6 +3,7 @@ import prisma from "@/lib/db";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 import { createCommentLimiter } from "@/lib/rate-limit";
 import { createCommentSchema, getZodErrorMessage } from "@/lib/schemas";
+import { notify } from "@/lib/notifications";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 import { v4 as uuidv4 } from "uuid";
 
@@ -102,15 +103,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     const commentId = uuidv4();
-    await prisma.$transaction([
-      prisma.comment.create({
+    await prisma.$transaction(async (tx) => {
+      await tx.comment.create({
         data: { id: commentId, postId: id, authorId: auth.userId, content: content.trim() },
-      }),
-      prisma.post.update({
+      });
+      await tx.post.update({
         where: { id },
         data: { commentCount: { increment: 1 } },
-      }),
-    ]);
+      });
+      await notify(tx, {
+        recipientId: post.authorId,
+        actorId: auth.userId,
+        kind: "comment",
+        postId: id,
+        commentId,
+      });
+    });
 
     return NextResponse.json({ message: "Comment added!", commentId }, { status: 201 });
   } catch (error) {
