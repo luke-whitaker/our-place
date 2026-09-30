@@ -13,6 +13,9 @@ export interface PocketItem {
   from: { username: string; display_name: string } | null;
   /** When it landed in a mailbox (ISO 8601); null if it never has. */
   placed_at: string | null;
+  /** An invitation letter's gathering, so the reader can offer Accept and
+   * Decline; null for every other note. */
+  gathering_id: string | null;
 }
 
 /** GET /api/users/[username]/mailbox: whether a mailbox holds any mail. */

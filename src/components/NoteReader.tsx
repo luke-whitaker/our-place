@@ -5,6 +5,7 @@ import { apiFetch, userMessage } from "@/lib/api-client";
 import { PAL } from "@/lib/game/constants";
 import { shortDate } from "@/lib/time-utils";
 import InlineConfirm from "@/components/InlineConfirm";
+import LetterInvitation from "@/components/LetterInvitation";
 import OverlayActionButton from "@/components/OverlayActionButton";
 import type { PocketItem } from "@/lib/types";
 
@@ -84,6 +85,7 @@ export default function NoteReader({ item, returnTo, onBack }: NoteReaderProps) 
         >
           {item.body || "(blank page)"}
         </div>
+        {item.gathering_id && <LetterInvitation gatheringId={item.gathering_id} />}
         {error && <p className="text-sm text-red-400">{error}</p>}
         {confirming ? (
           <InlineConfirm

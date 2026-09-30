@@ -5,6 +5,7 @@ import { DESK_SLOTS, NOTE_MAX_CHARS } from "@/lib/items";
 import {
   EMOTES,
   HAIR_STYLES,
+  MAX_PICKED_INVITEES,
   OUTFIT_NAME_MAX,
   PRESENCE_DIRS,
   type IslandVisibility,
@@ -226,6 +227,40 @@ export const notebookPageSchema = z.object({
 
 export const leaveLetterSchema = z.object({
   item_id: z.uuid({ error: "Pick something to leave." }),
+});
+
+// ── Gathering schemas ──
+
+export const createGatheringSchema = z.object({
+  kind: z.enum(["in_person", "world"], { error: "Choose in person or in the world." }),
+  title: z
+    .string({ error: "Give your gathering a name." })
+    .trim()
+    .min(1, "Give your gathering a name.")
+    .max(100, "Names can be up to 100 characters."),
+  description: z
+    .string()
+    .trim()
+    .max(2000, "Descriptions can be up to 2,000 characters.")
+    .default(""),
+  starts_at: z.iso.datetime({ offset: true, error: "Choose when it starts." }),
+  ends_at: z.iso.datetime({ offset: true, error: "Choose when it ends." }),
+  address: z.string().trim().max(300, "Addresses can be up to 300 characters.").default(""),
+  community_id: z.uuid().nullable().default(null),
+  invitee_ids: z
+    .array(z.uuid())
+    .max(MAX_PICKED_INVITEES, `You can invite up to ${MAX_PICKED_INVITEES} people by name.`)
+    .default([]),
+});
+
+export const gatheringResponseSchema = z.object({
+  response: z.enum(["accepted", "declined"], { error: "Answer accept or decline." }),
+});
+
+export const gatheringCalendarSchema = z.object({
+  from: z.iso.datetime({ offset: true, error: "A calendar needs a start date." }),
+  to: z.iso.datetime({ offset: true, error: "A calendar needs an end date." }),
+  community: z.string().min(1).max(100).optional(),
 });
 
 // ── Desk schema ──

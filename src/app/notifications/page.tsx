@@ -47,8 +47,8 @@ export default function NotificationsPage() {
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <h1 className="text-2xl font-bold text-ink">Notifications</h1>
       <p className="mt-1 text-sm text-ink-muted">
-        Newest first: friend requests, and reactions and comments on your posts, from the last 90
-        days. Nothing here is ranked.
+        Newest first: friend requests, gathering invitations and cancellations, and reactions and
+        comments on your posts, from the last 90 days. Nothing here is ranked.
       </p>
 
       <div className="op-card mt-6 rounded-2xl border border-line bg-surface px-5 py-2">

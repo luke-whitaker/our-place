@@ -16,6 +16,7 @@ export const ITEM_SELECT = {
   slot: true,
   body: true,
   placedAt: true,
+  gatheringId: true,
   from: { select: { username: true, displayName: true } },
 } as const;
 
@@ -26,6 +27,7 @@ interface ItemRow {
   slot: number | null;
   body: string | null;
   placedAt: Date | null;
+  gatheringId: string | null;
   from: { username: string; displayName: string } | null;
 }
 
@@ -122,6 +124,7 @@ export function toPocketItem(row: ItemRow): PocketItem {
     body: row.body,
     from: row.from ? { username: row.from.username, display_name: row.from.displayName } : null,
     placed_at: row.placedAt ? row.placedAt.toISOString() : null,
+    gathering_id: row.gatheringId,
   };
 }
 

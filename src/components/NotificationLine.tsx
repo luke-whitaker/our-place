@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { timeAgo } from "@/lib/time-utils";
+import GatheringAnswerButtons from "@/components/GatheringAnswerButtons";
 import type { NotificationActor, NotificationItem, NotificationPost } from "@/lib/types";
 
 function Name({ actor }: { actor: NotificationActor }) {
@@ -124,7 +125,63 @@ function Message({ item }: { item: NotificationItem }) {
           <PostLink post={item.post} />.
         </>
       );
+    case "gathering_invite":
+      return (
+        <>
+          <Name actor={item.actor} /> invited you to <GatheringLink item={item} />,{" "}
+          {shortWhen(item.gathering.starts_at)}.
+        </>
+      );
+    case "gathering_cancelled":
+      return (
+        <>
+          <Name actor={item.actor} /> cancelled <GatheringLink item={item} />.
+        </>
+      );
   }
+}
+
+type GatheringItem = Extract<
+  NotificationItem,
+  { kind: "gathering_invite" | "gathering_cancelled" }
+>;
+
+function GatheringLink({ item }: { item: GatheringItem }) {
+  return (
+    <Link
+      href={`/gatherings/${item.gathering.id}`}
+      className="font-medium text-ink hover:text-accent-600"
+    >
+      {item.gathering.title}
+    </Link>
+  );
+}
+
+function shortWhen(iso: string): string {
+  return new Date(iso).toLocaleString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+}
+
+/** An invitation's answer, right on the notification. Nothing to answer once
+ * it's cancelled or has started. */
+function InvitationAnswer({ item }: { item: GatheringItem }) {
+  if (item.gathering.status === "cancelled") {
+    return <p className="mt-2 text-xs text-ink-muted">This gathering was cancelled.</p>;
+  }
+  if (item.gathering.started) return null;
+  return (
+    <div className="mt-2">
+      <GatheringAnswerButtons
+        gatheringId={item.gathering.id}
+        initial={item.gathering.my_response}
+      />
+    </div>
+  );
 }
 
 /** One line on the Notifications page. An unread line gets a dot, never a count. */
@@ -146,6 +203,7 @@ export default function NotificationLine({ item }: { item: NotificationItem }) {
           </p>
         )}
         {item.kind === "friend_request" && <RequestButtons friendshipId={item.friendship_id} />}
+        {item.kind === "gathering_invite" && <InvitationAnswer item={item} />}
         <p className="mt-1 text-xs text-ink-faint">{timeAgo(item.created_at)}</p>
       </div>
     </li>

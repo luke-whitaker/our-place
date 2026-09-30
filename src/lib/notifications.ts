@@ -1,5 +1,12 @@
 import type { Prisma } from "@/generated/prisma/client";
-import type { NotificationActor, NotificationItem, NotificationPost } from "@/lib/types";
+import type {
+  GatheringAnswer,
+  GatheringInviteSummary,
+  GatheringStatus,
+  NotificationActor,
+  NotificationItem,
+  NotificationPost,
+} from "@/lib/types";
 
 /** How long a notification is kept. Older ones are pruned when the page loads. */
 export const NOTIFICATION_RETENTION_DAYS = 90;
@@ -10,7 +17,13 @@ const REACTION_NAMES = 2;
 /** Characters of a comment quoted on the page. */
 const EXCERPT_CHARS = 140;
 
-type NotificationKind = "friend_request" | "friend_accepted" | "reaction" | "comment";
+type NotificationKind =
+  | "friend_request"
+  | "friend_accepted"
+  | "reaction"
+  | "comment"
+  | "gathering_invite"
+  | "gathering_cancelled";
 
 interface NewNotification {
   recipientId: string;
@@ -20,6 +33,7 @@ interface NewNotification {
   postId?: string;
   reactionId?: string;
   commentId?: string;
+  gatheringId?: string;
 }
 
 /**
@@ -46,6 +60,25 @@ export interface NotificationRow {
     community: { slug: string } | null;
   } | null;
   comment: { content: string } | null;
+  /** With the recipient's own invite row, if any (the route filters to it). */
+  gathering: {
+    id: string;
+    title: string;
+    startsAt: Date;
+    status: string;
+    invites: { status: string }[];
+  } | null;
+}
+
+function toGathering(gathering: NonNullable<NotificationRow["gathering"]>): GatheringInviteSummary {
+  return {
+    id: gathering.id,
+    title: gathering.title,
+    starts_at: gathering.startsAt.toISOString(),
+    status: gathering.status as GatheringStatus,
+    my_response: (gathering.invites[0]?.status as GatheringAnswer | undefined) ?? null,
+    started: gathering.startsAt.getTime() <= Date.now(),
+  };
 }
 
 function toActor(row: NotificationRow): NotificationActor {
@@ -95,6 +128,16 @@ export function groupNotifications(rows: NotificationRow[]): NotificationItem[] 
         actor: toActor(row),
         post: toPost(row.post),
         excerpt: excerptOf(row.comment.content),
+      });
+    } else if (
+      (row.kind === "gathering_invite" || row.kind === "gathering_cancelled") &&
+      row.gathering
+    ) {
+      items.push({
+        ...base,
+        kind: row.kind,
+        actor: toActor(row),
+        gathering: toGathering(row.gathering),
       });
     } else if (row.kind === "reaction" && row.post) {
       const group = reactionGroups.get(row.post.id);

@@ -7,6 +7,7 @@ import { useAuth } from "@/components/AuthProvider";
 import PostCard from "@/components/PostCard";
 import CreatePostForm from "@/components/CreatePostForm";
 import MushroomIcon from "@/components/MushroomIcon";
+import GatheringsCalendar from "@/components/GatheringsCalendar";
 import { ApiError, apiFetch, userMessage } from "@/lib/api-client";
 import { Community, CommunityMember, Post } from "@/lib/types";
 
@@ -191,6 +192,17 @@ export default function CommunityDetailPage() {
                 </div>
               </div>
             ) : null}
+
+            {/* Gatherings calendar (only for members) */}
+            {membership && (
+              <div className="mb-6">
+                <GatheringsCalendar
+                  community={community.slug}
+                  description={`Gatherings hosted for ${community.name}, where every member is invited, in your time zone. Upcoming lists the next ten by start time.`}
+                  hostHref={`/gatherings/new?community=${community.id}`}
+                />
+              </div>
+            )}
 
             {/* Create Post (only for members) */}
             {membership && community && (

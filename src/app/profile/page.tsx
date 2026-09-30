@@ -8,6 +8,7 @@ import AccountSettings from "@/components/AccountSettings";
 import PostCard from "@/components/PostCard";
 import CreatePostForm from "@/components/CreatePostForm";
 import MushroomIcon from "@/components/MushroomIcon";
+import GatheringsCalendar from "@/components/GatheringsCalendar";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { CommunityWithMembership, Post } from "@/lib/types";
 
@@ -270,6 +271,13 @@ export default function ProfilePage() {
               </Link>
             </div>
           </div>
+
+          {/* Your own calendar: this page is only ever yours, and the API
+              serves it only to you. */}
+          <GatheringsCalendar
+            description="Only you see this calendar. It shows gatherings you're hosting, invited to, or going to, in your time zone. Declined and cancelled ones drop off."
+            hostHref="/gatherings/new"
+          />
 
           {/* Create Post Form */}
           <CreatePostForm onPostCreated={loadMyPlacePosts} />

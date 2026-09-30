@@ -21,6 +21,8 @@ export interface WeekMetrics {
   reactions: number;
   letters: number;
   friendships: number;
+  /** Gatherings, not cancelled, that ended that week. */
+  gatherings: number;
 }
 
 export type RetentionCell =
@@ -110,8 +112,10 @@ async function contentByWeek(firstWeek: string): Promise<WeekCountRow[]> {
   const since = dayToDate(addDays(firstWeek, -1));
   const tz = METRICS_TIME_ZONE;
   // Letters are items someone placed in a mailbox. The welcome letter comes
-  // from `ourplace` and Luke's metrics letter went to everyone at once, so
-  // neither counts as members writing to each other.
+  // from `ourplace`, Luke's metrics letter went to everyone at once, and
+  // gathering invitations are counted as gatherings, so none of them count
+  // as members writing to each other. A gathering counts in the week it ended,
+  // so a cancelled one never does.
   return prisma.$queryRaw<WeekCountRow[]>`
     SELECT kind, week, count(*)::int AS count FROM (
       SELECT 'posts' AS kind, date_trunc('week', created_at AT TIME ZONE 'UTC' AT TIME ZONE ${tz})::date AS week
@@ -126,10 +130,13 @@ async function contentByWeek(firstWeek: string): Promise<WeekCountRow[]> {
       SELECT 'letters', date_trunc('week', i.placed_at AT TIME ZONE 'UTC' AT TIME ZONE ${tz})::date
         FROM items i JOIN users s ON s.id = i.from_id
         WHERE i.placed_at >= ${since} AND s.username <> ${WORLD_ACCOUNT}
-          AND i.body IS DISTINCT FROM ${METRICS_LETTER}
+          AND i.body IS DISTINCT FROM ${METRICS_LETTER} AND i.gathering_id IS NULL
       UNION ALL
       SELECT 'friendships', date_trunc('week', created_at AT TIME ZONE 'UTC' AT TIME ZONE ${tz})::date
         FROM friendships WHERE status = 'accepted' AND created_at >= ${since}
+      UNION ALL
+      SELECT 'gatherings', date_trunc('week', ends_at AT TIME ZONE 'UTC' AT TIME ZONE ${tz})::date
+        FROM gatherings WHERE status <> 'cancelled' AND ends_at >= ${since}
     ) counted
     WHERE week >= ${dayToDate(firstWeek)}
     GROUP BY kind, week`;
@@ -165,6 +172,7 @@ async function weeklyMetrics(today: string): Promise<WeekMetrics[]> {
       reactions: count("reactions"),
       letters: count("letters"),
       friendships: count("friendships"),
+      gatherings: count("gatherings"),
     };
   });
 }

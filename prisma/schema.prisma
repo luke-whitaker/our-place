@@ -64,6 +64,8 @@ model User {
   notifications       Notification[]    @relation("NotificationRecipient")
   causedNotifications Notification[]    @relation("NotificationActor")
   activityDays        ActivityDay[]
+  hostedGatherings    Gathering[]       @relation("GatheringHost")
+  gatheringInvites    GatheringInvite[]
 
   @@index([email])
   @@index([username])
@@ -85,10 +87,11 @@ model Community {
   memberCount Int      @default(1) @map("member_count")
   createdAt   DateTime @default(now()) @map("created_at")
 
-  creator User              @relation("CommunityCreator", fields: [creatorId], references: [id])
-  members CommunityMember[]
-  posts   Post[]
-  events  Event[]
+  creator    User              @relation("CommunityCreator", fields: [creatorId], references: [id])
+  members    CommunityMember[]
+  posts      Post[]
+  events     Event[]
+  gatherings Gathering[]
 
   @@map("communities")
 }
@@ -261,18 +264,22 @@ model EventRsvp {
 // src/lib/items.ts) validated in code, not the schema, matching how postType
 // and reaction type work elsewhere.
 model Item {
-  id        String    @id @default(uuid())
-  ownerId   String    @map("owner_id")
-  kind      String
-  location  String    @default("pocket")
-  slot      Int?
-  body      String?
-  fromId    String?   @map("from_id")
-  placedAt  DateTime? @map("placed_at")
-  createdAt DateTime  @default(now()) @map("created_at")
+  id          String    @id @default(uuid())
+  ownerId     String    @map("owner_id")
+  kind        String
+  location    String    @default("pocket")
+  slot        Int?
+  body        String?
+  fromId      String?   @map("from_id")
+  placedAt    DateTime? @map("placed_at")
+  // An invitation letter's gathering, so the letter can offer Accept and
+  // Decline. The body never carries the address: letters can be handed on.
+  gatheringId String?   @map("gathering_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
 
-  owner User  @relation("ItemOwner", fields: [ownerId], references: [id], onDelete: Cascade)
-  from  User? @relation("ItemSender", fields: [fromId], references: [id], onDelete: SetNull)
+  owner     User       @relation("ItemOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  from      User?      @relation("ItemSender", fields: [fromId], references: [id], onDelete: SetNull)
+  gathering Gathering? @relation(fields: [gatheringId], references: [id], onDelete: SetNull)
 
   // Stops two items sharing a slot within the same location, even under
   // concurrent requests. Together with each location's slot bound
@@ -281,6 +288,7 @@ model Item {
   @@unique([ownerId, location, slot])
   @@index([ownerId])
   @@index([fromId])
+  @@index([gatheringId])
   @@map("items")
 }
 
@@ -336,16 +344,18 @@ model NpcGift {
 }
 
 // One thing that happened to a member: a friend request, a request accepted,
-// a reaction, or a comment. Each row points at what caused it and cascades
+// a reaction, a comment, a gathering invitation, or a gathering cancelled. Each row points at what caused it and cascades
 // with it, so a canceled request, a removed reaction, or a deleted comment
 // takes its notification along. Reactions are grouped per post when read.
 model Notification {
   id           String    @id @default(uuid())
   recipientId  String    @map("recipient_id")
   actorId      String    @map("actor_id")
-  // "friend_request" | "friend_accepted" | "reaction" | "comment"
+  // "friend_request" | "friend_accepted" | "reaction" | "comment" |
+  // "gathering_invite" | "gathering_cancelled"
   kind         String
   friendshipId String?   @map("friendship_id")
+  gatheringId  String?   @map("gathering_id")
   postId       String?   @map("post_id")
   reactionId   String?   @unique @map("reaction_id")
   commentId    String?   @unique @map("comment_id")
@@ -358,9 +368,11 @@ model Notification {
   post       Post?       @relation(fields: [postId], references: [id], onDelete: Cascade)
   reaction   Reaction?   @relation(fields: [reactionId], references: [id], onDelete: Cascade)
   comment    Comment?    @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  gathering  Gathering?  @relation(fields: [gatheringId], references: [id], onDelete: Cascade)
 
   @@index([recipientId, createdAt])
   @@index([friendshipId])
+  @@index([gatheringId])
   @@index([postId])
   @@map("notifications")
 }
@@ -381,4 +393,57 @@ model ActivityDay {
   @@id([userId, day])
   @@index([day])
   @@map("activity_days")
+}
+
+// A gathering a member hosts: in person (with an address) or, from v0.20.0,
+// in the world. Tied to a community, it invites that whole community and shows
+// on its calendar. Cancelling keeps the row (status "cancelled") so letters
+// and notifications about it can still say so.
+model Gathering {
+  id          String    @id @default(uuid())
+  hostId      String    @map("host_id")
+  communityId String?   @map("community_id")
+  // "in_person" | "world"; only "in_person" is accepted until v0.20.0.
+  kind        String
+  title       String
+  description String    @default("")
+  startsAt    DateTime  @map("starts_at")
+  endsAt      DateTime  @map("ends_at")
+  // Shown only to people who can see the gathering; never in a letter.
+  address     String    @default("")
+  // "scheduled" | "cancelled"
+  status      String    @default("scheduled")
+  cancelledAt DateTime? @map("cancelled_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  host          User              @relation("GatheringHost", fields: [hostId], references: [id], onDelete: Cascade)
+  community     Community?        @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  invites       GatheringInvite[]
+  letters       Item[]
+  notifications Notification[]
+
+  @@index([communityId, startsAt])
+  @@index([hostId])
+  @@index([startsAt])
+  @@map("gatherings")
+}
+
+// One member's invitation to a gathering and their answer. The host has an
+// "accepted" row from the start. A member who joins a community after its
+// gathering was created gets a row when they first answer.
+model GatheringInvite {
+  id          String    @id @default(uuid())
+  gatheringId String    @map("gathering_id")
+  userId      String    @map("user_id")
+  // "pending" | "accepted" | "declined"
+  status      String    @default("pending")
+  respondedAt DateTime? @map("responded_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  gathering Gathering @relation(fields: [gatheringId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([gatheringId, userId])
+  @@index([userId, status])
+  @@map("gathering_invites")
 }

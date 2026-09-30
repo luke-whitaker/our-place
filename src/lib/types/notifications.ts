@@ -1,5 +1,7 @@
 // Notification wire types, as GET /api/notifications returns them.
 
+import type { GatheringInviteSummary } from "./gatherings";
+
 /** Who a notification is about. */
 export interface NotificationActor {
   username: string;
@@ -36,6 +38,12 @@ export type NotificationItem =
       actor: NotificationActor;
       post: NotificationPost;
       excerpt: string;
+    })
+  | (NotificationBase & {
+      kind: "gathering_invite" | "gathering_cancelled";
+      /** The host. */
+      actor: NotificationActor;
+      gathering: GatheringInviteSummary;
     })
   | (NotificationBase & {
       kind: "reactions";

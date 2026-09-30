@@ -35,6 +35,15 @@ export async function GET() {
         actor: { select: { username: true, displayName: true } },
         post: { select: { id: true, title: true, community: { select: { slug: true } } } },
         comment: { select: { content: true } },
+        gathering: {
+          select: {
+            id: true,
+            title: true,
+            startsAt: true,
+            status: true,
+            invites: { where: { userId: me }, select: { status: true } },
+          },
+        },
       },
     });
 

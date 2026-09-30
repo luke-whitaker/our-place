@@ -15,3 +15,16 @@ export function timeAgo(dateString: string): string {
 export function shortDate(dateString: string): string {
   return new Date(dateString).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
+
+/** "Sat, Oct 3, 12:00 PM to 3:00 PM", or both dates when it runs past a day,
+ * in the viewer's own time zone. */
+export function gatheringWhen(startsAt: string, endsAt: string): string {
+  const start = new Date(startsAt);
+  const end = new Date(endsAt);
+  const day: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
+  const time: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
+  const startText = start.toLocaleString("en-US", { ...day, ...time });
+  const sameDay = start.toDateString() === end.toDateString();
+  const endText = end.toLocaleString("en-US", sameDay ? time : { ...day, ...time });
+  return `${startText} to ${endText}`;
+}

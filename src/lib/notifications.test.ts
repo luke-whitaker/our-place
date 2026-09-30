@@ -16,6 +16,7 @@ function row(
     actor: { username: who, displayName: who.toUpperCase() },
     post: null,
     comment: null,
+    gathering: null,
     ...overrides,
   };
 }
@@ -82,7 +83,33 @@ describe("groupNotifications", () => {
         row({ kind: "comment", post: FOOD_POST, comment: null }),
         row({ kind: "reaction", post: null }),
         row({ kind: "friend_request", friendshipId: null }),
+        row({ kind: "gathering_invite", gathering: null }),
       ]),
     ).toEqual([]);
+  });
+
+  it("carries a gathering and the recipient's own answer on invitations and cancellations", () => {
+    const gathering = {
+      id: "g1",
+      title: "Picnic",
+      startsAt: new Date(Date.UTC(2026, 9, 3, 17)),
+      status: "scheduled",
+      invites: [{ status: "accepted" }],
+    };
+    const [invite, cancelled] = groupNotifications([
+      row({ kind: "gathering_invite", gathering }),
+      row({
+        kind: "gathering_cancelled",
+        gathering: { ...gathering, status: "cancelled", invites: [] },
+      }),
+    ]);
+    expect(invite).toMatchObject({
+      kind: "gathering_invite",
+      gathering: { id: "g1", title: "Picnic", status: "scheduled", my_response: "accepted" },
+    });
+    expect(cancelled).toMatchObject({
+      kind: "gathering_cancelled",
+      gathering: { status: "cancelled", my_response: null },
+    });
   });
 });

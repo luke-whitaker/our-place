@@ -30,6 +30,7 @@ const WEEK_COLUMNS: {
   { key: "reactions", label: "Reactions" },
   { key: "letters", label: "Letters" },
   { key: "friendships", label: "New friends" },
+  { key: "gatherings", label: "Gatherings" },
 ];
 
 /** "2026-09-28" as "Sep 28". The date is already a Chicago day, so format it in UTC. */
@@ -176,7 +177,7 @@ export default async function AdminMetricsPage() {
 
       <Section
         title="Each week"
-        description="Newest week first. Active members signed in at least once that week. World time adds up visits to the world that ended that week, each capped at 3 hours. A dash means the week ended before visits were counted. Posts, comments, reactions, letters sent between members, and friend requests later accepted (by the week they were sent) include everyone."
+        description="Newest week first. Active members signed in at least once that week. World time adds up visits to the world that ended that week, each capped at 3 hours. A dash means the week ended before visits were counted. Posts, comments, reactions, letters sent between members, friend requests later accepted (by the week they were sent), and gatherings that took place (by the week they ended, never cancelled ones) include everyone."
       >
         <WeeklyTable weeks={weeks} trackingSince={trackingSince} />
       </Section>

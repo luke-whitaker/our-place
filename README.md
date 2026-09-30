@@ -246,6 +246,8 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Floating My Place islands — one house, a biome you choose, a mushroom shrine back to the Capital, and a visitor setting
 - [x] Post interaction controls — the author chooses whether a post can be liked, disliked, or commented on
 - [x] API route tests — the reaction, comment, post, and island routes run against a real Postgres in CI
+- [x] Gatherings in person: invitations by letter and notification, and calendars for communities and for you
+- [ ] Gatherings in the world, at an Event Mushroom the host plants
 - [ ] Polls (designed, not built)
 - [ ] Welcome tour — a once-per-version walkthrough for new members on their first visit and everyone else on their next (designed, not built)
 - [x] A bigger world: snow, swamp, lake, autumn, and the sea, from Luke's hand-drawn map
@@ -262,6 +264,32 @@ Open [http://localhost:3000](http://localhost:3000).
 ---
 
 ## Version History
+
+### v0.19.0 — Gatherings, in Person (September 2026)
+
+**Why:** Our Place exists to get people together in real life, and until now there was no way to
+plan that here. Events come back as Gatherings, rebuilt around invitations people answer.
+
+**What changed:**
+
+- **Host a gathering** from "Host a gathering" on your My Place calendar or a community's
+  calendar: a name, a start and end, an address, and optional details. Any member can host.
+- **Invite people by name,** or **tie it to a community you belong to** to invite everyone in it.
+- **Invitations arrive twice:** as a letter from the host in your mailbox and as a notification.
+  Accept or Decline from either one; your answer shows in both, and you can change it until the
+  gathering starts. The letter never includes the address, since letters can be handed on.
+- **Each gathering has its own page** with the address, visible only to people who can see the
+  gathering at all. Guests see who's going. The host sees everyone's answers and can cancel,
+  which tells everyone who was going.
+- **Calendars:** every community page has a month calendar and an Upcoming list for its members.
+  Your My Place has your own calendar, which only you see: gatherings you're hosting, invited to,
+  or going to. Declined and cancelled ones drop off.
+- **The admin Metrics page** counts gatherings each week, by the week they ended. Invitation
+  letters no longer count as letters.
+
+**What didn't change:** gatherings in the world and the Event Mushroom come next, in v0.20.0.
+The old `events` tables are untouched. One migration adds the `gatherings` and
+`gathering_invites` tables and a `gathering_id` column on items and notifications.
 
 ### v0.18.0 — Activity Counts, and a Letter from Luke (September 2026)
 

@@ -81,6 +81,7 @@ describe("getMetrics", () => {
       reactions: 0,
       letters: 1,
       friendships: 1,
+      gatherings: 0,
     });
     expect(metrics.weeks[1]).toMatchObject({ start: "2026-09-21", activeMembers: 1, posts: 1 });
     expect(metrics.weeks[11].start).toBe("2026-07-13");
@@ -98,6 +99,45 @@ describe("getMetrics", () => {
       { kind: "future" },
     ]);
     expect(metrics.cohorts[0].cells[0]).toEqual({ kind: "tracked", active: 1, percent: 100 });
+  });
+
+  it("counts gatherings in the week they ended, never cancelled ones or their letters", async () => {
+    const host = await joinedOn("2026-09-02T18:00:00Z");
+    const guest = await joinedOn("2026-09-02T18:00:00Z");
+    const gathering = (endsAt: string, status = "scheduled") =>
+      prisma.gathering.create({
+        data: {
+          hostId: host,
+          kind: "in_person",
+          title: "Picnic",
+          address: "The park",
+          startsAt: new Date(new Date(endsAt).getTime() - 2 * 60 * 60 * 1000),
+          endsAt: new Date(endsAt),
+          status,
+        },
+        select: { id: true },
+      });
+    const held = await gathering("2026-09-29T20:00:00Z");
+    await gathering("2026-09-29T21:00:00Z", "cancelled");
+    // Ends 11 pm Sunday the 27th in Chicago, Monday in UTC: last week.
+    await gathering("2026-09-28T04:00:00Z");
+    await prisma.item.create({
+      data: {
+        ownerId: guest,
+        fromId: host,
+        kind: "note",
+        location: "mailbox",
+        slot: 0,
+        body: "You're invited",
+        placedAt: new Date("2026-09-29T15:00:00Z"),
+        gatheringId: held.id,
+      },
+    });
+
+    const metrics = await getMetrics(NOW);
+
+    expect(metrics.weeks[0]).toMatchObject({ gatherings: 1, letters: 0 });
+    expect(metrics.weeks[1]).toMatchObject({ gatherings: 1 });
   });
 
   it("shows empty weeks and no tracking date before anything is counted", async () => {
