@@ -133,7 +133,7 @@ export function buildIsland({ owner, biome, mailboxColor, isOwn }: IslandOptions
   const links: WorldLink[] = [
     { id: "capital", label: "The Capital", place: "capital", spawnAt: "capital-gate" },
   ];
-  if (!isOwn) links.push({ id: "home", label: "Home", place: "me", spawnAt: ISLAND_SHRINE_ID });
+  if (!isOwn) links.push({ id: "home", label: "My Place", place: "me", spawnAt: ISLAND_SHRINE_ID });
   const fixtures: WorldFixture[] = [
     {
       id: ISLAND_MAILBOX_ID,
@@ -147,7 +147,7 @@ export function buildIsland({ owner, biome, mailboxColor, isOwn }: IslandOptions
   const regions: Region[] = [
     {
       id: "island",
-      label: isOwn ? "Home" : `${possessive} Island`,
+      label: isOwn ? "My Place" : `${possessive} Island`,
       bounds: { col: 0, row: 0, w: SIZE, h: SIZE },
     },
   ];

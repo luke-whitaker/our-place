@@ -225,7 +225,7 @@ function networkLinks(ownSlug: string): WorldLink[] {
     spawnAt: PC_ID,
   }));
   // Your own house terminal, so the network always offers a way home.
-  links.push({ id: "home", label: "Home", place: interiorPlace("me"), spawnAt: PC_ID });
+  links.push({ id: "home", label: "My Place", place: interiorPlace("me"), spawnAt: PC_ID });
   return links;
 }
 

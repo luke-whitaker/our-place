@@ -263,6 +263,24 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.15.3 — Room to Write, Doors That Wait, and My Place (September 2026)
+
+**Why:** Feedback from members. The comment box stayed one line however much you wrote, so a
+long comment was hard to read over before posting. Doors opened when you walked into them, which
+took people inside buildings they were only walking past. And "Home" in the world didn't match
+what the rest of Our Place calls your place.
+
+**What changed:**
+
+- **The comment box grows as you write,** up to about ten lines, then scrolls. Line breaks you
+  type now show in the posted comment.
+- **Doors open only when you choose:** press Enter, or A on a phone. Walking into a door no
+  longer takes you inside.
+- **"Home" is now "My Place"** at every mushroom shrine and computer, and in the titles of your
+  own island and house.
+
+**What didn't change:** APIs and the database.
+
 ### v0.15.2 — Members Only, and Your Password for Sign-In Changes (September 2026)
 
 **Why:** Our Place is invite-only, but anyone on the internet could still read the communities,

@@ -64,10 +64,10 @@ describe("buildIsland", () => {
       { id: "capital", label: "The Capital", place: "capital", spawnAt: "capital-gate" },
     ]);
     expect(home.objects.filter((o) => o.kind === "mushroom")).toHaveLength(1);
-    expect(home.regions[0].label).toBe("Home");
+    expect(home.regions[0].label).toBe("My Place");
   });
 
-  it("names a visitor's view after the owner and offers them Home", () => {
+  it("names a visitor's view after the owner and offers them My Place", () => {
     const visit = buildIsland({ owner: OWNER, biome: "snow", mailboxColor: "green", isOwn: false });
     expect(visit.doors[0].label).toBe("Luke's Place");
     expect(visit.regions[0].label).toBe("Luke's Island");

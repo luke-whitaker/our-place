@@ -32,9 +32,9 @@ describe("buildIslandHouse", () => {
     expect(JSON.stringify(again)).toBe(JSON.stringify(home));
   });
 
-  it("opens the owner's own profile and calls the room Home, for the owner", () => {
+  it("opens the owner's own profile and calls the room My Place, for the owner", () => {
     expect(home.pcs?.[0].href).toBe("/profile");
-    expect(home.regions[0].label).toBe("Home");
+    expect(home.regions[0].label).toBe("My Place");
     const exit = home.doors.find((d) => d.id === EXIT_DOOR_ID);
     expect(exit?.warpTo).toBe("me");
     expect(exit?.spawnAt).toBe(ISLAND_DOOR_ID);

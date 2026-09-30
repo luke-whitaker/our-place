@@ -102,7 +102,7 @@ function resolvePlace({ placeParam, inside, isHome, user, lookup }: ResolveArgs)
           mailboxColor: mailboxColorOf(user.mailbox_color),
           isOwn: true,
         });
-    return { world, title: "Home", visiting: null, ownerDisplayName: user.display_name };
+    return { world, title: "My Place", visiting: null, ownerDisplayName: user.display_name };
   }
 
   if (!lookup?.info) return null;

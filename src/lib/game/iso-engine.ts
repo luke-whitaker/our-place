@@ -18,7 +18,6 @@ import {
   createEntity,
   facingToward,
   type IsoEntity,
-  type MoveIntent,
 } from "./iso-actor";
 import { buildSolidGrid, type SolidGrid } from "./iso-collision";
 import { drawPrompt, drawToast, drawWarpMenu, drawNameTag, PROMPT_H, TOAST_BOTTOM } from "./hud";
@@ -108,10 +107,6 @@ export interface IsoState {
   fadeDir: -1 | 0 | 1;
   nearbyDoor: Door | null;
   pendingDoor: Door | null;
-  /** Whether walking into `nearbyDoor` may warp. Cleared when a door fires and
-   * when the player spawns already standing at one, so arriving through a door
-   * never bounces straight back out; set again once no door is in reach. */
-  doorArmed: boolean;
   nearbyMushroom: MushroomWarp | null;
   pendingWarp: MushroomWarp | null;
   /** A chosen link to another world, fired at the peak of the fade like a door. */
@@ -178,8 +173,6 @@ export function createIsoState(world: IsoWorld, options: IsoStateOptions = {}): 
     fadeDir: options.fadeIn ? -1 : 0,
     nearbyDoor: null,
     pendingDoor: null,
-    // You always arrive next to the door you came through, so start disarmed.
-    doorArmed: false,
     nearbyMushroom: null,
     pendingWarp: null,
     pendingLink: null,
@@ -257,12 +250,12 @@ export interface Targets {
 }
 
 /**
- * Narrow what is in reach to the one thing nearest the player, so the prompt,
- * Enter, and walking into a door always agree. Without this a door beat a PC
+ * Narrow what is in reach to the one thing nearest the player, so the prompt
+ * and Enter always agree. Without this a door beat a PC
  * whenever both were in reach, and in rooms where the exit sits two tiles from
  * the computer, stepping up to the PC walked you out of the building instead.
  * Ties go to the door, then the PC, then the shrine, then the NPC, then the
- * fixture, so a door can always be walked into from the tile you arrive on.
+ * fixture, so a door can always be opened from the tile you arrive on.
  */
 export function nearestTarget(inReach: Targets, col: number, row: number): Targets {
   const candidates = [
@@ -460,23 +453,11 @@ export function setView(state: IsoState, world: IsoWorld, w: number, h: number):
 
 // ── Update ──
 
-/** Whether an intent heads up-screen, which is what walking into a door looks
- * like: doors sit on the north face of whatever they open (a building's front
- * onto the street, a room's exit in its north wall), and the camera looks at
- * that face. Screen space, not tile space, is the right test here — the tile
- * axes run diagonally, so "east along the street" is screen down-right and would
- * read as northward on the row axis alone. */
-function headingIntoDoor(intent: MoveIntent): boolean {
-  return intent.sy < 0;
-}
-
-/** Stage a door and start the fade. Disarms auto-warp so the door you arrive at
- * on the other side cannot immediately fire in return. */
+/** Stage a door and start the fade. */
 function enterDoor(state: IsoState, door: Door): void {
   state.mode = "fading";
   state.fadeDir = 1;
   state.pendingDoor = door;
-  state.doorArmed = false;
 }
 
 /** Arm an interaction: the prompt pill flashes green for CONFIRM_TICKS before
@@ -715,14 +696,12 @@ export function update(
     npc: findNearbyNpc(world, player.col, player.row),
     fixture: findNearbyFixture(world, player.col, player.row),
   };
-  // Discovery and arming read everything in reach, not just the nearest: a
-  // shrine you pass is found even beside a door, and a door re-arms only once
-  // you are clear of it.
+  // Discovery reads everything in reach, not just the nearest: a shrine you
+  // pass is found even beside a door.
   if (inReach.mushroom && !state.discovered.has(inReach.mushroom.id)) {
     state.discovered.add(inReach.mushroom.id);
     state.toast = { text: `${inReach.mushroom.label} discovered!`, ticksLeft: TOAST_TICKS };
   }
-  if (!inReach.door) state.doorArmed = true;
 
   const target = nearestTarget(inReach, player.col, player.row);
   state.nearbyDoor = target.door;
@@ -734,14 +713,10 @@ export function update(
   const intent = computeIntent(input);
 
   // ── Interaction (at most one target survives nearestTarget above) ──
-  // A door opens two ways: walk up into it, or press Enter. Enter is not gated
-  // on arming, because pressing it is already deliberate; it is also how a
-  // player deep-linked onto a doorstep goes straight in.
-  // Every path here arms a confirm rather than acting immediately (see above).
-  if (state.nearbyDoor && state.doorArmed && headingIntoDoor(intent)) {
-    startConfirm(state, state.nearbyDoor.label, { kind: "door", door: state.nearbyDoor });
-    return;
-  }
+  // Every target opens only on Enter or Space (the A button on touch). Doors
+  // used to open when walked into as well, which took members inside
+  // buildings they were only walking past. Every path here arms a confirm
+  // rather than acting immediately (see above).
   if (state.nearbyDoor && (input.consume("Enter") || input.consume("Space"))) {
     startConfirm(state, state.nearbyDoor.label, { kind: "door", door: state.nearbyDoor });
     return;

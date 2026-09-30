@@ -674,7 +674,7 @@ function keysHeld(...codes: string[]): InputManager {
   };
 }
 
-describe("walking into a door", () => {
+describe("doors open only on Enter", () => {
   const door: Door = {
     col: 5,
     row: 5,
@@ -686,83 +686,40 @@ describe("walking into a door", () => {
   const world: IsoWorld = { ...LAB_TOWN, doors: [door], links: [] };
   const solid = buildWorldCollision(world);
 
-  /** Spawn clear of the door and walk back to it, so auto-warp is armed — which
-   * is what happens to a player who was not just deposited by that same door. */
-  function armedAtDoor() {
-    const state = createIsoState(world, { spawnCol: 5, spawnRow: 9 });
-    update(state, world, solid, keysHeld()); // no door in reach: arms
-    expect(state.doorArmed).toBe(true);
-    getLocalEntity(state).row = 6; // now standing just south of the door
-    return state;
-  }
-
-  it("goes through the same confirm as Enter, then warps", () => {
-    const state = armedAtDoor();
-    update(state, world, solid, keysHeld("ArrowUp"));
-    expect(state.mode).toBe("overworld"); // confirming first
-    expect(state.confirm?.action).toEqual({ kind: "door", door });
-
-    // Holding the key through the flash must not move the player or re-fire
-    // the walk-into check; the confirm block returns before either runs.
-    const { col, row } = getLocalEntity(state);
-    for (let i = 1; i < CONFIRM_TICKS; i++) {
-      update(state, world, solid, keysHeld("ArrowUp"));
-      expect(getLocalEntity(state)).toMatchObject({ col, row, moving: false });
-    }
-
-    update(state, world, solid, keysHeld("ArrowUp"));
-    expect(state.mode).toBe("fading");
-    expect(state.pendingDoor).toEqual(door);
-    expect(state.confirm).toBeNull();
-  });
-
-  it("does not warp when the player walks past it", () => {
-    // Down-right is east along a street in tile space: the row axis alone would
-    // read that as northward, which is why the test is on screen direction.
-    for (const keys of [["ArrowRight", "ArrowDown"], ["ArrowDown"], ["ArrowLeft"]]) {
-      const state = armedAtDoor();
-      update(state, world, solid, keysHeld(...keys));
-      expect(state.mode).toBe("overworld");
+  it("never opens when the player walks into it or past it", () => {
+    // Walking up-screen is what used to open a door; walking along the street
+    // passes right by one. Neither may take a member inside.
+    for (const keys of [["ArrowUp"], ["ArrowRight", "ArrowDown"], ["ArrowDown"], ["ArrowLeft"]]) {
+      const state = createIsoState(world, { spawnCol: 5, spawnRow: 9 });
+      update(state, world, solid, keysHeld()); // walking up from clear of the door
+      getLocalEntity(state).row = 6; // now standing just south of it
+      for (let tick = 0; tick < 20; tick++) {
+        update(state, world, solid, keysHeld(...keys));
+        expect(state.confirm).toBeNull();
+        expect(state.mode).toBe("overworld");
+      }
       expect(state.pendingDoor).toBeNull();
     }
   });
 
-  it("does not fire the door it just deposited you at, even holding the key", () => {
-    // Arriving through a door leaves you inside its reach; without disarming,
-    // a held key would bounce you straight back out in a loop.
-    const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
-    for (let tick = 0; tick < 10; tick++) {
-      update(state, world, solid, keysHeld("ArrowUp"));
-      expect(state.mode).toBe("overworld");
-    }
-    expect(state.doorArmed).toBe(false);
-  });
-
-  it("re-arms once the player is clear of every door, and works again", () => {
-    const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
-    update(state, world, solid, keysHeld("ArrowUp"));
-    expect(state.doorArmed).toBe(false);
-
-    getLocalEntity(state).row = 9; // walked away
-    update(state, world, solid, keysHeld());
-    expect(state.doorArmed).toBe(true);
-
-    getLocalEntity(state).row = 6; // came back
-    update(state, world, solid, keysHeld("ArrowUp"));
+  it("opens on Enter, which is also the touch A button", () => {
+    const state = createIsoState(world, { spawnCol: 5, spawnRow: 9 });
+    getLocalEntity(state).row = 6;
+    update(state, world, solid, keyOnce(null));
+    expect(state.nearbyDoor).toEqual(door);
+    update(state, world, solid, keyOnce("Enter"));
     expect(state.mode).toBe("overworld"); // confirming first
+    expect(state.confirm?.action).toEqual({ kind: "door", door });
     for (let i = 0; i < CONFIRM_TICKS; i++) update(state, world, solid, keyOnce(null));
     expect(state.mode).toBe("fading");
     expect(state.pendingDoor).toEqual(door);
   });
 
-  it("still opens on Enter, which the touch controls rely on", () => {
+  it("opens on Enter straight away for a player who arrived on the doorstep", () => {
+    // Arriving through a door, or by ?at=<slug>, leaves you inside its reach.
     const state = createIsoState(world, { spawnCol: 5, spawnRow: 6 });
-    update(state, world, solid, keyOnce(null));
-    expect(state.doorArmed).toBe(false); // Enter is not gated on arming
     update(state, world, solid, keyOnce("Enter"));
-    expect(state.mode).toBe("overworld"); // confirming first
     for (let i = 0; i < CONFIRM_TICKS; i++) update(state, world, solid, keyOnce(null));
-    expect(state.mode).toBe("fading");
     expect(state.pendingDoor).toEqual(door);
   });
 });

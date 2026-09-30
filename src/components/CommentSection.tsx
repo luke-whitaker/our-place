@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import Link from "next/link";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { Comment } from "@/lib/types";
@@ -22,6 +22,17 @@ export default function CommentSection({
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const boxRef = useRef<HTMLTextAreaElement>(null);
+
+  // Grow the box with its text so a long comment can be read over before it's
+  // posted. Runs on every change, including the reset to "" after posting,
+  // which shrinks it back to one row. CSS max-height caps it, then it scrolls.
+  useLayoutEffect(() => {
+    const box = boxRef.current;
+    if (!box) return;
+    box.style.height = "auto";
+    box.style.height = `${box.scrollHeight}px`;
+  }, [commentText]);
 
   useEffect(() => {
     let cancelled = false;
@@ -130,7 +141,9 @@ export default function CommentSection({
                         </button>
                       )}
                     </div>
-                    <p className="mt-0.5 text-sm text-ink-tertiary">{comment.content}</p>
+                    <p className="mt-0.5 whitespace-pre-wrap break-words text-sm text-ink-tertiary">
+                      {comment.content}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -142,13 +155,16 @@ export default function CommentSection({
           )}
 
           {user && (
-            <form onSubmit={submitComment} className="flex gap-2">
-              <input
-                type="text"
+            <form onSubmit={submitComment} className="flex items-end gap-2">
+              <textarea
+                ref={boxRef}
+                rows={1}
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 placeholder="Write a comment..."
-                className="flex-1 rounded-xl border border-line bg-surface px-3.5 py-2 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
+                aria-label="Write a comment"
+                maxLength={5000}
+                className="max-h-60 flex-1 resize-none overflow-y-auto rounded-xl border border-line bg-surface px-3.5 py-2 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
               />
               <button
                 type="submit"

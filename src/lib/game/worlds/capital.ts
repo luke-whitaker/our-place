@@ -13,7 +13,7 @@
 // projection.
 //
 // A member's own place is not a building here: it is their floating island,
-// reached only through the mycelium network (the "Home" link at every shrine).
+// reached only through the mycelium network (the "My Place" link at every shrine).
 // The vacated north-west lot (once a "My Place" cottage) is now a small park.
 
 import type { IsoWorld, TerrainKind, PlacedObjectData } from "../world-model";
@@ -491,7 +491,9 @@ const doors: Door[] = BUILDINGS.map((b) => ({
 
 // Every shrine in town offers the way home: the member's own island, arriving
 // at its shrine because that is how they traveled.
-const links: WorldLink[] = [{ id: "home", label: "Home", place: "me", spawnAt: ISLAND_SHRINE_ID }];
+const links: WorldLink[] = [
+  { id: "home", label: "My Place", place: "me", spawnAt: ISLAND_SHRINE_ID },
+];
 
 // ── Regions ──
 // Willow Grove is listed before the Capital so its smaller, nested bounds win
