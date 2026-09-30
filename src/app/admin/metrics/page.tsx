@@ -20,9 +20,11 @@ const WEEK_COLUMNS: {
   key: Exclude<keyof WeekMetrics, "start">;
   label: string;
   format?: (value: number) => string;
+  /** Counted only since visits were first recorded; earlier weeks show a dash, not 0. */
+  visits?: true;
 }[] = [
-  { key: "activeMembers", label: "Active members" },
-  { key: "worldSeconds", label: "World time", format: worldTime },
+  { key: "activeMembers", label: "Active members", visits: true },
+  { key: "worldSeconds", label: "World time", format: worldTime, visits: true },
   { key: "posts", label: "Posts" },
   { key: "comments", label: "Comments" },
   { key: "reactions", label: "Reactions" },
@@ -65,7 +67,21 @@ function Section({
   );
 }
 
-function WeeklyTable({ weeks }: { weeks: WeekMetrics[] }) {
+/** True when the whole week ended before the first visit was recorded. */
+function beforeTracking(weekStart: string, trackingSince: string | null): boolean {
+  if (!trackingSince) return true;
+  const nextWeek = new Date(`${weekStart}T00:00:00Z`);
+  nextWeek.setUTCDate(nextWeek.getUTCDate() + 7);
+  return nextWeek.toISOString().slice(0, 10) <= trackingSince;
+}
+
+function WeeklyTable({
+  weeks,
+  trackingSince,
+}: {
+  weeks: WeekMetrics[];
+  trackingSince: string | null;
+}) {
   return (
     <table className="w-full min-w-[40rem] border-collapse">
       <thead>
@@ -84,7 +100,13 @@ function WeeklyTable({ weeks }: { weeks: WeekMetrics[] }) {
             <td className={`${tdClass} whitespace-nowrap`}>{shortDay(w.start)}</td>
             {WEEK_COLUMNS.map((c) => (
               <td key={c.key} className={`${tdClass} whitespace-nowrap text-right`}>
-                {c.format ? c.format(w[c.key]) : w[c.key]}
+                {c.visits && beforeTracking(w.start, trackingSince) ? (
+                  <span className="text-ink-faint">—</span>
+                ) : c.format ? (
+                  c.format(w[c.key])
+                ) : (
+                  w[c.key]
+                )}
               </td>
             ))}
           </tr>
@@ -154,9 +176,9 @@ export default async function AdminMetricsPage() {
 
       <Section
         title="Each week"
-        description="Newest week first. Active members signed in at least once that week. World time adds up visits to the world that ended that week, each capped at 3 hours. Posts, comments, reactions, letters sent between members, and friend requests later accepted (by the week they were sent) include everyone."
+        description="Newest week first. Active members signed in at least once that week. World time adds up visits to the world that ended that week, each capped at 3 hours. A dash means the week ended before visits were counted. Posts, comments, reactions, letters sent between members, and friend requests later accepted (by the week they were sent) include everyone."
       >
-        <WeeklyTable weeks={weeks} />
+        <WeeklyTable weeks={weeks} trackingSince={trackingSince} />
       </Section>
 
       <Section
