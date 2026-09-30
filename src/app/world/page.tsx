@@ -7,14 +7,15 @@ import WorldCanvas from "@/components/WorldCanvas";
 import { useAuth } from "@/components/AuthProvider";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { CAPITAL } from "@/lib/game/worlds/world-map";
-import { buildIsland } from "@/lib/game/worlds/island";
+import { buildIsland, ISLAND_SHRINE_ID } from "@/lib/game/worlds/island";
 import { buildIslandHouse } from "@/lib/game/worlds/island-house";
 import { findInterior } from "@/lib/game/worlds/interiors";
 import { isTintPreset } from "@/lib/game/terrain-tint";
 import { isMailboxColor } from "@/lib/game/mailbox-colors";
+import type { FriendsList } from "@/lib/game/iso-engine";
 import type { IsoWorld } from "@/lib/game/world-model";
 import type { Door, WorldLink } from "@/lib/game/types";
-import type { IslandInfo } from "@/lib/types";
+import type { FriendIsland, IslandInfo } from "@/lib/types";
 
 /** "normal": the page as usual. "focus": the world covers the navbar and drops
  * its padding, but the browser's own bars stay (iPhone Safari, which has no
@@ -80,9 +81,20 @@ interface ResolveArgs {
   lookup: VisitLookup | null;
 }
 
+/** A friend's island as a Friends menu row: the network lands you at their
+ * island's shrine, never inside their house. */
+function friendLink(friend: FriendIsland): WorldLink {
+  return {
+    id: `friend:${friend.username}`,
+    label: `${friend.display_name}'s Island`,
+    place: friend.username,
+    spawnAt: ISLAND_SHRINE_ID,
+  };
+}
+
 /** Resolve `?place=` to the world to render, or null while a visit is still
- * being checked. Community rooms are as public as the buildings they sit in;
- * islands and the houses on them need to know who is looking. */
+ * being checked. Community rooms are open to every member; islands and the
+ * houses on them need to know who is looking. */
 function resolvePlace({ placeParam, inside, isHome, user, lookup }: ResolveArgs): Place | null {
   const room = findInterior(placeParam);
   if (room)
@@ -177,6 +189,32 @@ function WorldView() {
   const place = useMemo(
     () => resolvePlace({ placeParam, inside, isHome, user: user ?? null, lookup }),
     [placeParam, inside, isHome, user, lookup],
+  );
+
+  // Friends' islands for the Friends menu, fetched once per visit to the world
+  // (this view stays mounted across doors) rather than at every door.
+  const userId = user?.id;
+  const [friends, setFriends] = useState<FriendsList>("loading");
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    apiFetch<{ islands: FriendIsland[] }>("/api/friends/islands")
+      .then((data) => {
+        if (!cancelled) setFriends(data.islands.map(friendLink));
+      })
+      .catch(() => {
+        // The Friends row says so in a toast when it's chosen.
+        if (!cancelled) setFriends("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId]);
+  // Never offer the island you're already standing on.
+  const visiting = place?.visiting ?? null;
+  const menuFriends = useMemo(
+    () => (Array.isArray(friends) ? friends.filter((f) => f.place !== visiting) : friends),
+    [friends, visiting],
   );
 
   // Hide the navbar outright while immersive (globals.css), instead of trusting
@@ -283,6 +321,7 @@ function WorldView() {
             spawnAt={spawnAt}
             ownerDisplayName={place.ownerDisplayName}
             persist={place.visiting === null}
+            friends={menuFriends}
             immersive={immersive}
             onToggleImmersive={handleToggleImmersive}
           />

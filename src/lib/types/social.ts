@@ -27,6 +27,13 @@ export interface PublicProfile {
   island_open: boolean;
 }
 
+/** A friend whose island the viewer may visit, as listed by GET /api/friends/islands
+ * for the Friends menu at shrines and computers. */
+export interface FriendIsland {
+  username: string;
+  display_name: string;
+}
+
 /** Who may walk onto a member's island. */
 export type IslandVisibility = "anyone" | "friends" | "nobody";
 

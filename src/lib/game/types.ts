@@ -120,4 +120,5 @@ export interface Region {
 
 // ── Game Mode ──
 
-export type GameMode = "overworld" | "dialogue" | "fading" | "warp-menu" | "pc-menu";
+export type GameMode =
+  "overworld" | "dialogue" | "fading" | "warp-menu" | "pc-menu" | "friends-menu";

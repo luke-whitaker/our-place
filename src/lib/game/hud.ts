@@ -139,8 +139,30 @@ export function drawToast(
   ctx.globalAlpha = 1;
 }
 
-/** Centered modal list (the mushroom warp network). Entries are pre-computed by
- * the caller — the last one is conventionally "Cancel". */
+/**
+ * Which rows of a long menu to show: `maxRows` of them, keeping the selected
+ * row in view and centred where it can be. `end` is exclusive. A menu that
+ * fits shows every row.
+ */
+export function menuWindow(
+  total: number,
+  selected: number,
+  maxRows: number,
+): { start: number; end: number } {
+  if (total <= maxRows) return { start: 0, end: total };
+  const start = Math.min(Math.max(0, selected - Math.floor(maxRows / 2)), total - maxRows);
+  return { start, end: start + maxRows };
+}
+
+/** Rows a menu always gets, however short the screen. */
+const MENU_MIN_ROWS = 3;
+/** Space kept clear above and below a menu, so it never touches the edges. */
+const MENU_MARGIN = 16;
+
+/** Centered modal list (the mushroom warp network, a PC, Friends). Entries are
+ * pre-computed by the caller; the last one is conventionally "Cancel". A list
+ * taller than the screen shows a window around the selection, with ▲ and ▼
+ * marking the rows above and below. */
 export function drawWarpMenu(
   ctx: CanvasRenderingContext2D,
   title: string,
@@ -156,7 +178,10 @@ export function drawWarpMenu(
   ctx.font = "13px monospace";
   const longestRow = Math.max(...entries.map((e) => ctx.measureText(`▶ ${e}`).width));
   const boxW = Math.round(Math.max(titleW, longestRow) + padding * 2 + 8);
-  const boxH = titleH + entries.length * rowH + padding;
+  const fitRows = Math.floor((size.h - MENU_MARGIN * 2 - titleH - padding) / rowH);
+  const view = menuWindow(entries.length, selectedIndex, Math.max(MENU_MIN_ROWS, fitRows));
+  const shown = entries.slice(view.start, view.end);
+  const boxH = titleH + shown.length * rowH + padding;
   const boxX = Math.round(size.w / 2 - boxW / 2);
   const boxY = Math.round(size.h / 2 - boxH / 2);
 
@@ -181,9 +206,9 @@ export function drawWarpMenu(
 
   ctx.font = "13px monospace";
   ctx.textAlign = "start";
-  entries.forEach((label, i) => {
+  shown.forEach((label, i) => {
     const y = boxY + titleH + i * rowH + rowH / 2;
-    const selected = i === selectedIndex;
+    const selected = view.start + i === selectedIndex;
     if (selected) {
       ctx.fillStyle = PAL.textBorder;
       ctx.globalAlpha = 0.6;
@@ -193,5 +218,15 @@ export function drawWarpMenu(
     ctx.fillStyle = selected ? PAL.white : PAL.light;
     ctx.fillText(`${selected ? "▶ " : "  "}${label}`, boxX + padding, y);
   });
+
+  // More rows off the top or bottom of the window.
+  ctx.fillStyle = PAL.light;
+  ctx.textAlign = "end";
+  const markerX = boxX + boxW - padding / 2;
+  if (view.start > 0) ctx.fillText("▲", markerX, boxY + titleH + rowH / 2);
+  if (view.end < entries.length) {
+    ctx.fillText("▼", markerX, boxY + titleH + (shown.length - 1) * rowH + rowH / 2);
+  }
+  ctx.textAlign = "start";
   ctx.textBaseline = "alphabetic";
 }

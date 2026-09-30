@@ -111,6 +111,9 @@ export interface IsoState {
   pendingWarp: MushroomWarp | null;
   /** A chosen link to another world, fired at the peak of the fade like a door. */
   pendingLink: WorldLink | null;
+  /** Friends' islands for the Friends menu, handed in by the page (setFriends),
+   * since the engine never fetches. A link each, to the friend's island shrine. */
+  friends: FriendsList;
   nearbyPc: Pc | null;
   /** A chosen "log on" target, fired at the peak of the fade like a link. */
   pendingPort: string | null;
@@ -176,6 +179,7 @@ export function createIsoState(world: IsoWorld, options: IsoStateOptions = {}): 
     nearbyMushroom: null,
     pendingWarp: null,
     pendingLink: null,
+    friends: "loading",
     nearbyPc: null,
     pendingPort: null,
     nearbyNpc: null,
@@ -309,10 +313,17 @@ export function warpMenuOptions(state: IsoState, world: IsoWorld): MushroomWarp[
 export type MenuEntry =
   | { kind: "shrine"; label: string; warp: MushroomWarp }
   | { kind: "link"; label: string; link: WorldLink }
-  | { kind: "port"; label: string; href: string };
+  | { kind: "port"; label: string; href: string }
+  | { kind: "friends"; label: string };
+
+/** Friends' islands, or why there's no list yet. */
+export type FriendsList = WorldLink[] | "loading" | "error";
+
+/** The row that opens the Friends menu, last in every shrine and PC menu. */
+const FRIENDS_ENTRY: MenuEntry = { kind: "friends", label: "Friends" };
 
 /** The shrine menu: discovered shrines first, then the world's links (which
- * never need discovering). The caller appends its own Cancel row. */
+ * never need discovering), then Friends. The caller appends its own Cancel row. */
 export function warpMenuEntries(state: IsoState, world: IsoWorld): MenuEntry[] {
   return [
     ...warpMenuOptions(state, world).map((warp): MenuEntry => ({
@@ -321,7 +332,14 @@ export function warpMenuEntries(state: IsoState, world: IsoWorld): MenuEntry[] {
       warp,
     })),
     ...world.links.map((link): MenuEntry => ({ kind: "link", label: link.label, link })),
+    FRIENDS_ENTRY,
   ];
+}
+
+/** The Friends menu: one row per friend's island, already sorted by the API. */
+export function friendMenuEntries(state: IsoState): MenuEntry[] {
+  if (!Array.isArray(state.friends)) return [];
+  return state.friends.map((link): MenuEntry => ({ kind: "link", label: link.label, link }));
 }
 
 /** A PC's menu: log on to the forum view of the place it stands in, then the
@@ -333,6 +351,7 @@ export function pcMenuEntries(pc: Pc, world: IsoWorld): MenuEntry[] {
   return [
     ...logOn,
     ...world.links.map((link): MenuEntry => ({ kind: "link", label: link.label, link })),
+    FRIENDS_ENTRY,
   ];
 }
 
@@ -348,6 +367,9 @@ export function menuView(
   }
   if (state.mode === "pc-menu" && state.nearbyPc) {
     return { title: state.nearbyPc.label, entries: pcMenuEntries(state.nearbyPc, world) };
+  }
+  if (state.mode === "friends-menu") {
+    return { title: "Friends", entries: friendMenuEntries(state) };
   }
   return null;
 }
@@ -385,9 +407,34 @@ function stepMenu(
   return null;
 }
 
+/** Why the Friends row can't open a list, worded for the member. */
+const FRIENDS_UNAVAILABLE = {
+  loading: "Still finding your friends. Try again in a moment.",
+  error: "Couldn't reach your friends list. Try again later.",
+  empty: "No friends' islands to visit yet.",
+} as const;
+
+/** Open the Friends menu, or say in a toast why there's nothing to show. */
+function openFriends(state: IsoState): void {
+  const friends = state.friends;
+  const reason = Array.isArray(friends) ? (friends.length === 0 ? "empty" : null) : friends;
+  if (reason) {
+    state.mode = "overworld";
+    state.toast = { text: FRIENDS_UNAVAILABLE[reason], ticksLeft: TOAST_TICKS };
+    return;
+  }
+  state.mode = "friends-menu";
+  state.menuIndex = 0;
+}
+
 /** Commit a chosen row: stage it and start the fade. The pending value is acted
- * on at the fade's peak, so every transition looks the same as a door's. */
+ * on at the fade's peak, so every transition looks the same as a door's.
+ * Friends is the one row that opens another menu instead. */
 function chooseEntry(state: IsoState, entry: MenuEntry): void {
+  if (entry.kind === "friends") {
+    openFriends(state);
+    return;
+  }
   if (entry.kind === "shrine") state.pendingWarp = entry.warp;
   else if (entry.kind === "link") state.pendingLink = entry.link;
   else state.pendingPort = entry.href;
@@ -524,6 +571,11 @@ export function endNpcTalk(state: IsoState, world: IsoWorld, npcId: string): voi
  * owner's id on every load, so there's nowhere on the static IsoWorld to
  * persist "mail is waiting". The world page sets it from
  * GET /api/users/[username]/mailbox and again after each mailbox action. */
+/** Hand the engine the member's friends' islands for the Friends menu. */
+export function setFriends(state: IsoState, friends: FriendsList): void {
+  state.friends = friends;
+}
+
 export function setMailboxFlag(state: IsoState, up: boolean): void {
   state.mailboxFlagUp = up;
 }
@@ -617,12 +669,9 @@ export function update(
     return; // no input during a fade
   }
 
-  // ── Terminal menus (the shrine network, and a PC) ──
-  if (state.mode === "warp-menu" || state.mode === "pc-menu") {
-    const entries =
-      state.mode === "pc-menu" && state.nearbyPc
-        ? pcMenuEntries(state.nearbyPc, world)
-        : warpMenuEntries(state, world);
+  // ── Terminal menus (the shrine network, a PC, and Friends) ──
+  if (state.mode === "warp-menu" || state.mode === "pc-menu" || state.mode === "friends-menu") {
+    const entries = menuView(state, world)?.entries ?? [];
     const chosen = stepMenu(state, input, entries);
     if (chosen === "cancel") state.mode = "overworld";
     else if (chosen) chooseEntry(state, chosen);

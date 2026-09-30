@@ -16,6 +16,7 @@ export { COMMUNITY_CATEGORIES } from "./forum";
 export type {
   FriendshipStatus,
   FriendEntry,
+  FriendIsland,
   PublicProfile,
   PeopleEntry,
   IslandInfo,

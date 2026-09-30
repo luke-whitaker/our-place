@@ -263,6 +263,24 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.16.0 — Visit Friends from Any Shrine or Computer (September 2026)
+
+**Why:** A friend's island was only reachable from their profile page. Inside the world, where
+the mycelium network already takes you everywhere else, there was no way to get to a friend.
+
+**What changed:**
+
+- **A "Friends" row at every mushroom shrine and computer** opens a list of the friends whose
+  islands you're allowed to visit, by name. Pick one and the network takes you to their island's
+  shrine. It never drops you inside their house.
+- **The list follows each friend's visitor setting,** the same rule as walking onto their island,
+  so a closed island never appears. The island you're standing on is left out.
+- **Long menus fit any screen.** On a laptop, a list taller than the window scrolls with the
+  selection, with ▲ and ▼ marking more rows. On a phone held sideways, menu tiles sit four
+  across, so the largest computer menu still fits without scrolling.
+
+**What didn't change:** the database. One new read-only API, `GET /api/friends/islands`.
+
 ### v0.15.3 — Room to Write, Doors That Wait, and My Place (September 2026)
 
 **Why:** Feedback from members. The comment box stayed one line however much you wrote, so a

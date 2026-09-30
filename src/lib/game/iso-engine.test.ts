@@ -7,6 +7,9 @@ import {
   warpMenuEntries,
   pcMenuEntries,
   menuView,
+  friendMenuEntries,
+  setFriends,
+  type FriendsList,
   cameraFor,
   update,
   buildWorldCollision,
@@ -150,14 +153,15 @@ describe("warpMenuOptions", () => {
 });
 
 describe("warpMenuEntries", () => {
-  it("lists discovered shrines first, then the world's links, undiscovered or not", () => {
+  it("lists discovered shrines first, then the world's links, undiscovered or not, then Friends", () => {
     const state = createIsoState(LINKED_TOWN, { discovered: ["mushroom-lab-ridge"] });
     expect(warpMenuEntries(state, LINKED_TOWN).map((e) => e.label)).toEqual([
       "Ridge Shrine",
       "The Capital",
+      "Friends",
     ]);
     const fresh = createIsoState(LINKED_TOWN);
-    expect(warpMenuEntries(fresh, LINKED_TOWN).map((e) => e.kind)).toEqual(["link"]);
+    expect(warpMenuEntries(fresh, LINKED_TOWN).map((e) => e.kind)).toEqual(["link", "friends"]);
   });
 });
 
@@ -332,17 +336,21 @@ describe("cameraFor", () => {
 });
 
 describe("pcMenuEntries", () => {
-  it("puts a labelled Log on port first when the PC has an href, then the world's links", () => {
+  it("puts a labelled Log on port first when the PC has an href, then the world's links, then Friends", () => {
     const pc: Pc = { col: 5, row: 5, id: "pc", label: "Terminal", href: "/communities/test" };
     const entries = pcMenuEntries(pc, LINKED_TOWN);
     expect(entries[0]).toEqual({ kind: "port", label: "Log on", href: "/communities/test" });
-    expect(entries.slice(1)).toEqual([{ kind: "link", label: "The Capital", link: CAPITAL_LINK }]);
+    expect(entries.slice(1)).toEqual([
+      { kind: "link", label: "The Capital", link: CAPITAL_LINK },
+      { kind: "friends", label: "Friends" },
+    ]);
   });
 
   it("omits the Log on row when the PC has no href", () => {
     const pc: Pc = { col: 5, row: 5, id: "pc", label: "Terminal", href: "" };
     expect(pcMenuEntries(pc, LINKED_TOWN)).toEqual([
       { kind: "link", label: "The Capital", link: CAPITAL_LINK },
+      { kind: "friends", label: "Friends" },
     ]);
   });
 });
@@ -606,6 +614,89 @@ describe("picking a menu row by tapping a WorldMenu tile", () => {
     expect(state.mode).toBe("pc-menu");
     expect(state.pendingLink).toBeNull();
     expect(state.pendingPort).toBeNull();
+  });
+});
+
+describe("the Friends menu", () => {
+  const ADA: WorldLink = {
+    id: "friend:ada",
+    label: "Ada's Island",
+    place: "ada",
+    spawnAt: "island-shrine",
+  };
+  const ZOE: WorldLink = {
+    id: "friend:zoe",
+    label: "Zoe's Island",
+    place: "zoe",
+    spawnAt: "island-shrine",
+  };
+  const solid = buildWorldCollision(LINKED_TOWN);
+
+  /** The shrine menu open with its cursor on Friends, the last row. */
+  function shrineMenuOnFriends(friends: FriendsList) {
+    const state = createIsoState(LINKED_TOWN);
+    setFriends(state, friends);
+    state.nearbyMushroom = LINKED_TOWN.mushrooms[0];
+    state.mode = "warp-menu";
+    const entries = warpMenuEntries(state, LINKED_TOWN);
+    state.menuIndex = entries.findIndex((e) => e.kind === "friends");
+    return state;
+  }
+
+  it("opens a list of friends' islands, and picking one travels there like any link", () => {
+    const state = shrineMenuOnFriends([ADA, ZOE]);
+    update(state, LINKED_TOWN, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("friends-menu");
+    expect(state.menuIndex).toBe(0);
+    expect(menuView(state, LINKED_TOWN)).toEqual({
+      title: "Friends",
+      entries: [
+        { kind: "link", label: "Ada's Island", link: ADA },
+        { kind: "link", label: "Zoe's Island", link: ZOE },
+      ],
+    });
+
+    update(state, LINKED_TOWN, solid, keyOnce("ArrowDown"));
+    update(state, LINKED_TOWN, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("fading");
+    expect(state.pendingLink).toEqual(ZOE);
+  });
+
+  it("closes on Cancel without going anywhere", () => {
+    const state = shrineMenuOnFriends([ADA]);
+    update(state, LINKED_TOWN, solid, keyOnce("Enter"));
+    update(state, LINKED_TOWN, solid, keyOnce("Escape"));
+    expect(state.mode).toBe("overworld");
+    expect(state.pendingLink).toBeNull();
+  });
+
+  it("opens from a PC too, by a tap on touch screens", () => {
+    const pc: Pc = { col: 5, row: 5, id: "pc", label: "Terminal", href: "/communities/test" };
+    const world: IsoWorld = { ...LINKED_TOWN, pcs: [pc] };
+    const state = createIsoState(world);
+    setFriends(state, [ADA]);
+    state.nearbyPc = pc;
+    state.mode = "pc-menu";
+    const row = pcMenuEntries(pc, world).findIndex((e) => e.kind === "friends");
+    update(state, world, buildWorldCollision(world), pickOnce(row));
+    expect(state.mode).toBe("friends-menu");
+  });
+
+  it.each([
+    ["loading" as const, "Still finding your friends. Try again in a moment."],
+    ["error" as const, "Couldn't reach your friends list. Try again later."],
+    [[] as WorldLink[], "No friends' islands to visit yet."],
+  ])("says why in a toast when the list is %o", (friends, text) => {
+    const state = shrineMenuOnFriends(friends);
+    update(state, LINKED_TOWN, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("overworld");
+    expect(state.toast?.text).toBe(text);
+    expect(state.pendingLink).toBeNull();
+  });
+
+  it("starts loading until the page hands the list over", () => {
+    expect(createIsoState(LINKED_TOWN).friends).toBe("loading");
+    expect(friendMenuEntries(createIsoState(LINKED_TOWN))).toEqual([]);
   });
 });
 

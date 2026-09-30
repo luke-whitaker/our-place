@@ -35,8 +35,7 @@ export default function WorldMenu({ title, entries, onPick, onClose }: WorldMenu
         aria-labelledby={TITLE_ID}
         // Padding lives on the panel itself, not the header/grid separately, so
         // an iPhone held sideways gets every spare pixel toward the 44px tiles —
-        // that's what keeps a 10-row menu (Log on + 9 destinations) on-screen
-        // with no scrolling.
+        // that's what keeps the largest menu on-screen with no scrolling.
         className="flex max-h-full w-full max-w-2xl flex-col gap-0.5 overflow-y-auto rounded-sm border-2 px-1.5 pt-1 pb-0.5 font-mono"
         style={{ backgroundColor: PAL.textBg, borderColor: PAL.textBorder }}
         // Stop a tap inside the panel from bubbling to the backdrop and closing it.
@@ -64,7 +63,10 @@ export default function WorldMenu({ title, entries, onPick, onClose }: WorldMenu
           </button>
         </div>
 
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(10.5rem,1fr))] gap-1">
+        {/* 9rem tiles fit four columns in the ~640px canvas of a phone held
+            sideways, so the largest menu (Log on + 9 communities + My Place +
+            Friends) stays three rows of tiles. A long name wraps inside its tile. */}
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(9rem,1fr))] gap-1">
           {entries.map((entry, i) => (
             <button
               key={i}

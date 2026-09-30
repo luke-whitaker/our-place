@@ -22,10 +22,12 @@ import {
   buildWorldCollision,
   menuView,
   setMailboxFlag,
+  setFriends,
   showToast,
   type IsoState,
   type IsoAssets,
   type MenuEntry,
+  type FriendsList,
 } from "@/lib/game/iso-engine";
 import { loadIsoSave, persistIsoSave, isValidIsoPosition } from "@/lib/game/iso-save";
 import { usePresence } from "@/lib/game/use-presence";
@@ -53,6 +55,8 @@ interface WorldCanvasProps {
   /** Remember position and discoveries on this device. Off when visiting
    * someone else's place, so a visit never overwrites your own trail. */
   persist?: boolean;
+  /** Friends' islands for the Friends menu at shrines and PCs. */
+  friends: FriendsList;
   /** Whether the page is in focus or full-screen mode. Here it picks the full
    * screen button's icon and lets a desktop canvas fill the screen, scaled up;
    * the page (not this component) owns the layout change, since the element
@@ -151,6 +155,7 @@ export default function WorldCanvas({
   spawnAt,
   ownerDisplayName,
   persist = true,
+  friends,
   immersive,
   onToggleImmersive,
 }: WorldCanvasProps) {
@@ -239,6 +244,14 @@ export default function WorldCanvas({
       fadeIn: true,
     });
   }, [world, solid, spawnAt, persist, playerLabel]);
+
+  // ── Friends' islands for the Friends menu ──
+  // Handed to every fresh state, so this lists every input that makes the
+  // spawn effect above build one, plus the list itself.
+  useEffect(() => {
+    const state = stateRef.current;
+    if (state) setFriends(state, friends);
+  }, [friends, world, solid, spawnAt, persist, playerLabel]);
 
   // ── Mailbox flag on arrival ──
   // The island's mailbox fixture, if this world has one, shows its flag up
