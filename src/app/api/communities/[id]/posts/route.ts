@@ -1,17 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getAuthUser, requireAuth } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { createPostLimiter } from "@/lib/rate-limit";
 import { createPostSchema, getZodErrorMessage } from "@/lib/schemas";
 import { enrichPostsWithMedia, mapPostRow, validatePostContent } from "@/lib/post-helpers";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 import { v4 as uuidv4 } from "uuid";
 
-// GET: List posts in a community
+// GET: List posts in a community. Members only: every piece of content on Our
+// Place needs an account to see.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const auth = await getAuthUser();
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
     const { limit, offset, page } = parsePagination(new URL(request.url).searchParams);
 
     const community = await prisma.community.findFirst({
@@ -27,7 +29,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       include: {
         author: { select: { displayName: true, username: true, avatarColor: true } },
         community: { select: { name: true, slug: true, icon: true } },
-        reactions: auth ? { where: { userId: auth.userId }, select: { type: true } } : false,
+        reactions: { where: { userId: auth.user.userId }, select: { type: true } },
       },
       orderBy: { createdAt: "desc" },
       take: limit + 1,
@@ -35,10 +37,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     });
 
     const mapped = posts.map((p) =>
-      mapPostRow(
-        p,
-        Array.isArray(p.reactions) && p.reactions.length > 0 ? p.reactions[0].type : null,
-      ),
+      mapPostRow(p, p.reactions.length > 0 ? p.reactions[0].type : null),
     );
 
     const { data, hasMore } = paginateResults(mapped, limit, page);

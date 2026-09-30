@@ -81,3 +81,34 @@ export async function sendPasswordResetCode(to: string, code: string): Promise<v
 
   await sendEmail({ to, subject: "Your Our Place password reset code", html, text });
 }
+
+/** Escapes the characters that would let a value break out of HTML text. */
+function escapeHtml(value: string): string {
+  return value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+}
+
+/**
+ * Tell the old address that the account's email just changed. Sent to the old
+ * address on purpose: if someone else made the change, that inbox is the one
+ * the real member still reads.
+ */
+export async function sendEmailChangedNotice(oldEmail: string, newEmail: string): Promise<void> {
+  const text =
+    `The email on your Our Place account was just changed to ${newEmail}.\n\n` +
+    `If you made this change, you don't need to do anything. If you didn't, ` +
+    `contact an Our Place admin right away so they can secure your account.`;
+
+  const html = `
+  <div style="font-family: -apple-system, system-ui, sans-serif; max-width: 480px; margin: 0 auto; padding: 24px; color: #1a1a1a;">
+    <h1 style="font-size: 18px; margin: 0 0 16px;">Your Our Place email changed</h1>
+    <p style="font-size: 14px; line-height: 1.5; margin: 0 0 16px;">
+      The email on your account was just changed to <strong>${escapeHtml(newEmail)}</strong>.
+    </p>
+    <p style="font-size: 12px; line-height: 1.5; color: #71717a; margin: 0;">
+      If you made this change, you don't need to do anything. If you didn't, contact an Our Place
+      admin right away so they can secure your account.
+    </p>
+  </div>`;
+
+  await sendEmail({ to: oldEmail, subject: "Your Our Place email was changed", html, text });
+}

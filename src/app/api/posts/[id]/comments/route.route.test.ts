@@ -8,7 +8,7 @@ import { POST } from "./route";
 // getAuthUser reads cookies via next/headers, which doesn't work outside a
 // real Next request — mock it to return a chosen user, matching the
 // AuthPayload | null shape getAuthUser returns.
-vi.mock("@/lib/auth", () => ({ getAuthUser: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ getAuthUser: vi.fn(), requireAuth: vi.fn() }));
 
 const mockGetAuthUser = vi.mocked(getAuthUser);
 

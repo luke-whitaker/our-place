@@ -150,10 +150,10 @@ function WorldView() {
   const [visit, setVisit] = useState<VisitLookup | null>(null);
   const lookup = visit && visit.who === who ? visit : null;
 
-  // An island needs an account; a community room is as public as its building.
+  // The whole world needs an account, like everything else on Our Place.
   useEffect(() => {
-    if (!loading && !user && !room && placeParam !== "capital") router.replace("/auth/login");
-  }, [loading, user, room, placeParam, router]);
+    if (!loading && !user) router.replace("/auth/login");
+  }, [loading, user, router]);
 
   // Someone else's island or house: ask the API whether you may visit, and in
   // which biome. Both share one lookup, keyed on the member, not the place.
@@ -260,6 +260,10 @@ function WorldView() {
   const rootClassName = immersive
     ? "fixed inset-0 z-[60] flex flex-col items-center bg-surface-inverse"
     : "flex h-[calc(100dvh-4rem)] flex-col items-center bg-surface-inverse p-2";
+
+  // Nothing of the world renders until we know who's here; a logged-out
+  // visitor is on their way to the login page.
+  if (!user) return <div ref={rootRef} className={rootClassName} />;
 
   return (
     <div ref={rootRef} className={rootClassName}>

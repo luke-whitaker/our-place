@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getAuthUser } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 
+// GET: a community, the caller's membership, and its members. Members only,
+// like all content.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
-    const auth = await getAuthUser();
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
     const { limit, offset, page } = parsePagination(new URL(request.url).searchParams);
 
     // Find community by slug or id
@@ -32,20 +35,16 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       return NextResponse.json({ error: "Community not found." }, { status: 404 });
     }
 
-    // Check membership
-    let membership = null;
-    if (auth) {
-      membership = await prisma.communityMember.findUnique({
-        where: { userId_communityId: { userId: auth.userId, communityId: community.id } },
-        select: {
-          id: true,
-          userId: true,
-          communityId: true,
-          role: true,
-          joinedAt: true,
-        },
-      });
-    }
+    const membership = await prisma.communityMember.findUnique({
+      where: { userId_communityId: { userId: auth.user.userId, communityId: community.id } },
+      select: {
+        id: true,
+        userId: true,
+        communityId: true,
+        role: true,
+        joinedAt: true,
+      },
+    });
 
     // Get members list (paginated)
     const members = await prisma.communityMember.findMany({

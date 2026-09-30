@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { getAuthUser } from "@/lib/auth";
+import { getAuthUser, requireAuth } from "@/lib/auth";
 import { createCommentLimiter } from "@/lib/rate-limit";
 import { createCommentSchema, getZodErrorMessage } from "@/lib/schemas";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 import { v4 as uuidv4 } from "uuid";
 
+// GET: a post's comments, oldest first. Members only, like all content.
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id } = await params;
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
     const { limit, offset, page } = parsePagination(new URL(request.url).searchParams);
 
     const comments = await prisma.comment.findMany({

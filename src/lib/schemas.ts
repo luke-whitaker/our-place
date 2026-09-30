@@ -84,9 +84,20 @@ export const updateAccountSchema = z
       d.new_password,
     { message: "Nothing to update." },
   )
-  .refine((d) => !d.new_password || (d.current_password && d.current_password.length > 0), {
-    message: "Your current password is required to set a new one.",
+  // Email and phone need the password too: with only a session, changing the
+  // email and then resetting the password would take over the account.
+  .refine((d) => !needsCurrentPassword(d) || (d.current_password ?? "").length > 0, {
+    message: "Enter your current password to change your email, phone, or password.",
   });
+
+/** Whether an account update touches sign-in details, so the current password must come too. */
+export function needsCurrentPassword(d: {
+  email?: string;
+  phone?: string;
+  new_password?: string;
+}): boolean {
+  return d.email !== undefined || d.phone !== undefined || d.new_password !== undefined;
+}
 
 export const forgotPasswordSchema = z.object({
   email: z.string({ error: "Email is required." }).email("Please enter a valid email address."),

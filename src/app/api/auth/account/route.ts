@@ -3,10 +3,18 @@ import bcrypt from "bcryptjs";
 import prisma from "@/lib/db";
 import { requireAuth, signToken, AUTH_COOKIE_OPTIONS } from "@/lib/auth";
 import { updateAccountLimiter } from "@/lib/rate-limit";
-import { updateAccountSchema, getZodErrorMessage, normalizePhone } from "@/lib/schemas";
+import { sendEmailChangedNotice } from "@/lib/email";
+import {
+  updateAccountSchema,
+  getZodErrorMessage,
+  needsCurrentPassword,
+  normalizePhone,
+} from "@/lib/schemas";
 
 // PATCH: Update the current user's account (name, email, phone, password).
-// Changing the password requires the current password.
+// Changing the email, phone, or password requires the current password, so a
+// session alone can't take over the account through the email reset flow.
+// An email change is announced to the old address.
 export async function PATCH(request: NextRequest) {
   try {
     const auth = await requireAuth();
@@ -39,10 +47,19 @@ export async function PATCH(request: NextRequest) {
 
     const user = await prisma.user.findUnique({
       where: { id: auth.user.userId },
-      select: { id: true, passwordHash: true },
+      select: { id: true, email: true, passwordHash: true },
     });
     if (!user) {
       return NextResponse.json({ error: "Account not found." }, { status: 404 });
+    }
+
+    // Checked before anything else touches sign-in details, so a session
+    // without the password can't even learn whether an email is taken.
+    if (needsCurrentPassword(parsed.data)) {
+      const validPassword = await bcrypt.compare(current_password ?? "", user.passwordHash);
+      if (!validPassword) {
+        return NextResponse.json({ error: "Current password is incorrect." }, { status: 403 });
+      }
     }
 
     const data: {
@@ -78,10 +95,6 @@ export async function PATCH(request: NextRequest) {
     }
 
     if (new_password) {
-      const validPassword = await bcrypt.compare(current_password ?? "", user.passwordHash);
-      if (!validPassword) {
-        return NextResponse.json({ error: "Current password is incorrect." }, { status: 401 });
-      }
       data.passwordHash = await bcrypt.hash(new_password, 12);
       // Revokes every existing session: getAuthUser rejects tokens issued
       // before this timestamp.
@@ -119,6 +132,16 @@ export async function PATCH(request: NextRequest) {
     }
 
     await prisma.user.update({ where: { id: user.id }, data });
+
+    if (data.email && data.email !== user.email) {
+      // The change is already saved; a failed notice is logged, not returned,
+      // so the member isn't told their update failed when it didn't.
+      try {
+        await sendEmailChangedNotice(user.email, data.email);
+      } catch (err) {
+        console.error("Failed to send email-change notice:", err);
+      }
+    }
 
     const response = NextResponse.json({ message: "Account updated." });
 

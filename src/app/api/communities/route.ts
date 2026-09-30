@@ -1,16 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import type { CommunityWhereInput } from "@/generated/prisma/models/Community";
-import { getAuthUser } from "@/lib/auth";
+import { getAuthUser, requireAuth } from "@/lib/auth";
 import { createCommunityLimiter } from "@/lib/rate-limit";
 import { createCommunitySchema, getZodErrorMessage } from "@/lib/schemas";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 import { v4 as uuidv4 } from "uuid";
 
-// GET: List/search all communities
+// GET: List/search all communities. Members only, like all content.
 export async function GET(request: NextRequest) {
   try {
-    const auth = await getAuthUser();
+    const auth = await requireAuth();
+    if (auth.error) return auth.error;
+    const userId = auth.user.userId;
     const { searchParams } = new URL(request.url);
     const search = searchParams.get("search") || "";
     const category = searchParams.get("category") || "";
@@ -31,16 +33,14 @@ export async function GET(request: NextRequest) {
       where.category = category;
     }
 
-    if (auth && joined === "true") {
-      where.members = { some: { userId: auth.userId } };
+    if (joined === "true") {
+      where.members = { some: { userId } };
     }
 
     const communities = await prisma.community.findMany({
       where,
       include: {
-        members: auth
-          ? { where: { userId: auth.userId }, select: { userId: true, role: true } }
-          : false,
+        members: { where: { userId }, select: { userId: true, role: true } },
       },
       orderBy: [{ memberCount: "desc" }, { createdAt: "desc" }],
       take: limit + 1,
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
     // Map to match existing API shape
     const mapped = communities.map((c) => {
-      const membership = Array.isArray(c.members) && c.members.length > 0 ? c.members[0] : null;
+      const membership = c.members.length > 0 ? c.members[0] : null;
       return {
         id: c.id,
         name: c.name,

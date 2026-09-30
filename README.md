@@ -263,6 +263,25 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.15.2 — Members Only, and Your Password for Sign-In Changes (September 2026)
+
+**Why:** Our Place is invite-only, but anyone on the internet could still read the communities,
+their posts and comments, and who belongs to each, and could walk the world without an account.
+Separately, changing your email only needed a signed-in session, so someone at an unlocked
+device could change it and then take the account through "Forgot password."
+
+**What changed:**
+
+- **Every piece of content needs an account.** The community list, each community's page and
+  members, its posts, and comments now answer 401 to anyone logged out, and the world sends a
+  logged-out visitor to the login page before anything of it loads.
+- **Changing your email or phone asks for your current password,** as changing your password
+  already did. A wrong password is refused before anything else is checked.
+- **Your old address hears about an email change,** so if it wasn't you, you find out.
+
+**What didn't change:** members see everything they saw before. Name, theme, biome, mailbox
+color, and island visibility still change without a password.
+
 ### v0.15.1 — Uploads Stay in Their Folder (September 2026)
 
 **Why:** The upload route named each stored file with the extension from the uploader's

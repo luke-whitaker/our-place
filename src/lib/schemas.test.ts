@@ -107,17 +107,31 @@ describe("updateAccountSchema", () => {
     expect(result.success).toBe(true);
   });
 
-  it("accepts an email-only update", () => {
-    expect(updateAccountSchema.safeParse({ email: "new@example.com" }).success).toBe(true);
+  it("accepts an email change with the current password", () => {
+    expect(
+      updateAccountSchema.safeParse({ email: "new@example.com", current_password: "oldpassword" })
+        .success,
+    ).toBe(true);
   });
 
-  it("accepts a phone-only update", () => {
-    expect(updateAccountSchema.safeParse({ phone: "555-9876" }).success).toBe(true);
+  it("accepts a phone change with the current password", () => {
+    expect(
+      updateAccountSchema.safeParse({ phone: "555-9876", current_password: "oldpassword" }).success,
+    ).toBe(true);
   });
 
-  it("accepts an empty phone (clears the number)", () => {
-    expect(updateAccountSchema.safeParse({ phone: "" }).success).toBe(true);
+  it("accepts an empty phone with the current password (clears the number)", () => {
+    expect(
+      updateAccountSchema.safeParse({ phone: "", current_password: "oldpassword" }).success,
+    ).toBe(true);
   });
+
+  it.each([{ email: "new@example.com" }, { phone: "555-9876" }, { phone: "" }])(
+    "rejects %o without the current password",
+    (body) => {
+      expect(updateAccountSchema.safeParse(body).success).toBe(false);
+    },
+  );
 
   it("accepts a password change with current password", () => {
     expect(
@@ -144,7 +158,10 @@ describe("updateAccountSchema", () => {
   });
 
   it("rejects an invalid email", () => {
-    expect(updateAccountSchema.safeParse({ email: "notanemail" }).success).toBe(false);
+    expect(
+      updateAccountSchema.safeParse({ email: "notanemail", current_password: "oldpassword" })
+        .success,
+    ).toBe(false);
   });
 
   it("accepts a biome-only update for each preset", () => {

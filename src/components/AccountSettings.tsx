@@ -111,6 +111,13 @@ export default function AccountSettings() {
       // Phone is optional — an empty value removes the number from the account.
       body.phone = phone.trim();
     }
+    if (editing === "email" || editing === "phone") {
+      if (!currentPassword) {
+        setError("Enter your current password to make this change.");
+        return;
+      }
+      body.current_password = currentPassword;
+    }
     if (editing === "password") {
       if (newPassword.length < 8) {
         setError("New password must be at least 8 characters.");
@@ -177,6 +184,16 @@ export default function AccountSettings() {
             onChange={(e) => setPhone(e.target.value)}
             placeholder="Phone number (leave blank to remove)"
             autoFocus
+            className={inputClass}
+          />
+        )}
+        {(field === "email" || field === "phone") && (
+          <input
+            type="password"
+            value={currentPassword}
+            onChange={(e) => setCurrentPassword(e.target.value)}
+            placeholder="Current password"
+            autoComplete="current-password"
             className={inputClass}
           />
         )}
