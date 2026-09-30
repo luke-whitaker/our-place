@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import { cookies } from "next/headers";
 import prisma from "./db";
+import { recordVisit } from "./activity";
 import { AuthPayload } from "./types";
 
 function getJwtSecret(): string {
@@ -72,10 +73,21 @@ export async function getAuthUser(): Promise<AuthPayload | null> {
   // The lookup also kills tokens of since-deleted accounts.
   const user = await prisma.user.findUnique({
     where: { id: payload.userId },
-    select: { passwordChangedAt: true, role: true },
+    select: {
+      id: true,
+      username: true,
+      excludeFromMetrics: true,
+      passwordChangedAt: true,
+      role: true,
+    },
   });
   if (!user) return null;
   if (tokenIssuedBeforePasswordChange(payload.iat, user.passwordChangedAt)) return null;
+
+  // Every signed-in page and route passes through here, so this is where a
+  // day counts as active. At most one write per member per day, and never
+  // awaited: a metrics failure is logged and must not fail the request.
+  void recordVisit(user);
 
   // role comes from the database, not the token: the token is valid for 24h,
   // and a promotion or demotion during that window must take effect on the

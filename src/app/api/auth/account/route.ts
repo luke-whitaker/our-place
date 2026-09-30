@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { requireAuth, signToken, AUTH_COOKIE_OPTIONS } from "@/lib/auth";
 import { updateAccountLimiter } from "@/lib/rate-limit";
 import { sendEmailChangedNotice } from "@/lib/email";
+import { forgetVisit } from "@/lib/activity";
 import {
   updateAccountSchema,
   getZodErrorMessage,
@@ -11,7 +12,8 @@ import {
   normalizePhone,
 } from "@/lib/schemas";
 
-// PATCH: Update the current user's account (name, email, phone, password).
+// PATCH: Update the current user's account (name, email, phone, password, and
+// whether they're left out of the activity counts).
 // Changing the email, phone, or password requires the current password, so a
 // session alone can't take over the account through the email reset flow.
 // An email change is announced to the old address.
@@ -41,6 +43,7 @@ export async function PATCH(request: NextRequest) {
       biome,
       mailbox_color,
       island_visibility,
+      exclude_from_metrics,
       current_password,
       new_password,
     } = parsed.data;
@@ -70,6 +73,7 @@ export async function PATCH(request: NextRequest) {
       biome?: string;
       mailboxColor?: string;
       islandVisibility?: string;
+      excludeFromMetrics?: boolean;
       passwordHash?: string;
       passwordChangedAt?: Date;
     } = {};
@@ -92,6 +96,10 @@ export async function PATCH(request: NextRequest) {
 
     if (island_visibility) {
       data.islandVisibility = island_visibility;
+    }
+
+    if (exclude_from_metrics !== undefined) {
+      data.excludeFromMetrics = exclude_from_metrics;
     }
 
     if (new_password) {
@@ -131,7 +139,15 @@ export async function PATCH(request: NextRequest) {
       data.phone = normalized;
     }
 
-    await prisma.user.update({ where: { id: user.id }, data });
+    // Leaving the activity counts also deletes the member's existing rows, in
+    // the same transaction, so opting out removes what was already counted.
+    await prisma.$transaction([
+      prisma.user.update({ where: { id: user.id }, data }),
+      ...(exclude_from_metrics
+        ? [prisma.activityDay.deleteMany({ where: { userId: user.id } })]
+        : []),
+    ]);
+    if (exclude_from_metrics) forgetVisit(user.id);
 
     if (data.email && data.email !== user.email) {
       // The change is already saved; a failed notice is logged, not returned,

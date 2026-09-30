@@ -21,6 +21,7 @@ interface User {
   /** Ghost Mode, set at the house armoire: the world draws you see-through and
    * nobody else sees you. */
   ghost?: boolean;
+  exclude_from_metrics?: boolean;
   is_verified: number;
   role: string;
   community_count?: number;

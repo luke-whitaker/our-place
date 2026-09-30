@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { apiFetch, userMessage } from "@/lib/api-client";
@@ -114,6 +115,12 @@ export default function AdminPage() {
         <p className="mt-1 text-sm text-ink-muted">
           Create accounts for people you&apos;ve met in person.
         </p>
+        <Link
+          href="/admin/metrics"
+          className="mt-3 inline-block text-sm font-medium text-accent-600 hover:underline"
+        >
+          Metrics: who&apos;s visiting, and how often →
+        </Link>
       </div>
 
       <div className="grid gap-8 lg:grid-cols-2">

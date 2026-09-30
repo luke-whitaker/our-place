@@ -4,6 +4,7 @@ import { requireAdmin } from "@/lib/auth";
 import { adminCreateUserSchema, getZodErrorMessage, normalizePhone } from "@/lib/schemas";
 import { AVATAR_COLORS } from "@/lib/types";
 import { leaveWelcomeLetter, WELCOME_LETTER_SENDER } from "@/lib/welcome-letter";
+import { leaveMetricsLetter, METRICS_LETTER_SENDER } from "@/lib/metrics-letter";
 import bcrypt from "bcryptjs";
 
 export async function GET() {
@@ -99,6 +100,16 @@ export async function POST(request: NextRequest) {
       where: { username: WELCOME_LETTER_SENDER },
       select: { id: true },
     });
+    // Then Luke's letter about the admin metrics, so new members hear about
+    // the counts and the opt-out the same way everyone else did. Logged, not
+    // fatal, when that account doesn't exist.
+    const metricsSender = await prisma.user.findUnique({
+      where: { username: METRICS_LETTER_SENDER },
+      select: { id: true },
+    });
+    if (!metricsSender) {
+      console.error(`Metrics letter skipped: no "${METRICS_LETTER_SENDER}" account.`);
+    }
 
     const user = await prisma.$transaction(async (tx) => {
       const created = await tx.user.create({
@@ -123,6 +134,9 @@ export async function POST(request: NextRequest) {
         });
       }
       if (letterSender) await leaveWelcomeLetter(tx, created.id, letterSender.id);
+      if (metricsSender) {
+        await leaveMetricsLetter(tx, created.id, metricsSender.id, letterSender ? 1 : 0);
+      }
       return created;
     });
 

@@ -171,3 +171,40 @@ describe("PATCH /api/auth/account sign-in details", () => {
     expect(status).toBe(200);
   });
 });
+
+describe("PATCH /api/auth/account exclude_from_metrics", () => {
+  beforeEach(() => {
+    mockRequireAuth.mockReset();
+  });
+
+  function excluded(userId: string) {
+    return prisma.user.findUnique({ where: { id: userId }, select: { excludeFromMetrics: true } });
+  }
+
+  it("leaves the counts, without a password, and deletes only that member's rows", async () => {
+    const user = await createTestUser();
+    const other = await createTestUser();
+    for (const id of [user.userId, other.userId]) {
+      await prisma.activityDay.create({ data: { userId: id, day: new Date("2026-09-29") } });
+    }
+    authAs(user);
+
+    const { status } = await patchAccount({ exclude_from_metrics: true });
+
+    expect(status).toBe(200);
+    expect(await excluded(user.userId)).toEqual({ excludeFromMetrics: true });
+    expect(await prisma.activityDay.count({ where: { userId: user.userId } })).toBe(0);
+    expect(await prisma.activityDay.count({ where: { userId: other.userId } })).toBe(1);
+  });
+
+  it("comes back into the counts", async () => {
+    const user = await createTestUser();
+    await prisma.user.update({ where: { id: user.userId }, data: { excludeFromMetrics: true } });
+    authAs(user);
+
+    const { status } = await patchAccount({ exclude_from_metrics: false });
+
+    expect(status).toBe(200);
+    expect(await excluded(user.userId)).toEqual({ excludeFromMetrics: false });
+  });
+});

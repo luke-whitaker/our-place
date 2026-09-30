@@ -7,6 +7,7 @@ import { isAvatarConfig } from "@/lib/game/avatar-recolor";
 import { useAuth } from "@/components/AuthProvider";
 import AvatarPreview from "@/components/AvatarPreview";
 import IslandSettings from "@/components/IslandSettings";
+import MetricsSettings from "@/components/MetricsSettings";
 
 type EditableField = "name" | "email" | "phone" | "password";
 
@@ -405,6 +406,10 @@ export default function AccountSettings() {
 
         {/* Your island */}
         <IslandSettings />
+        <div className="border-t border-line-soft" />
+
+        {/* Activity counts */}
+        <MetricsSettings />
         <div className="border-t border-line-soft" />
 
         {/* Sign out */}

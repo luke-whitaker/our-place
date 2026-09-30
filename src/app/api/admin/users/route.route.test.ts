@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import prisma from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { WELCOME_LETTER, WELCOME_LETTER_SENDER } from "@/lib/welcome-letter";
+import { METRICS_LETTER, METRICS_LETTER_SENDER } from "@/lib/metrics-letter";
 import { createTestUser, jsonRequest } from "@/test/route-helpers";
 import { POST } from "./route";
 
@@ -56,5 +57,37 @@ describe("POST /api/admin/users", () => {
     const userId = await createMember(inviter.userId);
 
     expect(await prisma.item.count({ where: { ownerId: userId } })).toBe(0);
+  });
+
+  it("leaves Luke's metrics letter in the slot after the welcome letter", async () => {
+    const ourplace = await createTestUser({ username: WELCOME_LETTER_SENDER });
+    const luke = await createTestUser({ username: METRICS_LETTER_SENDER });
+
+    const userId = await createMember(ourplace.userId);
+
+    const items = await prisma.item.findMany({
+      where: { ownerId: userId },
+      orderBy: { slot: "asc" },
+      select: { location: true, slot: true, body: true, fromId: true },
+    });
+    expect(items).toEqual([
+      { location: "mailbox", slot: 0, body: WELCOME_LETTER, fromId: ourplace.userId },
+      { location: "mailbox", slot: 1, body: METRICS_LETTER, fromId: luke.userId },
+    ]);
+  });
+
+  it("leaves only the welcome letter when Luke's account doesn't exist", async () => {
+    const ourplace = await createTestUser({ username: WELCOME_LETTER_SENDER });
+    const errors = vi.spyOn(console, "error").mockImplementation(() => {});
+
+    const userId = await createMember(ourplace.userId);
+
+    const items = await prisma.item.findMany({
+      where: { ownerId: userId },
+      select: { body: true },
+    });
+    expect(items).toEqual([{ body: WELCOME_LETTER }]);
+    expect(errors).toHaveBeenCalledWith(expect.stringContaining("Metrics letter skipped"));
+    errors.mockRestore();
   });
 });

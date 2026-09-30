@@ -7,6 +7,7 @@ import {
   MAX_PLAYERS,
   MAX_SUBSCRIBERS,
   MAX_SUBSCRIBERS_PER_USER,
+  MAX_VISIT_SECONDS,
   type PresenceEvent,
   type PresenceHub,
   type PresenceProfile,
@@ -260,5 +261,73 @@ describe("presence hub", () => {
     expect(timed.stats().sweeping).toBe(true);
     if (sub.ok) sub.unsubscribe();
     expect(timed.stats().sweeping).toBe(false);
+  });
+});
+
+describe("world visits for the metrics", () => {
+  let visits: { userId: string; seconds: number }[];
+  let timed: PresenceHub;
+
+  beforeEach(() => {
+    visits = [];
+    timed = createPresenceHub({
+      now: () => t,
+      autoSweep: false,
+      onVisitEnd: (userId, seconds) => visits.push({ userId, seconds }),
+    });
+  });
+
+  /** Post a position every 5 s for `seconds`, as a walking client does. */
+  function walk(userId: string, worldId: string, seconds: number) {
+    for (let s = 0; s < seconds; s += 5) {
+      timed.move(userId, worldId, HERE, profile(userId));
+      t += 5_000;
+    }
+    timed.move(userId, worldId, HERE, profile(userId));
+  }
+
+  /** Let the silence timeout pass so the sweep removes everyone. */
+  function goQuiet() {
+    t += LEAVE_AFTER_SILENCE_MS + 1;
+    timed.sweep();
+  }
+
+  it("reports a visit's length from arrival to the last position, not the timeout", () => {
+    walk("ann", "capital", 60);
+    goQuiet();
+
+    expect(visits).toEqual([{ userId: "ann", seconds: 60 }]);
+  });
+
+  it("keeps one visit across doors and warps", () => {
+    walk("ann", "capital", 30);
+    walk("ann", "music-inside", 30);
+    walk("ann", "island:ann", 30);
+    goQuiet();
+
+    expect(visits).toEqual([{ userId: "ann", seconds: 90 }]);
+  });
+
+  it("caps a visit at three hours", () => {
+    walk("ann", "capital", 4 * 60 * 60);
+    goQuiet();
+
+    expect(visits).toEqual([{ userId: "ann", seconds: MAX_VISIT_SECONDS }]);
+  });
+
+  it("ends a visit through the sweep once the stream is gone and positions stop", () => {
+    walk("ann", "capital", 20);
+    t += LEAVE_AFTER_STREAM_MS + 1;
+    timed.sweep();
+
+    expect(visits).toEqual([{ userId: "ann", seconds: 20 }]);
+    expect(timed.knows("ann")).toBe(false);
+  });
+
+  it("reports nothing for a visit with no time in it", () => {
+    timed.move("ann", "capital", HERE, profile("ann"));
+    goQuiet();
+
+    expect(visits).toEqual([]);
   });
 });

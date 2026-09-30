@@ -6,6 +6,7 @@
 // fake clock and no HTTP.
 
 import type { Emote, PresenceDir, PresencePlayer } from "@/lib/types";
+import { recordWorldTime } from "@/lib/activity";
 
 /** How long an emote shows. A late joiner's snapshot drops older ones. */
 export const EMOTE_SHOW_MS = 3_000;
@@ -15,6 +16,10 @@ export const LEAVE_AFTER_STREAM_MS = 10_000;
 export const LEAVE_AFTER_SILENCE_MS = 30_000;
 /** How often the background sweep runs while anyone is here. */
 const SWEEP_EVERY_MS = 5_000;
+
+/** The longest a single world visit counts for the metrics, so a phone left open on
+ * the island all night adds three hours, not twelve. */
+export const MAX_VISIT_SECONDS = 3 * 60 * 60;
 
 export const MAX_PLAYERS = 500;
 export const MAX_SUBSCRIBERS = 500;
@@ -50,6 +55,8 @@ interface PlayerEntry {
   worldId: string;
   player: PresencePlayer;
   lastSeen: number;
+  /** When this visit to the world began. Moving between worlds keeps it. */
+  visitStart: number;
   /** Ghost Mode: nobody else hears anything about this player. */
   ghost: boolean;
 }
@@ -62,9 +69,15 @@ export interface PresenceHubOptions {
   now?: () => number;
   /** Run the background sweep on a timer. Tests turn it off and call sweep(). */
   autoSweep?: boolean;
+  /** Told how long a visit lasted when a member leaves the world, for the metrics. */
+  onVisitEnd?: (userId: string, seconds: number) => void;
 }
 
-export function createPresenceHub({ now = Date.now, autoSweep = true }: PresenceHubOptions = {}) {
+export function createPresenceHub({
+  now = Date.now,
+  autoSweep = true,
+  onVisitEnd,
+}: PresenceHubOptions = {}) {
   const players = new Map<string, PlayerEntry>();
   const subscribers = new Map<string, Set<PresenceSubscriber>>(); // by world id
   let subscriberCount = 0;
@@ -117,6 +130,13 @@ export function createPresenceHub({ now = Date.now, autoSweep = true }: Presence
     players.delete(userId);
     if (isVisible(entry)) broadcast(entry.worldId, userId, "leave", { user_id: userId });
     stopTimerIfIdle();
+    // A visit ends at the last sign of life, not when the sweep noticed the
+    // silence, so the timeout itself never counts as time in the world.
+    const seconds = Math.min(
+      Math.floor((entry.lastSeen - entry.visitStart) / 1000),
+      MAX_VISIT_SECONDS,
+    );
+    if (seconds > 0) onVisitEnd?.(userId, seconds);
   }
 
   function sweep(): void {
@@ -188,7 +208,8 @@ export function createPresenceHub({ now = Date.now, autoSweep = true }: Presence
         ...(switched ? { emote: null, emote_at: null } : {}),
       };
       const ghost = existing?.ghost ?? profile!.ghost;
-      const entry = { worldId, player, lastSeen: now(), ghost };
+      const t = now();
+      const entry = { worldId, player, lastSeen: t, visitStart: existing?.visitStart ?? t, ghost };
       players.set(userId, entry);
       startTimer();
       if (isVisible(entry)) broadcast(worldId, userId, "update", player);
@@ -276,7 +297,12 @@ export type PresenceHub = ReturnType<typeof createPresenceHub>;
 // doesn't start a second, empty hub beside the streams still open on the first.
 const globalForPresence = globalThis as unknown as { presenceHub?: PresenceHub };
 
+// Finished visits feed the admin metrics. Visits still open when the process
+// stops (a deploy or a restart) are lost, which undercounts by a few minutes
+// per deploy: accepted rather than persisting open visits.
 export function presenceHub(): PresenceHub {
-  globalForPresence.presenceHub ??= createPresenceHub();
+  globalForPresence.presenceHub ??= createPresenceHub({
+    onVisitEnd: (userId, seconds) => void recordWorldTime(userId, seconds),
+  });
   return globalForPresence.presenceHub;
 }

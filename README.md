@@ -263,6 +263,30 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.18.0 — Activity Counts, and a Letter from Luke (September 2026)
+
+**Why:** With no analytics at all, there was no way to tell whether Our Place is being used, or
+how. The counts answer that with totals only.
+
+**What changed:**
+
+- **An admin-only Metrics page** at `/admin/metrics`, linked from the admin dashboard. It shows
+  weekly active members, time spent in the world, posts, comments, reactions, letters, and new
+  friends for the last 12 weeks, plus retention by the month members joined. Nothing on it names
+  a member.
+- **What is counted:** the days a member signs in, and how long the world stays open while
+  they're in it (each visit capped at 3 hours). Days and weeks follow Chicago time. Nothing about
+  what anyone reads or where they walk is kept.
+- **"Leave me out of activity counts"** in Account settings. Turning it on stops the counting and
+  deletes the days already counted. Posts, comments, and letters still show in the totals, since
+  they're already part of the site.
+- **A letter from Luke** in every member's mailbox explains the counts and the switch. New members
+  get it too, after the welcome letter.
+
+**What didn't change:** existing APIs, apart from the account settings route accepting the new
+switch. One migration adds the `activity_days` table and the `exclude_from_metrics` column; a
+second delivers Luke's letter to existing members.
+
 ### v0.17.0 — Notifications (September 2026)
 
 **Why:** Friend requests sat unanswered because nobody knew they were there, and people had no

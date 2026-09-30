@@ -69,6 +69,7 @@ export const updateAccountSchema = z
     biome: z.enum(TINT_PRESETS).optional(),
     mailbox_color: z.enum(MAILBOX_COLORS).optional(),
     island_visibility: z.enum(ISLAND_VISIBILITIES).optional(),
+    exclude_from_metrics: z.boolean().optional(),
     current_password: z.string().optional(),
     new_password: z.string().min(8, "Password must be at least 8 characters.").optional(),
   })
@@ -81,6 +82,7 @@ export const updateAccountSchema = z
       d.biome ||
       d.mailbox_color ||
       d.island_visibility ||
+      d.exclude_from_metrics !== undefined ||
       d.new_password,
     { message: "Nothing to update." },
   )
