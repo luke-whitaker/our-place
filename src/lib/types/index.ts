@@ -23,7 +23,7 @@ export type {
   IslandVisibility,
 } from "./social";
 
-export type { AvatarConfig } from "./game";
+export type { AvatarConfig, WorldDiscoveries } from "./game";
 export {
   SKIN_TONES,
   HAIR_COLORS,

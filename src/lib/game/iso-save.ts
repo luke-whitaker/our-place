@@ -5,7 +5,9 @@
 //
 // Still a stopgap until player position is bound to identity in the DB (see
 // the README roadmap) — at which point this becomes a server read/write behind
-// the same shape.
+// the same shape. Shrines in a world with a map already live on the account
+// (world_discoveries, since v0.21.0); the copy here is what this device found
+// before that, sent up once on load, and a fallback if the account can't load.
 
 import { isSolidAt, type SolidGrid } from "./iso-collision";
 import { CORE_OFFSET } from "./worlds/wilds/layout";

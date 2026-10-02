@@ -393,3 +393,19 @@ export const updateOutfitSchema = createOutfitSchema
   .refine((body) => Object.keys(body).length > 0, "Nothing to change.");
 
 export const ghostModeSchema = z.object({ on: z.boolean() });
+
+// ── Map discoveries ──
+
+/** GET /api/world/discoveries?world= */
+export const discoveriesWorldSchema = z.object({
+  world: z.string({ error: "Name a world." }).min(1).max(100),
+});
+
+/** POST /api/world/discoveries: what this device found, merged into what the
+ * account already has. The route checks the bitmap's length and each shrine
+ * against the world itself. */
+export const mergeDiscoveriesSchema = z.object({
+  world: z.string({ error: "Name a world." }).min(1).max(100),
+  visited: z.string().max(1000).optional(),
+  shrines: z.array(z.string().min(1).max(100)).max(50).optional(),
+});

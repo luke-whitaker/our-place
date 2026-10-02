@@ -26,6 +26,7 @@ import {
   endNpcTalk,
   setMailboxFlag,
   fixtureSprite,
+  addDiscovered,
 } from "./iso-engine";
 import { INTERIORS } from "./worlds/interiors";
 import { LAB_TOWN } from "./worlds/lab-town";
@@ -113,6 +114,26 @@ describe("createIsoState", () => {
     for (let i = 0; i < 30; i++) update(state, LAB_TOWN, solid, keyOnce(null));
     expect(state.fade).toBe(0);
     expect(state.mode).toBe("overworld");
+  });
+});
+
+describe("shrine discovery", () => {
+  it("tells the page once, the first time a shrine comes in reach", () => {
+    const state = createIsoState(LAB_TOWN, { spawnCol: 9, spawnRow: 14 });
+    const solid = buildWorldCollision(LAB_TOWN);
+    const onShrineDiscovered = vi.fn();
+    for (let i = 0; i < 5; i++) {
+      update(state, LAB_TOWN, solid, keyOnce(null), { onShrineDiscovered });
+    }
+    expect(onShrineDiscovered).toHaveBeenCalledTimes(1);
+    expect(onShrineDiscovered).toHaveBeenCalledWith("mushroom-lab-grove");
+  });
+
+  it("takes the account's shrines quietly, with no discovery toast", () => {
+    const state = createIsoState(LAB_TOWN);
+    addDiscovered(state, ["mushroom-lab-ridge"]);
+    expect(state.discovered.has("mushroom-lab-ridge")).toBe(true);
+    expect(state.toast).toBeNull();
   });
 });
 

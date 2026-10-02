@@ -142,6 +142,10 @@ export const gatheringResponseLimiter = new RateLimiter({
 /** Pocket/Notebook/NPC-talk mutations: 120 per hour per user */
 export const itemsLimiter = new RateLimiter({ maxAttempts: 120, windowMs: 60 * 60 * 1000 });
 
+/** Map discoveries: 60 per minute per user. The client saves at most once
+ * every few seconds while exploring, plus once per shrine and on leaving. */
+export const discoveriesLimiter = new RateLimiter({ maxAttempts: 60, windowMs: 60 * 1000 });
+
 /**
  * Number of trusted reverse proxies in front of the app. Railway's edge is a
  * single hop, so 1 is correct in production; override via env if the topology

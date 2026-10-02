@@ -37,6 +37,9 @@ import NotebookPanel from "@/components/NotebookPanel";
 import NoteReader from "@/components/NoteReader";
 import MailboxPanel from "@/components/MailboxPanel";
 import LeaveLetterPanel from "@/components/LeaveLetterPanel";
+import WorldMinimap, { type MinimapDraw } from "@/components/WorldMinimap";
+import WorldMapPanel from "@/components/WorldMapPanel";
+import type { WorldMap } from "@/lib/game/use-world-map";
 
 /** Which DOM overlay (if any) covers the world right now, and the data each
  * one needs. A single piece of state instead of one boolean per panel, so
@@ -53,6 +56,11 @@ export type OverlayScreen =
   | { kind: "notebook" }
   | { kind: "gathering"; fixture: EventMushroomFixture; tab: GatheringCardTab; travel: MenuEntry[] }
   | { kind: "passing-mushroom" }
+  | {
+      kind: "map";
+      player: { col: number; row: number };
+      discovered: ReadonlySet<string>;
+    }
   | { kind: "mailbox"; fixture: MailboxFixture }
   | { kind: "desk"; fixture: DeskFixture; page: number }
   | { kind: "armoire"; fixture: ArmoireFixture }
@@ -119,6 +127,11 @@ interface WorldOverlaysProps {
   onMushroomsChange: () => void;
   /** After an invitation is answered from a mushroom's card. */
   onGatheringsChange: () => void;
+  /** This world's map, or null where there isn't one (islands, rooms). */
+  worldMap: WorldMap | null;
+  /** Where the minimap registers its draw function for the game loop. */
+  minimapDrawRef: RefObject<MinimapDraw | null>;
+  isTouchDevice: boolean;
 }
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -179,6 +192,9 @@ export default function WorldOverlays({
   ownerDisplayName,
   onMushroomsChange,
   onGatheringsChange,
+  worldMap,
+  minimapDrawRef,
+  isTouchDevice,
 }: WorldOverlaysProps) {
   /** Both mailbox panels report back through this after every load and every
    * mutation, so the flag on the world stays exactly what's really inside —
@@ -234,6 +250,20 @@ export default function WorldOverlays({
     setOverlay(pocketsScreen());
   }
 
+  /** Open the full map from a plain, unpaused world, like Pockets. Where you
+   * stand and what you've found are read now, since the world pauses. */
+  function openMap() {
+    const state = stateRef.current;
+    if (!worldMap || !state || overlay.kind !== "none" || state.mode !== "overworld") return;
+    const player = getLocalEntity(state);
+    pauseForOverlay(state);
+    setOverlay({
+      kind: "map",
+      player: { col: player.col, row: player.row },
+      discovered: new Set(state.discovered),
+    });
+  }
+
   /** Back to the world with a toast, the way every mushroom action reports. */
   function closeWithToast(text: string) {
     closeToWorld();
@@ -284,18 +314,42 @@ export default function WorldOverlays({
         else if (overlay.kind === "pockets") closeToWorld();
         return;
       }
+      if (e.code === "KeyM" && worldMap && !isTypingTarget(e.target)) {
+        if (overlay.kind === "none") openMap();
+        else if (overlay.kind === "map") closeToWorld();
+        return;
+      }
       if (overlay.kind !== "none" && e.code === "Escape") closeToWorld();
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
     // Re-registered on every overlay change so the handler always closes over
-    // the current screen; a window listener is cheap enough that memoizing
-    // this buys nothing.
+    // the current screen, and when the map arrives (a moment after the world),
+    // or M would still see the world as mapless; a window listener is cheap
+    // enough that memoizing this buys nothing.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [overlay]);
+  }, [overlay, worldMap]);
 
   return (
     <>
+      {overlay.kind === "none" && worldMap && (
+        <WorldMinimap
+          map={worldMap.canvas}
+          sync={worldMap.sync}
+          drawRef={minimapDrawRef}
+          onOpen={openMap}
+          isTouchDevice={isTouchDevice}
+        />
+      )}
+      {overlay.kind === "map" && worldMap && (
+        <WorldMapPanel
+          map={worldMap.canvas}
+          sync={worldMap.sync}
+          player={overlay.player}
+          discovered={overlay.discovered}
+          onClose={closeToWorld}
+        />
+      )}
       {overlay.kind === "none" && signedIn && (
         <button
           type="button"

@@ -24,6 +24,7 @@ import {
   setMailboxFlag,
   setFriends,
   setGatherings,
+  addDiscovered,
   showToast,
   type IsoState,
   type IsoAssets,
@@ -39,6 +40,8 @@ import {
 } from "@/lib/game/event-mushroom";
 import { loadIsoSave, persistIsoSave, isValidIsoPosition } from "@/lib/game/iso-save";
 import { usePresence } from "@/lib/game/use-presence";
+import { useWorldMap } from "@/lib/game/use-world-map";
+import type { MinimapDraw } from "@/components/WorldMinimap";
 import type { IsoWorld } from "@/lib/game/world-model";
 import type { SolidGrid } from "@/lib/game/iso-collision";
 import type { Door, WorldFixture, WorldLink } from "@/lib/game/types";
@@ -307,12 +310,30 @@ export default function WorldCanvas({
     setOverlay(fixtureScreen(fixture));
   }, []);
 
+  // ── The map (the Capital only) ──
+  // Discoveries are per account: loaded on arrival, saved as you explore. The
+  // game loop reads them through a ref, so the map arriving never restarts it.
+  const mapError = useCallback((message: string) => {
+    const state = stateRef.current;
+    if (state) showToast(state, message);
+  }, []);
+  const worldMap = useWorldMap(world, signedIn, mapError);
+  const worldMapRef = useRef(worldMap);
+  useEffect(() => {
+    worldMapRef.current = worldMap;
+  }, [worldMap]);
+  const minimapDrawRef = useRef<MinimapDraw | null>(null);
+  const handleShrineDiscovered = useCallback((shrineId: string) => {
+    worldMapRef.current?.sync.noteShrine(shrineId);
+  }, []);
+
   const callbacksRef = useRef({
     onDoorInteract,
     onWorldLink,
     onPcPort,
     onNpcTalk: handleNpcTalk,
     onFixture: handleFixture,
+    onShrineDiscovered: handleShrineDiscovered,
   });
   useEffect(() => {
     callbacksRef.current = {
@@ -321,8 +342,9 @@ export default function WorldCanvas({
       onPcPort,
       onNpcTalk: handleNpcTalk,
       onFixture: handleFixture,
+      onShrineDiscovered: handleShrineDiscovered,
     };
-  }, [onDoorInteract, onWorldLink, onPcPort, handleNpcTalk, handleFixture]);
+  }, [onDoorInteract, onWorldLink, onPcPort, handleNpcTalk, handleFixture, handleShrineDiscovered]);
 
   // ── Live presence: other members here, and emotes ──
   // Members only; a logged-out visitor makes no presence requests at all.
@@ -365,6 +387,25 @@ export default function WorldCanvas({
     setFriends(state, friends);
     setGatherings(state, gatherings);
   }, [friends, gatherings, world, solid, spawnAt, persist, playerLabel, arrivalReady, arrivalKey]);
+
+  // ── Shrines the account already found ──
+  // Once the account's discoveries are in, hand its shrines to the engine
+  // (this device may never have seen them), and send up any this device found
+  // before discoveries were saved per account: the one-time move from the
+  // localStorage save, idempotent, so it costs nothing once done. A shrine
+  // you've found was a place you stood, so its ground counts as explored.
+  // Lists every input that builds a fresh state, like the effect above.
+  const mapStatus = worldMap?.status;
+  const mapSync = worldMap?.sync;
+  useEffect(() => {
+    const state = stateRef.current;
+    if (!state || !mapSync || mapStatus !== "ready") return;
+    for (const id of state.discovered) mapSync.noteShrine(id);
+    addDiscovered(state, mapSync.shrines);
+    for (const shrine of world.mushrooms) {
+      if (mapSync.shrines.has(shrine.id)) mapSync.reveal(shrine.col, shrine.row);
+    }
+  }, [mapStatus, mapSync, world, solid, spawnAt, persist, playerLabel, arrivalReady, arrivalKey]);
 
   // ── Mailbox flag on arrival ──
   // The island's mailbox fixture, if this world has one, shows its flag up
@@ -515,6 +556,14 @@ export default function WorldCanvas({
           input.endTick();
           accumulator -= TICK_RATE;
         }
+        // The map: clear the fog around you (work only on a new tile) and
+        // repaint the minimap (only when something changed).
+        const map = worldMapRef.current;
+        if (map) {
+          const player = getLocalEntity(state);
+          map.sync.notePosition(player.col, player.row);
+          minimapDrawRef.current?.(player, state.discovered);
+        }
         // Touch devices render the open menu as DOM tiles (WorldMenu) instead
         // of the canvas rows below; mirror it into React state, but only on an
         // actual change, since this runs every tick.
@@ -644,6 +693,9 @@ export default function WorldCanvas({
               onGatheringsChange();
             }}
             onGatheringsChange={onGatheringsChange}
+            worldMap={worldMap}
+            minimapDrawRef={minimapDrawRef}
+            isTouchDevice={isTouchDevice}
           />
           {isTouchDevice && menu && (
             <WorldMenu

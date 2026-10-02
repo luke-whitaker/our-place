@@ -69,6 +69,7 @@ model User {
   activityDays        ActivityDay[]
   hostedGatherings    Gathering[]       @relation("GatheringHost")
   gatheringInvites    GatheringInvite[]
+  worldDiscoveries    WorldDiscovery[]
 
   @@index([email])
   @@index([username])
@@ -458,4 +459,22 @@ model GatheringInvite {
   @@unique([gatheringId, userId])
   @@index([userId, status])
   @@map("gathering_invites")
+}
+
+// What one member has found in a world with a map: the areas they've walked
+// (1 bit per 8x8-tile chunk, row-major) and the Mycelium shrines they've
+// discovered. Kept per account, so a new phone remembers both. Writes only
+// ever add (bitwise OR, set union), so they're idempotent and order-free.
+model WorldDiscovery {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  worldId   String   @map("world_id")
+  visited   Bytes
+  shrines   String[] @default([])
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, worldId])
+  @@map("world_discoveries")
 }

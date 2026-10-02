@@ -1,3 +1,11 @@
+/** GET and POST /api/world/discoveries: what this member has found in a world
+ * with a map. `visited` is base64, 1 bit per 8x8-tile chunk (map-chunks.ts). */
+export interface WorldDiscoveries {
+  world: string;
+  visited: string;
+  shrines: string[];
+}
+
 export interface AvatarConfig {
   hairStyle: "short" | "long";
   hairColor: string;

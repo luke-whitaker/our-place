@@ -589,6 +589,9 @@ export interface UpdateCallbacks {
   onPcPort?: OnPcPort;
   onNpcTalk?: OnNpcTalk;
   onFixture?: OnFixture;
+  /** Fired once when the player first finds a shrine, so the page can save it
+   * to the account straight away (the map's discoveries are per account). */
+  onShrineDiscovered?: (shrineId: string) => void;
 }
 
 /**
@@ -634,6 +637,12 @@ export function setFriends(state: IsoState, friends: FriendsList): void {
  * Gatherings menu. */
 export function setGatherings(state: IsoState, gatherings: GatheringsList): void {
   state.gatherings = gatherings;
+}
+
+/** Add shrines the account already found (loaded from the server after the
+ * state was built from this device's save). Quietly: no discovery toasts. */
+export function addDiscovered(state: IsoState, shrineIds: Iterable<string>): void {
+  for (const id of shrineIds) state.discovered.add(id);
 }
 
 /** The destinations a shrine offers, for the Travel tab of an Event
@@ -832,6 +841,7 @@ export function update(
   if (inReach.mushroom && !state.discovered.has(inReach.mushroom.id)) {
     state.discovered.add(inReach.mushroom.id);
     state.toast = { text: `${inReach.mushroom.label} discovered!`, ticksLeft: TOAST_TICKS };
+    callbacks.onShrineDiscovered?.(inReach.mushroom.id);
   }
 
   const target = nearestTarget(inReach, player.col, player.row);
