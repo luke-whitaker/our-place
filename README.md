@@ -275,8 +275,8 @@ guesses, and a few inputs had no upper bound. None was being used, and each was 
 
 - **Each account allows 10 failed sign-ins an hour from a new browser,** counted across its
   username and email and from any address, on top of the per-address limit. A browser you've
-  signed in from before skips this limit, so someone who knows your username can't lock you
-  out. Changing your password forgets those browsers. A name with no account is limited the
+  signed in from before skips both limits, so someone who knows your username can't lock you
+  out, even from the same Wi-Fi. Changing your password forgets those browsers. A name with no account is limited the
   same way, so the two can't be told apart.
 - **Reset codes are stored as a keyed hash and allow 5 wrong guesses.** The fifth wipes the
   code, and you request a new one. Codes outstanding when this shipped stopped working.

@@ -21,13 +21,6 @@ function tooManyAttempts(retryAfterMs: number): NextResponse {
 
 export async function POST(request: NextRequest) {
   try {
-    // Rate limiting
-    const ip = getClientIp(request);
-    const limit = loginLimiter.check(ip);
-    if (!limit.allowed) {
-      return tooManyAttempts(limit.retryAfterMs);
-    }
-
     const body = await request.json();
     const parsed = loginSchema.safeParse(body);
     if (!parsed.success) {
@@ -56,11 +49,13 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Keyed on the account when it exists, so its username and email share one
+    // Two limits count failed attempts: one per address, and one per account
+    // (keyed on the user id when it exists, so its username and email share a
     // budget, and on the typed name otherwise, so a missing account reaches the
-    // same 429 as a real one and the two can't be told apart. A browser that
-    // signed in to this account before skips the limit, so failures from
-    // strangers never lock the member out on their own device.
+    // same 429 as a real one). A browser that signed in to this account before
+    // skips both, so a stranger can't lock the member out, even from the same
+    // Wi-Fi. Both are checked after the lookup, which is cheap; bcrypt is not.
+    const ip = getClientIp(request);
     const accountKey = user?.id ?? loginLower;
     const trusted =
       user !== null &&
@@ -69,13 +64,18 @@ export async function POST(request: NextRequest) {
         user.id,
         user.passwordChangedAt,
       );
-    const accountLimit = trusted ? null : accountLoginLimiter.peek(accountKey);
-    if (accountLimit && !accountLimit.allowed) {
-      return tooManyAttempts(accountLimit.retryAfterMs);
+    if (!trusted) {
+      const blocked = [loginLimiter.peek(ip), accountLoginLimiter.peek(accountKey)].find(
+        (limit) => !limit.allowed,
+      );
+      if (blocked) return tooManyAttempts(blocked.retryAfterMs);
     }
 
     if (!user || !(await bcrypt.compare(password, user.passwordHash))) {
-      if (!trusted) accountLoginLimiter.recordFailure(accountKey);
+      if (!trusted) {
+        loginLimiter.recordFailure(ip);
+        accountLoginLimiter.recordFailure(accountKey);
+      }
       return NextResponse.json({ error: "Invalid email/username or password." }, { status: 401 });
     }
 

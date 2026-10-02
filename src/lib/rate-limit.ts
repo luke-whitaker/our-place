@@ -88,7 +88,7 @@ class RateLimiter {
 
 // ── Pre-configured limiters ──
 
-/** Login: 10 attempts per 15 minutes per IP */
+/** Login: 10 failed attempts per 15 minutes per IP; trusted browsers skip it (see the login route). */
 export const loginLimiter = new RateLimiter({ maxAttempts: 10, windowMs: 15 * 60 * 1000 });
 
 /**

@@ -8,14 +8,15 @@ import { POST } from "./route";
 
 const PASSWORD = "correct-horse-battery";
 
-// The per-IP limiter would stop a test long before the per-account one, so
-// every request comes from a new address, as a botnet's or an IPv6 range's would.
+// The per-IP limiter would stop a test long before the per-account one, so by
+// default every request comes from a new address, as a botnet's or an IPv6
+// range's would. Pass `ip` to share one, as a household's Wi-Fi does.
 let nextIp = 0;
-async function login(loginName: string, password: string, trustedDevice?: string) {
+async function login(loginName: string, password: string, trustedDevice?: string, ip?: string) {
   nextIp += 1;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
-    "X-Forwarded-For": `10.1.${Math.floor(nextIp / 250)}.${nextIp % 250}`,
+    "X-Forwarded-For": ip ?? `10.1.${Math.floor(nextIp / 250)}.${nextIp % 250}`,
   };
   if (trustedDevice) headers.Cookie = `${TRUSTED_DEVICE_COOKIE}=${trustedDevice}`;
   const request = new NextRequest(new URL("http://localhost/api/auth/login"), {
@@ -91,6 +92,26 @@ describe("POST /api/auth/login per-account limit", () => {
     await failTenTimes(username);
     expect((await login(username, PASSWORD)).status).toBe(429);
     expect((await login(username, PASSWORD, trustedDevice)).status).toBe(200);
+  });
+
+  it("lets the member in from their own browser on the same Wi-Fi a stranger exhausted", async () => {
+    const { username } = await memberWithPassword();
+    const sharedIp = "10.2.0.1";
+    const { trustedDevice } = await login(username, PASSWORD, undefined, sharedIp);
+    for (let i = 0; i < 10; i++) {
+      expect((await login(username, "wrong-password", undefined, sharedIp)).status).toBe(401);
+    }
+    expect((await login(username, PASSWORD, undefined, sharedIp)).status).toBe(429);
+    expect((await login(username, PASSWORD, trustedDevice, sharedIp)).status).toBe(200);
+  });
+
+  it("limits each address to 10 failures across accounts", async () => {
+    const sharedIp = "10.3.0.1";
+    for (let i = 0; i < 10; i++) {
+      expect((await login(`nobody_${i}`, "wrong-password", undefined, sharedIp)).status).toBe(401);
+    }
+    const { username } = await memberWithPassword();
+    expect((await login(username, PASSWORD, undefined, sharedIp)).status).toBe(429);
   });
 
   it("doesn't trust another member's browser or a tampered cookie", async () => {
