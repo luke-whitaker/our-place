@@ -10,6 +10,11 @@ on:
     - cron: "10 9 * * 1"
   workflow_dispatch:
 
+# The workflow only reads the repo; a token that can do no more limits what a
+# compromised action or dependency could change.
+permissions:
+  contents: read
+
 jobs:
   restore:
     runs-on: ubuntu-latest

@@ -14,6 +14,11 @@ concurrency:
   group: ci-${{ github.ref }}
   cancel-in-progress: true
 
+# The workflow only reads the repo; a token that can do no more limits what a
+# compromised action or dependency could change.
+permissions:
+  contents: read
+
 jobs:
   gates:
     runs-on: ubuntu-latest

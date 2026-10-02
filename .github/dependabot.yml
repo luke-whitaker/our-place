@@ -1,0 +1,16 @@
+# Weekly update pull requests for npm packages and the GitHub Actions the
+# workflows use. A few at a time: every merge to main deploys to members, so
+# each one still goes through the usual gates and a localhost check.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 2

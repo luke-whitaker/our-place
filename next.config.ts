@@ -30,6 +30,8 @@ function lanAddresses(): string[] {
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  // Don't announce the framework (and so its known issues) on every response.
+  poweredByHeader: false,
   allowedDevOrigins: lanAddresses(),
   headers: async () => [
     {

@@ -27,6 +27,10 @@ paths:
 
 Runs format, lint at zero warnings, tsc, unit tests, route tests, and a production build on every push. Route tests run against a `postgres:18-alpine` service container (the major must match production, as everywhere else Postgres runs in Actions) through `TEST_DATABASE_URL`; the suite's global setup applies migrations to it first. The build needs the same throwaway `JWT_SECRET` and `DATABASE_URL` placeholders the Dockerfile sets, because `next build` evaluates module-level code. `.npmrc` disables install scripts, so `npm run db:generate` runs after install. Leave Railway's "Wait for CI" off until CI has been reliably green for a while.
 
+- Every workflow runs with a read-only token: `permissions: contents: read` at the top, or per job where a job needs more (`deploy-drift.yml` also reads deployments). Grant extra scopes per job, never workflow-wide.
+- The Node major is shared by the Dockerfile's three stages, `engines` in `package.json`, and every workflow's `node-version` (22 as of October 2026). Move them together.
+- Dependabot (`.github/dependabot.yml`) opens weekly PRs for npm and Actions. Each is a change to `main` like any other: gates, a localhost check, then merge.
+
 ## Backups
 
 - Railway backups are Pro-plan only. `scripts/backup-db.ts` (nightly via `backup-db.yml`) dumps to a private R2 bucket, verifies the stored object, and prunes past 30 days. `verify-restore.yml` restores the newest archive weekly into a throwaway Postgres and checks row counts.
