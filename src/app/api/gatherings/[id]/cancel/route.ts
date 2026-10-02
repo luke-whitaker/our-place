@@ -43,6 +43,9 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
         data: { status: "cancelled", cancelledAt: new Date() },
       });
       if (cancelled.count !== 1) return;
+      // An Event Mushroom still in the host's mailbox or pockets goes with it;
+      // a planted one simply stops showing, since it's no longer scheduled.
+      await tx.item.deleteMany({ where: { gatheringId: id, kind: "event_mushroom" } });
       const going = await tx.gatheringInvite.findMany({
         where: { gatheringId: id, status: "accepted", userId: { not: me } },
         select: { userId: true },

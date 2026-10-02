@@ -114,6 +114,9 @@ export interface IsoState {
   /** Friends' islands for the Friends menu, handed in by the page (setFriends),
    * since the engine never fetches. A link each, to the friend's island shrine. */
   friends: FriendsList;
+  /** Gatherings with a planted Event Mushroom this member may travel to,
+   * handed in by the page (setGatherings) the same way as friends. */
+  gatherings: GatheringsList;
   nearbyPc: Pc | null;
   /** A chosen "log on" target, fired at the peak of the fade like a link. */
   pendingPort: string | null;
@@ -180,6 +183,7 @@ export function createIsoState(world: IsoWorld, options: IsoStateOptions = {}): 
     pendingWarp: null,
     pendingLink: null,
     friends: "loading",
+    gatherings: "loading",
     nearbyPc: null,
     pendingPort: null,
     nearbyNpc: null,
@@ -314,16 +318,35 @@ export type MenuEntry =
   | { kind: "shrine"; label: string; warp: MushroomWarp }
   | { kind: "link"; label: string; link: WorldLink }
   | { kind: "port"; label: string; href: string }
-  | { kind: "friends"; label: string };
+  | { kind: "friends"; label: string }
+  | { kind: "gatherings"; label: string };
 
 /** Friends' islands, or why there's no list yet. */
 export type FriendsList = WorldLink[] | "loading" | "error";
 
+/** Gatherings whose planted Event Mushroom this member may travel to, one link
+ * each, or why there's no list yet. Same shape as FriendsList. */
+export type GatheringsList = WorldLink[] | "loading" | "error";
+
 /** The row that opens the Friends menu, last in every shrine and PC menu. */
 const FRIENDS_ENTRY: MenuEntry = { kind: "friends", label: "Friends" };
 
+/** The row that opens the Gatherings menu, after Friends. */
+const GATHERINGS_ENTRY: MenuEntry = { kind: "gatherings", label: "Gatherings" };
+
+/** The Gatherings row shows only while there's somewhere to go, so it never
+ * takes room in the network's menus otherwise. A failed load keeps it, so
+ * choosing it can say why in a toast rather than the row silently vanishing;
+ * while loading it stays hidden, so it never shows and then disappears. */
+function gatheringsRow(state: IsoState): MenuEntry[] {
+  const list = state.gatherings;
+  const show = list === "error" || (Array.isArray(list) && list.length > 0);
+  return show ? [GATHERINGS_ENTRY] : [];
+}
+
 /** The shrine menu: discovered shrines first, then the world's links (which
- * never need discovering), then Friends. The caller appends its own Cancel row. */
+ * never need discovering), then Friends, then Gatherings when there are any.
+ * The caller appends its own Cancel row. */
 export function warpMenuEntries(state: IsoState, world: IsoWorld): MenuEntry[] {
   return [
     ...warpMenuOptions(state, world).map((warp): MenuEntry => ({
@@ -333,6 +356,7 @@ export function warpMenuEntries(state: IsoState, world: IsoWorld): MenuEntry[] {
     })),
     ...world.links.map((link): MenuEntry => ({ kind: "link", label: link.label, link })),
     FRIENDS_ENTRY,
+    ...gatheringsRow(state),
   ];
 }
 
@@ -340,6 +364,12 @@ export function warpMenuEntries(state: IsoState, world: IsoWorld): MenuEntry[] {
 export function friendMenuEntries(state: IsoState): MenuEntry[] {
   if (!Array.isArray(state.friends)) return [];
   return state.friends.map((link): MenuEntry => ({ kind: "link", label: link.label, link }));
+}
+
+/** The Gatherings menu: one row per planted mushroom, soonest first. */
+export function gatheringMenuEntries(state: IsoState): MenuEntry[] {
+  if (!Array.isArray(state.gatherings)) return [];
+  return state.gatherings.map((link): MenuEntry => ({ kind: "link", label: link.label, link }));
 }
 
 /** A PC's menu: log on to the forum view of the place it stands in, then the
@@ -355,6 +385,12 @@ export function pcMenuEntries(pc: Pc, world: IsoWorld): MenuEntry[] {
   ];
 }
 
+/** A PC's menu for this member: the terminal's own rows, plus Gatherings
+ * when there are any. */
+function pcMenuFor(state: IsoState, pc: Pc, world: IsoWorld): MenuEntry[] {
+  return [...pcMenuEntries(pc, world), ...gatheringsRow(state)];
+}
+
 /** The open terminal menu's title and rows (without the Cancel row), or null
  * when no menu is open. Shared by the canvas-drawn menu and the touch DOM
  * overlay (WorldMenu) so their title/row logic can never drift apart. */
@@ -366,10 +402,13 @@ export function menuView(
     return { title: "Mycelium Network", entries: warpMenuEntries(state, world) };
   }
   if (state.mode === "pc-menu" && state.nearbyPc) {
-    return { title: state.nearbyPc.label, entries: pcMenuEntries(state.nearbyPc, world) };
+    return { title: state.nearbyPc.label, entries: pcMenuFor(state, state.nearbyPc, world) };
   }
   if (state.mode === "friends-menu") {
     return { title: "Friends", entries: friendMenuEntries(state) };
+  }
+  if (state.mode === "gatherings-menu") {
+    return { title: "Gatherings", entries: gatheringMenuEntries(state) };
   }
   return null;
 }
@@ -414,25 +453,40 @@ const FRIENDS_UNAVAILABLE = {
   empty: "No friends' islands to visit yet.",
 } as const;
 
-/** Open the Friends menu, or say in a toast why there's nothing to show. */
-function openFriends(state: IsoState): void {
-  const friends = state.friends;
-  const reason = Array.isArray(friends) ? (friends.length === 0 ? "empty" : null) : friends;
+/** Why the Gatherings row can't open a list, worded for the member. */
+const GATHERINGS_UNAVAILABLE = {
+  loading: "Still finding your gatherings. Try again in a moment.",
+  error: "Couldn't reach your gatherings. Try again later.",
+  empty: "No Event Mushrooms are planted for you right now.",
+} as const;
+
+/** Open a sub-menu of links, or say in a toast why there's nothing to show. */
+function openSubMenu(
+  state: IsoState,
+  list: WorldLink[] | "loading" | "error",
+  mode: "friends-menu" | "gatherings-menu",
+  unavailable: Record<"loading" | "error" | "empty", string>,
+): void {
+  const reason = Array.isArray(list) ? (list.length === 0 ? "empty" : null) : list;
   if (reason) {
     state.mode = "overworld";
-    state.toast = { text: FRIENDS_UNAVAILABLE[reason], ticksLeft: TOAST_TICKS };
+    state.toast = { text: unavailable[reason], ticksLeft: TOAST_TICKS };
     return;
   }
-  state.mode = "friends-menu";
+  state.mode = mode;
   state.menuIndex = 0;
 }
 
 /** Commit a chosen row: stage it and start the fade. The pending value is acted
  * on at the fade's peak, so every transition looks the same as a door's.
- * Friends is the one row that opens another menu instead. */
+ * Friends and Gatherings are the rows that open another menu instead. */
 function chooseEntry(state: IsoState, entry: MenuEntry): void {
   if (entry.kind === "friends") {
-    openFriends(state);
+    openSubMenu(state, state.friends, "friends-menu", FRIENDS_UNAVAILABLE);
+    return;
+  }
+  if (entry.kind === "gatherings") {
+    openSubMenu(state, state.gatherings, "gatherings-menu", GATHERINGS_UNAVAILABLE);
     return;
   }
   if (entry.kind === "shrine") state.pendingWarp = entry.warp;
@@ -576,6 +630,28 @@ export function setFriends(state: IsoState, friends: FriendsList): void {
   state.friends = friends;
 }
 
+/** Hand the engine the gatherings this member may travel to, for the
+ * Gatherings menu. */
+export function setGatherings(state: IsoState, gatherings: GatheringsList): void {
+  state.gatherings = gatherings;
+}
+
+/** The destinations a shrine offers, for the Travel tab of an Event
+ * Mushroom's card: the planted mushroom is a node on the network for its
+ * guests, so it reads the same rows as the shrine menu. */
+export function travelEntries(state: IsoState, world: IsoWorld): MenuEntry[] {
+  return warpMenuEntries(state, world);
+}
+
+/** Take a Travel tab row. The card is a DOM overlay over a paused world, so
+ * this leaves the pause and commits the row exactly as the shrine menu would:
+ * a fade to the destination, or a sub-menu (Friends, Gatherings), or a toast
+ * explaining why there's nothing to show. */
+export function chooseTravel(state: IsoState, entry: MenuEntry): void {
+  state.mode = "overworld";
+  chooseEntry(state, entry);
+}
+
 export function setMailboxFlag(state: IsoState, up: boolean): void {
   state.mailboxFlagUp = up;
 }
@@ -596,6 +672,7 @@ export function fixtureSprite(fixture: WorldFixture, state: IsoState): string {
   if (fixture.kind === "mailbox") {
     return state.mailboxFlagUp ? `mailbox_${fixture.color}_flag` : `mailbox_${fixture.color}`;
   }
+  // Every Event Mushroom draws the same sprite, whoever planted it.
   return fixture.kind;
 }
 
@@ -669,8 +746,13 @@ export function update(
     return; // no input during a fade
   }
 
-  // ── Terminal menus (the shrine network, a PC, and Friends) ──
-  if (state.mode === "warp-menu" || state.mode === "pc-menu" || state.mode === "friends-menu") {
+  // ── Terminal menus (the shrine network, a PC, Friends, and Gatherings) ──
+  if (
+    state.mode === "warp-menu" ||
+    state.mode === "pc-menu" ||
+    state.mode === "friends-menu" ||
+    state.mode === "gatherings-menu"
+  ) {
     const entries = menuView(state, world)?.entries ?? [];
     const chosen = stepMenu(state, input, entries);
     if (chosen === "cancel") state.mode = "overworld";

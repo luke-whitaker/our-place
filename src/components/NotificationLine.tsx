@@ -138,12 +138,19 @@ function Message({ item }: { item: NotificationItem }) {
           <Name actor={item.actor} /> cancelled <GatheringLink item={item} />.
         </>
       );
+    case "gathering_unplanted":
+      return (
+        <>
+          <GatheringLink item={item} /> was cancelled because its Event Mushroom wasn&apos;t planted
+          by the start.
+        </>
+      );
   }
 }
 
 type GatheringItem = Extract<
   NotificationItem,
-  { kind: "gathering_invite" | "gathering_cancelled" }
+  { kind: "gathering_invite" | "gathering_cancelled" | "gathering_unplanted" }
 >;
 
 function GatheringLink({ item }: { item: GatheringItem }) {

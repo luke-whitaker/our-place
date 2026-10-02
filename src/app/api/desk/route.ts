@@ -4,6 +4,7 @@ import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
 import { deskStoreSchema, getZodErrorMessage } from "@/lib/schemas";
 import { ITEM_SELECT, isUniqueConstraintError, moveOwnItem, toPocketItem } from "@/lib/pockets";
+import { ITEM_CATALOG, isItemKind } from "@/lib/items";
 
 // The house desk belongs to the signed-in member alone. Neither handler takes
 // a username: every query is scoped to the caller's own items, so a visitor
@@ -48,8 +49,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
 
+    const { item_id, slot } = parsed.data;
+    const kind = await prisma.item.findFirst({
+      where: { id: item_id, ownerId: auth.user.userId },
+      select: { kind: true },
+    });
+    if (kind && isItemKind(kind.kind) && !ITEM_CATALOG[kind.kind].deskable) {
+      return NextResponse.json(
+        { error: `The ${ITEM_CATALOG[kind.kind].name} stays out of the desk.` },
+        { status: 403 },
+      );
+    }
+
     try {
-      const { item_id, slot } = parsed.data;
       const result = await moveOwnItem(auth.user.userId, item_id, "pocket", "desk", slot);
       if (result.outcome === "full") {
         return NextResponse.json({ error: "Your desk is full." }, { status: 409 });

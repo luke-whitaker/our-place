@@ -10,6 +10,7 @@ import {
   UPCOMING_SHOWN,
   type EntryRow,
 } from "@/lib/gatherings";
+import { cancelUnplanted } from "@/lib/gathering-sweep";
 import type { GatheringCalendar } from "@/lib/types";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -71,6 +72,8 @@ export async function GET(request: NextRequest) {
 
     const scope = await calendarScope(me, parsed.data.community);
     if ("response" in scope) return scope.response;
+    // A world gathering that started unplanted drops off as it's read.
+    await cancelUnplanted();
 
     const [inRange, upcoming] = await Promise.all([
       prisma.gathering.findMany({

@@ -6,6 +6,7 @@ import {
   NOTIFICATION_RETENTION_DAYS,
   NOTIFICATIONS_SHOWN,
 } from "@/lib/notifications";
+import { cancelUnplanted } from "@/lib/gathering-sweep";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -21,6 +22,9 @@ export async function GET() {
 
     const cutoff = new Date(Date.now() - NOTIFICATION_RETENTION_DAYS * DAY_MS);
     await prisma.notification.deleteMany({ where: { recipientId: me, createdAt: { lt: cutoff } } });
+    // A world gathering that started unplanted is settled before reading, so
+    // its cancellation shows here without waiting for the background sweep.
+    await cancelUnplanted();
 
     const rows = await prisma.notification.findMany({
       where: { recipientId: me },

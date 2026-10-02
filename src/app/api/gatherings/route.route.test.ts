@@ -121,9 +121,13 @@ describe("POST /api/gatherings", () => {
     expect(await prisma.gatheringInvite.count({ where: { userId: ben.userId } })).toBe(0);
   });
 
-  it("refuses gatherings in the world until the next release", async () => {
+  it("hosts a gathering in the world without an address", async () => {
     const me = await createTestUser();
-    expect((await host(me, { kind: "world" })).status).toBe(400);
+    const made = await host(me, { kind: "world", address: "" });
+    expect(made.status).toBe(201);
+    const row = await prisma.gathering.findUniqueOrThrow({ where: { id: made.id } });
+    expect(row.kind).toBe("world");
+    expect(row.address).toBe("");
   });
 
   it("needs an address for an in-person gathering", async () => {

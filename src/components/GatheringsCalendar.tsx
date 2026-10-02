@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { gatheringWhen } from "@/lib/time-utils";
 import { useAuth } from "@/components/AuthProvider";
+import MushroomPortal from "@/components/MushroomPortal";
 import type { GatheringCalendar, GatheringEntry } from "@/lib/types";
 
 /** A month grid always shows six weeks, Sunday first. */
@@ -213,9 +214,12 @@ export default function GatheringsCalendar({
                 {g.host.display_name}
               </p>
             </div>
-            <span className="shrink-0 rounded-full border border-line px-2 py-0.5 text-xs text-ink-secondary">
-              {answerLabel(g, g.host.username === viewer)}
-            </span>
+            <div className="flex shrink-0 items-center gap-2">
+              {g.portal && <MushroomPortal href={g.portal} />}
+              <span className="rounded-full border border-line px-2 py-0.5 text-xs text-ink-secondary">
+                {answerLabel(g, g.host.username === viewer)}
+              </span>
+            </div>
           </li>
         ))}
       </ul>

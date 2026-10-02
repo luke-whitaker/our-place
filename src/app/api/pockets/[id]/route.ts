@@ -5,8 +5,8 @@ import { itemsLimiter } from "@/lib/rate-limit";
 import { ITEM_CATALOG, isItemKind } from "@/lib/items";
 
 // DELETE: throw away one of the caller's own items, wherever it sits —
-// pockets or their own mailbox. The Notebook is the only catalog entry
-// marked non-discardable, and it can never be thrown away.
+// pockets or their own mailbox. The Notebook can never be thrown away; an
+// Event Mushroom only once its gathering is cancelled or gone.
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await requireAuth();
@@ -23,7 +23,12 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     const { id } = await params;
     const item = await prisma.item.findUnique({
       where: { id },
-      select: { id: true, ownerId: true, kind: true },
+      select: {
+        id: true,
+        ownerId: true,
+        kind: true,
+        gathering: { select: { status: true } },
+      },
     });
     if (!item || item.ownerId !== auth.user.userId) {
       return NextResponse.json({ error: "Item not found." }, { status: 404 });
@@ -36,7 +41,10 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       throw new Error(`Unknown item kind "${item.kind}" on item ${item.id}`);
     }
     const catalogEntry = ITEM_CATALOG[item.kind];
-    if (!catalogEntry.discardable) {
+    // An Event Mushroom whose gathering is gone (its community was deleted)
+    // or cancelled has nothing left to plant, so it may go like a note.
+    const spentMushroom = item.kind === "event_mushroom" && item.gathering?.status !== "scheduled";
+    if (!catalogEntry.discardable && !spentMushroom) {
       return NextResponse.json(
         { error: `The ${catalogEntry.name} can't be thrown away.` },
         { status: 403 },

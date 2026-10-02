@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch, userMessage } from "@/lib/api-client";
-import { MAILBOX_SLOTS } from "@/lib/items";
+import { ITEM_CATALOG, MAILBOX_SLOTS } from "@/lib/items";
 import { PAL } from "@/lib/game/constants";
 import { shortDate } from "@/lib/time-utils";
 import OverlayPanel from "@/components/OverlayPanel";
@@ -17,6 +17,12 @@ interface MailboxPanelProps {
    * away), so the caller (WorldOverlays) can keep the mailbox's flag on the
    * world in sync with what's actually inside it. */
   onMailChange: (hasMail: boolean) => void;
+}
+
+/** A letter, as opposed to something else that arrived by mail (an Event
+ * Mushroom), which has nothing to read. */
+function isNote(item: PocketItem): boolean {
+  return item.kind === "note";
 }
 
 /** A row's preview: the first line only, so a multi-line letter still reads
@@ -139,14 +145,18 @@ export default function MailboxPanel({ onClose, onReadLetter, onMailChange }: Ma
               >
                 <span className="flex items-baseline justify-between gap-2">
                   <span className="truncate font-bold" style={{ color: PAL.white }}>
-                    From {letter.from?.display_name ?? "someone"}
+                    {isNote(letter)
+                      ? `From ${letter.from?.display_name ?? "someone"}`
+                      : ITEM_CATALOG[letter.kind].name}
                   </span>
                   <span className="shrink-0 text-xs" style={{ color: PAL.light }}>
                     {letter.placed_at ? shortDate(letter.placed_at) : ""}
                   </span>
                 </span>
                 <span className="truncate" style={{ color: PAL.light }}>
-                  {preview(letter.body)}
+                  {isNote(letter)
+                    ? preview(letter.body)
+                    : "For your gathering. Take it, then plant it in the world."}
                 </span>
               </button>
             ))}
@@ -163,19 +173,23 @@ export default function MailboxPanel({ onClose, onReadLetter, onMailChange }: Ma
             />
           ) : (
             <div className="flex flex-wrap gap-2">
-              <OverlayActionButton onClick={() => onReadLetter(selected)} disabled={busy}>
-                Read
-              </OverlayActionButton>
+              {isNote(selected) && (
+                <OverlayActionButton onClick={() => onReadLetter(selected)} disabled={busy}>
+                  Read
+                </OverlayActionButton>
+              )}
               <OverlayActionButton onClick={takeSelected} disabled={busy}>
                 Take
               </OverlayActionButton>
-              <OverlayActionButton
-                onClick={() => setConfirmingDiscard(true)}
-                variant="secondary"
-                disabled={busy}
-              >
-                Throw away
-              </OverlayActionButton>
+              {ITEM_CATALOG[selected.kind].discardable && (
+                <OverlayActionButton
+                  onClick={() => setConfirmingDiscard(true)}
+                  variant="secondary"
+                  disabled={busy}
+                >
+                  Throw away
+                </OverlayActionButton>
+              )}
             </div>
           )}
         </div>

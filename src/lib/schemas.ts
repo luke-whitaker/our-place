@@ -301,6 +301,19 @@ export const gatheringResponseSchema = z.object({
   response: z.enum(["accepted", "declined"], { error: "Answer accept or decline." }),
 });
 
+/** Where to plant an Event Mushroom: a world id and a tile in it. The plant
+ * route checks the world is one the host may use and the tile is open. */
+export const plantMushroomSchema = z.object({
+  world: z.string({ error: "Plant it somewhere in the world." }).min(1).max(100),
+  col: z.number().int().min(0).max(1000),
+  row: z.number().int().min(0).max(1000),
+});
+
+/** GET /api/gatherings/mushrooms?world= */
+export const mushroomWorldSchema = z.object({
+  world: z.string({ error: "Name a world." }).min(1).max(100),
+});
+
 export const gatheringCalendarSchema = z.object({
   from: z.iso.datetime({ offset: true, error: "A calendar needs a start date." }),
   to: z.iso.datetime({ offset: true, error: "A calendar needs an end date." }),

@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import WorldCanvas from "@/components/WorldCanvas";
@@ -12,10 +12,12 @@ import { buildIslandHouse } from "@/lib/game/worlds/island-house";
 import { findInterior } from "@/lib/game/worlds/interiors";
 import { isTintPreset } from "@/lib/game/terrain-tint";
 import { isMailboxColor } from "@/lib/game/mailbox-colors";
-import type { FriendsList } from "@/lib/game/iso-engine";
+import { gatheringIdFromSpawn } from "@/lib/game/event-mushroom";
+import { WORLD_TIME_ZONE } from "@/lib/time-utils";
+import type { FriendsList, GatheringsList } from "@/lib/game/iso-engine";
 import type { IsoWorld } from "@/lib/game/world-model";
 import type { Door, WorldLink } from "@/lib/game/types";
-import type { FriendIsland, IslandInfo } from "@/lib/types";
+import type { FriendIsland, GatheringTravelStop, IslandInfo } from "@/lib/types";
 
 /** "normal": the page as usual. "focus": the world covers the navbar and drops
  * its padding, but the browser's own bars stay (iPhone Safari, which has no
@@ -92,6 +94,24 @@ function friendLink(friend: FriendIsland): WorldLink {
   };
 }
 
+/** A gathering as a Gatherings menu row: its name and start in the world's
+ * clock, landing beside its mushroom, exactly like the calendar's portal. */
+function gatheringLink(stop: GatheringTravelStop): WorldLink {
+  const when = new Date(stop.starts_at).toLocaleString("en-US", {
+    timeZone: WORLD_TIME_ZONE,
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
+  return {
+    id: `gathering:${stop.gathering_id}`,
+    label: `${stop.title} (${when})`,
+    place: stop.place,
+    spawnAt: stop.spawn_at,
+  };
+}
+
 /** Resolve `?place=` to the world to render, or null while a visit is still
  * being checked. Community rooms are open to every member; islands and the
  * houses on them need to know who is looking. */
@@ -117,7 +137,8 @@ function resolvePlace({ placeParam, inside, isHome, user, lookup }: ResolveArgs)
     return { world, title: "My Place", visiting: null, ownerDisplayName: user.display_name };
   }
 
-  if (!lookup?.info) return null;
+  // A gathering's portal opens the island, never the house on it.
+  if (!lookup?.info || (inside && lookup.info.via_gathering)) return null;
   const { owner, biome, mailbox_color } = lookup.info;
   const visitor = { id: owner.id, username: owner.username, displayName: owner.display_name };
   // The house follows the island: if the gate let you stand on the doorstep,
@@ -157,10 +178,14 @@ function WorldView() {
   const spawnAt = searchParams.get("at") ?? undefined;
   const { who, inside, room } = readPlace(placeParam);
   const isHome = who === "me" || (!!user && who === user.username);
-  // The last visit lookup, tagged with whose island it answered so a stale
-  // answer for a previous member is never rendered for the next one.
+  // Arriving through a gathering's portal (or the network's Gatherings row)
+  // asks the island gate with that gathering, which may open the island.
+  const portalGathering = gatheringIdFromSpawn(spawnAt);
+  const visitKey = `${who}|${portalGathering ?? ""}`;
+  // The last visit lookup, tagged with whose island (and which portal) it
+  // answered, so a stale answer is never rendered for the next visit.
   const [visit, setVisit] = useState<VisitLookup | null>(null);
-  const lookup = visit && visit.who === who ? visit : null;
+  const lookup = visit && visit.who === visitKey ? visit : null;
 
   // The whole world needs an account, like everything else on Our Place.
   useEffect(() => {
@@ -172,19 +197,25 @@ function WorldView() {
   useEffect(() => {
     if (room || who === "capital" || isHome || !user) return;
     let cancelled = false;
-    apiFetch<IslandInfo>(`/api/users/${encodeURIComponent(who)}/island`)
+    const portal = portalGathering ? `?gathering=${encodeURIComponent(portalGathering)}` : "";
+    const key = `${who}|${portalGathering ?? ""}`;
+    apiFetch<IslandInfo>(`/api/users/${encodeURIComponent(who)}/island${portal}`)
       .then((info) => {
-        if (!cancelled) setVisit({ who, info, error: "" });
+        if (!cancelled) setVisit({ who: key, info, error: "" });
       })
       .catch((err) => {
         if (!cancelled) {
-          setVisit({ who, info: null, error: userMessage(err, "That island is out of reach.") });
+          setVisit({
+            who: key,
+            info: null,
+            error: userMessage(err, "That island is out of reach."),
+          });
         }
       });
     return () => {
       cancelled = true;
     };
-  }, [who, room, isHome, user]);
+  }, [who, room, isHome, user, portalGathering]);
 
   const place = useMemo(
     () => resolvePlace({ placeParam, inside, isHome, user: user ?? null, lookup }),
@@ -210,6 +241,28 @@ function WorldView() {
       cancelled = true;
     };
   }, [userId]);
+  // Gatherings whose mushroom this member may travel to, for the network's
+  // Gatherings row: once per visit like friends, and again whenever a mushroom
+  // is planted or picked up or an invitation answered in the world.
+  const [gatherings, setGatherings] = useState<GatheringsList>("loading");
+  const [gatheringsVersion, setGatheringsVersion] = useState(0);
+  useEffect(() => {
+    if (!userId) return;
+    let cancelled = false;
+    apiFetch<{ stops: GatheringTravelStop[] }>("/api/gatherings/travel")
+      .then((data) => {
+        if (!cancelled) setGatherings(data.stops.map(gatheringLink));
+      })
+      .catch(() => {
+        // The Gatherings row stays, and says so in a toast when it's chosen.
+        if (!cancelled) setGatherings("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, gatheringsVersion]);
+  const refreshGatherings = useCallback(() => setGatheringsVersion((v) => v + 1), []);
+
   // Never offer the island you're already standing on.
   const visiting = place?.visiting ?? null;
   const menuFriends = useMemo(
@@ -322,6 +375,9 @@ function WorldView() {
             ownerDisplayName={place.ownerDisplayName}
             persist={place.visiting === null}
             friends={menuFriends}
+            gatherings={gatherings}
+            onGatheringsChange={refreshGatherings}
+            checkMailbox={!lookup?.info?.via_gathering}
             immersive={immersive}
             onToggleImmersive={handleToggleImmersive}
           />

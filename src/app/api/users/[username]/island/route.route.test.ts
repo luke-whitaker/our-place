@@ -61,6 +61,7 @@ describe("GET /api/users/[username]/island", () => {
       owner: { id: owner.userId, username: owner.username, display_name: "Ada" },
       biome: "snow",
       mailbox_color: "green",
+      via_gathering: false,
     });
   });
 

@@ -23,19 +23,27 @@ import {
   menuView,
   setMailboxFlag,
   setFriends,
+  setGatherings,
   showToast,
   type IsoState,
   type IsoAssets,
   type MenuEntry,
   type FriendsList,
+  type GatheringsList,
 } from "@/lib/game/iso-engine";
+import {
+  gatheringIdFromSpawn,
+  mushroomLanding,
+  withEventMushrooms,
+  type PlantedMushroom,
+} from "@/lib/game/event-mushroom";
 import { loadIsoSave, persistIsoSave, isValidIsoPosition } from "@/lib/game/iso-save";
 import { usePresence } from "@/lib/game/use-presence";
 import type { IsoWorld } from "@/lib/game/world-model";
 import type { SolidGrid } from "@/lib/game/iso-collision";
 import type { Door, WorldFixture, WorldLink } from "@/lib/game/types";
 import type { NpcId } from "@/lib/npcs";
-import type { MailboxStatus } from "@/lib/types";
+import type { MailboxStatus, PlantedMushroomWire } from "@/lib/types";
 
 interface WorldCanvasProps {
   /** The place to render. Remount (change the key) to move between places. */
@@ -57,6 +65,15 @@ interface WorldCanvasProps {
   persist?: boolean;
   /** Friends' islands for the Friends menu at shrines and PCs. */
   friends: FriendsList;
+  /** Gatherings with a planted mushroom this member may travel to, for the
+   * Gatherings menu at shrines, PCs, and Event Mushrooms. */
+  gatherings: GatheringsList;
+  /** Ask the page to reload `gatherings` after a mushroom is planted or
+   * picked up, or an invitation answered. */
+  onGatheringsChange: () => void;
+  /** Whether to ask for the island mailbox's flag. False for a gathering's
+   * guest, whom the island's own gate would refuse. */
+  checkMailbox?: boolean;
   /** Whether the page is in focus or full-screen mode. Here it picks the full
    * screen button's icon and lets a desktop canvas fill the screen, scaled up;
    * the page (not this component) owns the layout change, since the element
@@ -112,6 +129,41 @@ function ScreenModeIcon({ immersive }: { immersive: boolean }) {
   );
 }
 
+/** No planted mushrooms; shared so an empty list keeps one identity. */
+const NONE_PLANTED: readonly PlantedMushroom[] = [];
+
+/** Where an `at=gathering-<id>` arrival lands, worked out once per arrival
+ * from the first mushroom list, so a later pick-up never moves the player.
+ * Null when that mushroom isn't standing here. */
+type GatheringArrival = { spawnAt: string; landing: { col: number; row: number } | null };
+
+function toPlanted(wire: PlantedMushroomWire): PlantedMushroom {
+  return {
+    gatheringId: wire.gathering_id,
+    col: wire.col,
+    row: wire.row,
+    host: wire.host,
+    invited: wire.invited,
+  };
+}
+
+/** The Event Mushrooms standing in a world, for this viewer. */
+async function fetchPlanted(worldId: string): Promise<readonly PlantedMushroom[]> {
+  const data = await apiFetch<{ mushrooms: PlantedMushroomWire[] }>(
+    `/api/gatherings/mushrooms?world=${encodeURIComponent(worldId)}`,
+  );
+  return data.mushrooms.length > 0 ? data.mushrooms.map(toPlanted) : NONE_PLANTED;
+}
+
+/** Where an arrival by `at=gathering-<id>` lands, from the list just read:
+ * an open tile beside that mushroom, or null when it isn't standing here. */
+function arrivalTile(world: IsoWorld, list: readonly PlantedMushroom[], at: string) {
+  const target = list.find((m) => m.gatheringId === gatheringIdFromSpawn(at));
+  if (!target) return null;
+  const solid = buildWorldCollision(withEventMushrooms(world, list));
+  return mushroomLanding(solid, target.col, target.row);
+}
+
 /** Where a deep link lands: just south of the door, shrine, or PC it names. */
 function spawnFor(
   world: IsoWorld,
@@ -156,6 +208,9 @@ export default function WorldCanvas({
   ownerDisplayName,
   persist = true,
   friends,
+  gatherings,
+  onGatheringsChange,
+  checkMailbox = true,
   immersive,
   onToggleImmersive,
 }: WorldCanvasProps) {
@@ -168,6 +223,56 @@ export default function WorldCanvas({
   const inputRef = useRef(createInputManager());
   const grass = useMemo(() => terrainToGrass(world), [world]);
   const solid = useMemo(() => buildWorldCollision(world), [world]);
+
+  // ── Event Mushrooms planted here ──
+  // Runtime state, like the mailbox flag: fetched on arrival and after every
+  // plant or pick-up, then added to the world as fixtures (liveWorld), so
+  // reach, collision, prompts, and drawing all treat them as furniture.
+  // Spawning, saving, and art loading keep the bare `world`, so a mushroom
+  // appearing never rebuilds the player's state.
+  const [planted, setPlanted] = useState<readonly PlantedMushroom[]>(NONE_PLANTED);
+  const [arrival, setArrival] = useState<GatheringArrival | null>(null);
+  const liveWorld = useMemo(() => withEventMushrooms(world, planted), [world, planted]);
+  const liveSolid = useMemo(() => buildWorldCollision(liveWorld), [liveWorld]);
+  const signedIn = !authLoading && !!user;
+  const plantedFailed = useCallback(() => {
+    const state = stateRef.current;
+    if (state) showToast(state, "Couldn't see the Event Mushrooms here.");
+  }, []);
+  // After a plant or pick-up here.
+  const refreshPlanted = useCallback(async () => {
+    try {
+      setPlanted(await fetchPlanted(world.id));
+    } catch {
+      plantedFailed();
+    }
+  }, [world.id, plantedFailed]);
+  // On arrival: also works out where an `at=gathering-<id>` arrival lands.
+  const arrivingAt = gatheringIdFromSpawn(spawnAt) ? spawnAt : undefined;
+  useEffect(() => {
+    if (!signedIn) return;
+    let cancelled = false;
+    fetchPlanted(world.id)
+      .then((list) => {
+        if (cancelled) return;
+        setPlanted(list);
+        if (arrivingAt) {
+          setArrival({ spawnAt: arrivingAt, landing: arrivalTile(world, list, arrivingAt) });
+        }
+      })
+      .catch(() => {
+        if (cancelled) return;
+        plantedFailed();
+        if (arrivingAt) setArrival({ spawnAt: arrivingAt, landing: null });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [signedIn, world, arrivingAt, plantedFailed]);
+  // An arrival at a gathering waits for its own answer; any other arrival
+  // spawns as before.
+  const arrivalReady = !arrivingAt || arrival?.spawnAt === arrivingAt;
+  const arrivalKey = arrivalReady && arrivingAt ? JSON.stringify(arrival?.landing ?? null) : "";
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState("");
   // Ghost Mode, read by the game loop each frame through a ref so turning it
@@ -230,28 +335,36 @@ export default function WorldCanvas({
   // ── Spawn resolution (deep-link → saved position → default) ──
   const playerLabel = user?.display_name;
   useEffect(() => {
+    // An arrival at a gathering's mushroom waits until we know where it
+    // stands; the loop idles without a state until then.
+    if (!arrivalReady) return;
     const save = persist ? loadIsoSave(world.id) : null;
     const discovered = new Set(save?.discovered ?? []);
     for (const id of ALWAYS_KNOWN_SHRINES) {
       if (world.mushrooms.some((m) => m.id === id)) discovered.add(id);
     }
-    const spawn = spawnFor(world, solid, spawnAt, save);
-    stateRef.current = createIsoState(world, {
+    const landing: { col: number; row: number } | null = arrivalKey ? JSON.parse(arrivalKey) : null;
+    const spawn = landing ?? spawnFor(world, solid, spawnAt, save);
+    const state = createIsoState(world, {
       spawnCol: spawn?.col,
       spawnRow: spawn?.row,
       discovered,
       playerLabel,
       fadeIn: true,
     });
-  }, [world, solid, spawnAt, persist, playerLabel]);
+    if (arrivalKey === "null") showToast(state, "That gathering's mushroom isn't here right now.");
+    stateRef.current = state;
+  }, [world, solid, spawnAt, persist, playerLabel, arrivalReady, arrivalKey]);
 
-  // ── Friends' islands for the Friends menu ──
+  // ── Friends' islands and gatherings for the network's menus ──
   // Handed to every fresh state, so this lists every input that makes the
-  // spawn effect above build one, plus the list itself.
+  // spawn effect above build one, plus the lists themselves.
   useEffect(() => {
     const state = stateRef.current;
-    if (state) setFriends(state, friends);
-  }, [friends, world, solid, spawnAt, persist, playerLabel]);
+    if (!state) return;
+    setFriends(state, friends);
+    setGatherings(state, gatherings);
+  }, [friends, gatherings, world, solid, spawnAt, persist, playerLabel, arrivalReady, arrivalKey]);
 
   // ── Mailbox flag on arrival ──
   // The island's mailbox fixture, if this world has one, shows its flag up
@@ -262,7 +375,7 @@ export default function WorldCanvas({
   // stateRef.current already holds this arrival's state by the time it fires.
   useEffect(() => {
     const fixture = world.fixtures?.find((f) => f.kind === "mailbox");
-    if (!fixture || !user) return;
+    if (!fixture || !user || !checkMailbox) return;
     let cancelled = false;
     apiFetch<MailboxStatus>(`/api/users/${encodeURIComponent(fixture.owner)}/mailbox`)
       .then((status) => {
@@ -282,7 +395,7 @@ export default function WorldCanvas({
     // Every input that makes the spawn effect above build a fresh state (which
     // starts with the flag down) refetches here too, or a new `?at=` on the
     // same island would leave a full mailbox showing its flag down.
-  }, [world, user, spawnAt, persist]);
+  }, [world, user, spawnAt, persist, checkMailbox, arrivalReady, arrivalKey]);
 
   // ── Load art, palette-swapped to the signed-in member's avatar ──
   // We wait for auth to settle so the recolor uses the right colors; a
@@ -395,10 +508,10 @@ export default function WorldCanvas({
         // A resize between ticks changes the view span; reframe the camera
         // around the (possibly stationary) player before the next update.
         if (state.view.w !== viewport.viewW || state.view.h !== viewport.viewH) {
-          setView(state, world, viewport.viewW, viewport.viewH);
+          setView(state, liveWorld, viewport.viewW, viewport.viewH);
         }
         while (accumulator >= TICK_RATE) {
-          update(state, world, solid, input, callbacksRef.current);
+          update(state, liveWorld, liveSolid, input, callbacksRef.current);
           input.endTick();
           accumulator -= TICK_RATE;
         }
@@ -406,7 +519,7 @@ export default function WorldCanvas({
         // of the canvas rows below; mirror it into React state, but only on an
         // actual change, since this runs every tick.
         if (isTouchDevice) {
-          const nextMenu = menuView(state, world);
+          const nextMenu = menuView(state, liveWorld);
           const nextKey = nextMenu
             ? `${nextMenu.title}\n${nextMenu.entries.map((e) => e.label).join("\n")}`
             : null;
@@ -419,7 +532,7 @@ export default function WorldCanvas({
         // Once per frame, not per tick: other members are placed on the
         // frame's clock, interpolated between the positions the stream sent.
         const presenceFrame = presenceFrameFn(state, now);
-        render(ctx, state, world, grass, assets, {
+        render(ctx, state, liveWorld, grass, assets, {
           viewport,
           promptKey: isTouchDevice ? "A" : "Enter",
           drawMenus: !isTouchDevice,
@@ -435,7 +548,7 @@ export default function WorldCanvas({
 
     rafId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafId);
-  }, [world, solid, grass, isTouchDevice, presenceFrameFn]);
+  }, [liveWorld, liveSolid, grass, isTouchDevice, presenceFrameFn]);
 
   // ── Keyboard focus ──
   // Drop whatever holds focus on every arrival (each place remounts this
@@ -519,13 +632,18 @@ export default function WorldCanvas({
           {user && !menu && !overlayOpen && <EmotePicker onPick={sendEmote} />}
           <WorldOverlays
             stateRef={stateRef}
-            world={world}
+            world={liveWorld}
             inputRef={inputRef}
             overlay={overlay}
             setOverlay={setOverlay}
             signedIn={!!user}
             username={user?.username ?? null}
             ownerDisplayName={ownerDisplayName}
+            onMushroomsChange={() => {
+              void refreshPlanted();
+              onGatheringsChange();
+            }}
+            onGatheringsChange={onGatheringsChange}
           />
           {isTouchDevice && menu && (
             <WorldMenu

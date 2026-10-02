@@ -21,7 +21,7 @@ export const NOTEBOOK_PAGES = 10;
 /** The longest a single draft or torn-out Note's body may be. */
 export const NOTE_MAX_CHARS = 1000;
 
-export type ItemKind = "notebook" | "note";
+export type ItemKind = "notebook" | "note" | "event_mushroom";
 
 /** Where an item currently sits. Stored as a plain string validated in code,
  * like `kind`, so a new location needs no migration. */
@@ -38,15 +38,33 @@ export const LOCATION_SLOTS: Record<ItemLocation, number> = {
  * or production asks the app's own origin for art that only lives on R2. */
 export const ITEM_CATALOG: Record<
   ItemKind,
-  { name: string; icon: string; discardable: boolean; mailable: boolean }
+  { name: string; icon: string; discardable: boolean; mailable: boolean; deskable: boolean }
 > = {
   notebook: {
     name: "Notebook",
     icon: "/world/items/notebook.png",
     discardable: false,
     mailable: false,
+    deskable: true,
   },
-  note: { name: "Note", icon: "/world/items/note.png", discardable: true, mailable: true },
+  note: {
+    name: "Note",
+    icon: "/world/items/note.png",
+    discardable: true,
+    mailable: true,
+    deskable: true,
+  },
+  // A world gathering's mushroom (its `gathering_id` says which). It arrives in
+  // the host's mailbox and is planted from pockets. It can't go in the desk,
+  // be mailed, or be thrown away, so it is always somewhere the host can take
+  // it from; cancelling the gathering removes it.
+  event_mushroom: {
+    name: "Event Mushroom",
+    icon: "/world/items/event_mushroom.png",
+    discardable: false,
+    mailable: false,
+    deskable: false,
+  },
 };
 
 export function isItemKind(value: unknown): value is ItemKind {

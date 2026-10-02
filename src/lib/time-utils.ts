@@ -17,14 +17,22 @@ export function shortDate(dateString: string): string {
 }
 
 /** "Sat, Oct 3, 12:00 PM to 3:00 PM", or both dates when it runs past a day,
- * in the viewer's own time zone. */
-export function gatheringWhen(startsAt: string, endsAt: string): string {
+ * in the viewer's own time zone, or in `timeZone` (with its abbreviation)
+ * when given. */
+export function gatheringWhen(startsAt: string, endsAt: string, timeZone?: string): string {
   const start = new Date(startsAt);
   const end = new Date(endsAt);
+  const zone: Intl.DateTimeFormatOptions = timeZone ? { timeZone } : {};
   const day: Intl.DateTimeFormatOptions = { weekday: "short", month: "short", day: "numeric" };
-  const time: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit" };
+  const time: Intl.DateTimeFormatOptions = { hour: "numeric", minute: "2-digit", ...zone };
+  const dateOf = (d: Date) => d.toLocaleDateString("en-US", zone);
   const startText = start.toLocaleString("en-US", { ...day, ...time });
-  const sameDay = start.toDateString() === end.toDateString();
-  const endText = end.toLocaleString("en-US", sameDay ? time : { ...day, ...time });
+  const sameDay = dateOf(start) === dateOf(end);
+  const endTime = timeZone ? { ...time, timeZoneName: "short" as const } : time;
+  const endText = end.toLocaleString("en-US", sameDay ? endTime : { ...day, ...endTime });
   return `${startText} to ${endText}`;
 }
+
+/** The world shows gathering times in Chicago's, like the letters do: one
+ * place, one clock (Luke, October 2). */
+export const WORLD_TIME_ZONE = "America/Chicago";

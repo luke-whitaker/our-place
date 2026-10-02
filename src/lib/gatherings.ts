@@ -6,6 +6,8 @@ import type { Prisma } from "@/generated/prisma/client";
 import prisma from "@/lib/db";
 import { MAILBOX_SLOTS } from "@/lib/items";
 import { METRICS_TIME_ZONE } from "@/lib/activity";
+import { cancelUnplanted } from "@/lib/gathering-sweep";
+import { mushroomPortal } from "@/lib/event-mushrooms";
 import type { GatheringAnswer, GatheringEntry, GatheringKind } from "@/lib/types";
 
 /** A community gathering invites every member; past this many, it's refused
@@ -66,11 +68,24 @@ export const ENTRY_SELECT = {
   status: true,
   hostId: true,
   communityId: true,
+  mushroomWorld: true,
+  plantedAt: true,
   host: { select: { username: true, displayName: true } },
   community: { select: { slug: true, name: true } },
 } as const;
 
 export type EntryRow = Prisma.GatheringGetPayload<{ select: typeof ENTRY_SELECT }>;
+
+/** The portal into a world gathering, while its mushroom is planted and the
+ * gathering hasn't ended or been cancelled. Only ever handed to someone who
+ * can see the gathering, since every caller has already checked that. */
+function portalOf(row: EntryRow, now: Date): string | null {
+  const standing =
+    row.status === "scheduled" && row.plantedAt !== null && row.endsAt.getTime() > now.getTime();
+  if (!standing || !row.mushroomWorld) return null;
+  const home = { host: { id: row.hostId, username: row.host.username }, community: row.community };
+  return mushroomPortal(row.id, row.mushroomWorld, home);
+}
 
 export function toGatheringEntry(row: EntryRow, myResponse: string | null): GatheringEntry {
   return {
@@ -82,6 +97,7 @@ export function toGatheringEntry(row: EntryRow, myResponse: string | null): Gath
     host: { username: row.host.username, display_name: row.host.displayName },
     community: row.community ? { slug: row.community.slug, name: row.community.name } : null,
     my_response: (myResponse as GatheringAnswer | null) ?? null,
+    portal: portalOf(row, new Date()),
   };
 }
 
@@ -102,6 +118,9 @@ export async function gatheringAccess(
   gatheringId: string,
   userId: string,
 ): Promise<GatheringAccess | null> {
+  // Settle any world gathering that started unplanted before reading, so a
+  // page never shows one as scheduled between two background sweeps.
+  await cancelUnplanted();
   const gathering = await prisma.gathering.findUnique({
     where: { id: gatheringId },
     select: ENTRY_SELECT,

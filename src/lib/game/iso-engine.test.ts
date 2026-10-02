@@ -9,7 +9,11 @@ import {
   menuView,
   friendMenuEntries,
   setFriends,
+  setGatherings,
+  travelEntries,
+  chooseTravel,
   type FriendsList,
+  type GatheringsList,
   cameraFor,
   update,
   buildWorldCollision,
@@ -876,5 +880,109 @@ describe("a repeated Enter during a shrine confirm", () => {
 
     expect(state.mode).toBe("warp-menu");
     expect(state.menuIndex).toBe(0);
+  });
+});
+
+describe("the Gatherings menu", () => {
+  const LANTERNS: WorldLink = {
+    id: "gathering:g1",
+    label: "Lantern walk (Oct 3, 7:00 PM)",
+    place: "capital",
+    spawnAt: "gathering-g1",
+  };
+  const solid = buildWorldCollision(LINKED_TOWN);
+
+  function shrineMenu(gatherings: GatheringsList) {
+    const state = createIsoState(LINKED_TOWN);
+    setGatherings(state, gatherings);
+    state.nearbyMushroom = LINKED_TOWN.mushrooms[0];
+    state.mode = "warp-menu";
+    return state;
+  }
+
+  function onGatheringsRow(state: ReturnType<typeof shrineMenu>) {
+    state.menuIndex = warpMenuEntries(state, LINKED_TOWN).findIndex((e) => e.kind === "gatherings");
+  }
+
+  it("shows a Gatherings row after Friends only while there's somewhere to go", () => {
+    const kinds = (g: GatheringsList) =>
+      warpMenuEntries(shrineMenu(g), LINKED_TOWN).map((e) => e.kind);
+    expect(kinds([LANTERNS]).slice(-2)).toEqual(["friends", "gatherings"]);
+    expect(kinds([])).not.toContain("gatherings");
+    expect(kinds("loading")).not.toContain("gatherings");
+    // A failed load keeps the row, so choosing it can say why.
+    expect(kinds("error")).toContain("gatherings");
+  });
+
+  it("opens a sub-menu whose rows travel to each mushroom like a link", () => {
+    const state = shrineMenu([LANTERNS]);
+    onGatheringsRow(state);
+    update(state, LINKED_TOWN, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("gatherings-menu");
+    expect(menuView(state, LINKED_TOWN)).toEqual({
+      title: "Gatherings",
+      entries: [{ kind: "link", label: LANTERNS.label, link: LANTERNS }],
+    });
+    update(state, LINKED_TOWN, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("fading");
+    expect(state.pendingLink).toEqual(LANTERNS);
+  });
+
+  it("shows on a PC's menu too", () => {
+    const pc: Pc = { col: 5, row: 5, id: "pc", label: "Terminal", href: "/communities/test" };
+    const world: IsoWorld = { ...LINKED_TOWN, pcs: [pc] };
+    const state = createIsoState(world);
+    setGatherings(state, [LANTERNS]);
+    state.nearbyPc = pc;
+    state.mode = "pc-menu";
+    expect(menuView(state, world)?.entries.at(-1)).toEqual({
+      kind: "gatherings",
+      label: "Gatherings",
+    });
+  });
+
+  it("says why in a toast when the list failed", () => {
+    const state = shrineMenu("error");
+    onGatheringsRow(state);
+    update(state, LINKED_TOWN, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("overworld");
+    expect(state.toast?.text).toBe("Couldn't reach your gatherings. Try again later.");
+  });
+});
+
+describe("travelling from an Event Mushroom", () => {
+  it("offers a shrine's rows and commits one the way the shrine menu would", () => {
+    const state = createIsoState(LINKED_TOWN);
+    setGatherings(state, []);
+    state.mode = "dialogue"; // paused under the card
+    const entries = travelEntries(state, LINKED_TOWN);
+    expect(entries).toEqual(warpMenuEntries(state, LINKED_TOWN));
+    const link = entries.find((e) => e.kind === "link");
+    if (!link) throw new Error("LINKED_TOWN has a link");
+    chooseTravel(state, link);
+    expect(state.mode).toBe("fading");
+    expect(state.pendingLink).toEqual(CAPITAL_LINK);
+  });
+
+  it("opens Friends from the card as a sub-menu", () => {
+    const state = createIsoState(LINKED_TOWN);
+    setFriends(state, [{ id: "friend:ada", label: "Ada's Island", place: "ada" }]);
+    state.mode = "dialogue";
+    chooseTravel(state, { kind: "friends", label: "Friends" });
+    expect(state.mode).toBe("friends-menu");
+  });
+
+  it("draws every planted mushroom with its own sprite", () => {
+    const fixture: WorldFixture = {
+      id: "gathering-g1",
+      kind: "event_mushroom",
+      col: 3,
+      row: 3,
+      label: "Open gathering",
+      owner: "ada",
+      gatheringId: "g1",
+      invited: true,
+    };
+    expect(fixtureSprite(fixture, createIsoState(LINKED_TOWN))).toBe("event_mushroom");
   });
 });

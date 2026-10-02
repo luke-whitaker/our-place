@@ -68,6 +68,9 @@ export type {
   GatheringCalendar,
   GatheringDetail,
   GatheringInviteSummary,
+  PlantedMushroomWire,
+  GatheringTravelStop,
+  PocketMushroomInfo,
 } from "./gatherings";
 
 export { MAX_PICKED_INVITEES } from "./gatherings";

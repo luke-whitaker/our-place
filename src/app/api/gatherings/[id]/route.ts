@@ -50,6 +50,8 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
             declined: byStatus("declined"),
           }
         : null,
+      mushroom:
+        access.gathering.kind === "world" ? { planted: access.gathering.plantedAt !== null } : null,
     };
     return NextResponse.json({ gathering });
   } catch (error) {

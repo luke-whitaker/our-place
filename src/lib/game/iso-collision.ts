@@ -68,9 +68,18 @@ export function resolveMove(
   dcol: number,
   drow: number,
 ): { col: number; row: number } {
+  // Something solid can appear under a player who is standing still (another
+  // member plants an Event Mushroom on their tile). Moving within that tile
+  // stays allowed, so they can always walk off it instead of being stuck.
+  const open = (c: number, r: number) =>
+    !isSolidAt(grid, c, r) || (sameTile(c, r, col, row) && isSolidAt(grid, col, row));
   let nextCol = col;
   let nextRow = row;
-  if (dcol !== 0 && !isSolidAt(grid, col + dcol, row)) nextCol = col + dcol;
-  if (drow !== 0 && !isSolidAt(grid, nextCol, row + drow)) nextRow = row + drow;
+  if (dcol !== 0 && open(col + dcol, row)) nextCol = col + dcol;
+  if (drow !== 0 && open(nextCol, row + drow)) nextRow = row + drow;
   return { col: nextCol, row: nextRow };
+}
+
+function sameTile(c1: number, r1: number, c2: number, r2: number): boolean {
+  return Math.floor(c1) === Math.floor(c2) && Math.floor(r1) === Math.floor(r2);
 }

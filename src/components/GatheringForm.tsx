@@ -6,7 +6,7 @@ import Link from "next/link";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { useAuth } from "@/components/AuthProvider";
 import InviteePicker, { type Invitee } from "@/components/InviteePicker";
-import type { CommunityWithMembership } from "@/lib/types";
+import type { CommunityWithMembership, GatheringKind } from "@/lib/types";
 
 const inputClass =
   "w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400";
@@ -27,21 +27,35 @@ function defaultTimes(): { starts: string; ends: string } {
   return { starts: toLocalInput(start), ends: toLocalInput(end) };
 }
 
+/** The two kinds, as the form offers them. */
+const KINDS: { value: GatheringKind; label: string; hint: string }[] = [
+  { value: "in_person", label: "In person", hint: "Meet somewhere real, at an address." },
+  {
+    value: "world",
+    label: "In the world",
+    hint: "Meet at your Event Mushroom. It arrives in your mailbox; plant it before the start, or the gathering is cancelled.",
+  },
+];
+
 /**
- * <GatheringForm /> — host an in-person gathering. With a community chosen,
- * everyone in it is invited and the picker hides; without one, the host picks
- * people. Times are typed in the browser's zone and sent as ISO instants.
+ * <GatheringForm /> — host a gathering, in person or in the world. With a
+ * community chosen, everyone in it is invited and the picker hides; without
+ * one, the host picks people. Times are typed in the browser's zone and sent
+ * as ISO instants. A gathering in the world has no address: it happens at the
+ * host's Event Mushroom.
  */
 export default function GatheringForm({ initialCommunityId }: { initialCommunityId: string }) {
   const { user, loading } = useAuth();
   const router = useRouter();
   const [fields, setFields] = useState(() => ({
+    kind: "in_person" as GatheringKind,
     title: "",
     description: "",
     address: "",
     communityId: initialCommunityId,
     ...defaultTimes(),
   }));
+  const inWorld = fields.kind === "world";
   const [invitees, setInvitees] = useState<Invitee[]>([]);
   const [communities, setCommunities] = useState<CommunityWithMembership[]>([]);
   const [submitting, setSubmitting] = useState(false);
@@ -83,10 +97,10 @@ export default function GatheringForm({ initialCommunityId }: { initialCommunity
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          kind: "in_person",
+          kind: fields.kind,
           title: fields.title,
           description: fields.description,
-          address: fields.address,
+          address: inWorld ? "" : fields.address,
           starts_at: new Date(fields.starts).toISOString(),
           ends_at: new Date(fields.ends).toISOString(),
           community_id: fields.communityId || null,
@@ -112,8 +126,8 @@ export default function GatheringForm({ initialCommunityId }: { initialCommunity
       </Link>
       <h1 className="mt-4 text-2xl font-bold text-ink">Host a gathering</h1>
       <p className="mt-2 text-sm text-ink-muted">
-        Get people together in person. Invitations arrive as a letter in each guest&apos;s mailbox
-        and as a notification. The address shows only to people who are invited.
+        Get people together, in person or in the world. Invitations arrive as a letter in each
+        guest&apos;s mailbox and as a notification. An address shows only to people who are invited.
       </p>
 
       <form
@@ -128,6 +142,34 @@ export default function GatheringForm({ initialCommunityId }: { initialCommunity
             {error}
           </p>
         )}
+
+        <fieldset>
+          <legend className={labelClass}>Where</legend>
+          <div className="grid gap-2 sm:grid-cols-2">
+            {KINDS.map((k) => (
+              <label
+                key={k.value}
+                className={`flex cursor-pointer flex-col gap-0.5 rounded-xl border px-4 py-2.5 text-sm ${
+                  fields.kind === k.value
+                    ? "border-accent-400 bg-accent-50 text-accent-600"
+                    : "border-line text-ink-secondary"
+                }`}
+              >
+                <span className="flex items-center gap-2 font-medium">
+                  <input
+                    type="radio"
+                    name="g-kind"
+                    value={k.value}
+                    checked={fields.kind === k.value}
+                    onChange={() => update("kind", k.value)}
+                  />
+                  {k.label}
+                </span>
+                <span className="text-xs text-ink-muted">{k.hint}</span>
+              </label>
+            ))}
+          </div>
+        </fieldset>
 
         <div>
           <label htmlFor="g-title" className={labelClass}>
@@ -173,20 +215,22 @@ export default function GatheringForm({ initialCommunityId }: { initialCommunity
           </div>
         </div>
 
-        <div>
-          <label htmlFor="g-address" className={labelClass}>
-            Address
-          </label>
-          <input
-            id="g-address"
-            value={fields.address}
-            onChange={(e) => update("address", e.target.value)}
-            maxLength={300}
-            required
-            placeholder="Where to meet"
-            className={inputClass}
-          />
-        </div>
+        {!inWorld && (
+          <div>
+            <label htmlFor="g-address" className={labelClass}>
+              Address
+            </label>
+            <input
+              id="g-address"
+              value={fields.address}
+              onChange={(e) => update("address", e.target.value)}
+              maxLength={300}
+              required
+              placeholder="Where to meet"
+              className={inputClass}
+            />
+          </div>
+        )}
 
         <div>
           <label htmlFor="g-description" className={labelClass}>

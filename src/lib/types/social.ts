@@ -43,6 +43,9 @@ export interface IslandInfo {
   owner: { id: string; username: string; display_name: string };
   biome: string;
   mailbox_color: string;
+  /** True when only a gathering's portal let the viewer in: the island is
+   * open to them, the house on it is not. */
+  via_gathering: boolean;
 }
 
 /** One row of the member directory, as listed by GET /api/users. */

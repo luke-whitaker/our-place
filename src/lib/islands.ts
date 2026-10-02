@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { areFriends } from "@/lib/friends";
+import { gatheringOpensIsland } from "@/lib/event-mushrooms";
 
 /** Just enough of the owner row to decide who may walk onto their island.
  * `islandVisibility` is the raw database string, not the narrower
@@ -109,6 +110,34 @@ export async function requireIslandAccess(
     };
   }
   return { owner: gate.owner };
+}
+
+/**
+ * The island route's gate, with the one exception gatherings make: when the
+ * owner's gathering has its Event Mushroom planted on this island and the
+ * viewer may open that gathering, its portal lets them onto the island even
+ * if the island's own setting wouldn't. Only the island named by the portal's
+ * gathering, never the house (the page keeps that closed).
+ */
+export async function requireIslandVisit(
+  viewerId: string,
+  username: string,
+  gatheringId: string | null,
+): Promise<
+  | { owner: IslandOwnerRow; viaGathering: boolean; error?: never }
+  | { owner?: never; error: Response }
+> {
+  const gate = await requireIslandAccess(viewerId, username);
+  if (!gate.error) return { owner: gate.owner, viaGathering: false };
+  if (!gatheringId) return gate;
+  const owner = await prisma.user.findFirst({
+    where: { username: { equals: username.toLowerCase(), mode: "insensitive" } },
+    select: OWNER_SELECT,
+  });
+  if (owner && (await gatheringOpensIsland(viewerId, owner.id, gatheringId))) {
+    return { owner, viaGathering: true };
+  }
+  return gate;
 }
 
 /**

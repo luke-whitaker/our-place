@@ -2,18 +2,32 @@
 
 import { useEffect } from "react";
 import type { RefObject } from "react";
+import { apiFetch, userMessage } from "@/lib/api-client";
 import {
   pauseForOverlay,
   resumeFromOverlay,
   endNpcTalk,
   setMailboxFlag,
+  getLocalEntity,
+  showToast,
+  travelEntries,
+  chooseTravel,
   type IsoState,
+  type MenuEntry,
 } from "@/lib/game/iso-engine";
+import { frontTile, plantProblem } from "@/lib/game/event-mushroom";
 import type { IsoWorld } from "@/lib/game/world-model";
 import type { InputManager } from "@/lib/game/input";
 import type { NpcId } from "@/lib/npcs";
 import type { PocketItem } from "@/lib/types";
-import type { ArmoireFixture, DeskFixture, MailboxFixture, WorldFixture } from "@/lib/game/types";
+import type {
+  ArmoireFixture,
+  DeskFixture,
+  EventMushroomFixture,
+  MailboxFixture,
+  WorldFixture,
+} from "@/lib/game/types";
+import GatheringCard, { type GatheringCardTab } from "@/components/GatheringCard";
 import WorldDialogue from "@/components/WorldDialogue";
 import DialogueBox from "@/components/DialogueBox";
 import ArmoirePanel from "@/components/ArmoirePanel";
@@ -35,8 +49,10 @@ import LeaveLetterPanel from "@/components/LeaveLetterPanel";
 export type OverlayScreen =
   | { kind: "none" }
   | { kind: "dialogue"; npcId: NpcId }
-  | { kind: "pockets" }
+  | { kind: "pockets"; plant: PlantSpot | null }
   | { kind: "notebook" }
+  | { kind: "gathering"; fixture: EventMushroomFixture; tab: GatheringCardTab; travel: MenuEntry[] }
+  | { kind: "passing-mushroom" }
   | { kind: "mailbox"; fixture: MailboxFixture }
   | { kind: "desk"; fixture: DeskFixture; page: number }
   | { kind: "armoire"; fixture: ArmoireFixture }
@@ -48,11 +64,29 @@ export type OverlayScreen =
 const lockedLine = (thing: string) =>
   `Oops! It's locked. You must not have the right key for this ${thing}.`;
 
+/** Where Pockets would plant an Event Mushroom: the tile in front of the
+ * player in this world, and why not there (null when it's fine). Worked out
+ * when Pockets opens, since the world is paused while it's open. `now` is
+ * that moment, so the panel can tell a gathering that already started. */
+export interface PlantSpot {
+  worldId: string;
+  col: number;
+  row: number;
+  problem: string | null;
+  now: number;
+}
+
 /** The screen a fixture opens once its confirm finishes. The desk opens on
- * its first page; who sees what (owner or visitor) is decided at render. */
+ * its first page; who sees what (owner or visitor) is decided at render. An
+ * Event Mushroom opens its card for a guest and one line for anyone else. */
 export function fixtureScreen(fixture: WorldFixture): OverlayScreen {
   if (fixture.kind === "desk") return { kind: "desk", fixture, page: 0 };
   if (fixture.kind === "armoire") return { kind: "armoire", fixture };
+  if (fixture.kind === "event_mushroom") {
+    return fixture.invited
+      ? { kind: "gathering", fixture, tab: "gathering", travel: [] }
+      : { kind: "passing-mushroom" };
+  }
   return { kind: "mailbox", fixture };
 }
 
@@ -80,6 +114,11 @@ interface WorldOverlaysProps {
    * the fixture itself only carries their username. Blank outside an
    * island, where no fixture ever opens this screen. */
   ownerDisplayName: string;
+  /** After a mushroom is planted or picked up here: reload what stands in
+   * this world and the network's Gatherings list. */
+  onMushroomsChange: () => void;
+  /** After an invitation is answered from a mushroom's card. */
+  onGatheringsChange: () => void;
 }
 
 function isTypingTarget(target: EventTarget | null): boolean {
@@ -95,12 +134,18 @@ function isOwner(fixture: WorldFixture, username: string | null): boolean {
 }
 
 /** Where the note reader's Back goes: the screen the note was opened from,
- * on the same desk page. */
-function noteReturn(note: Extract<OverlayScreen, { kind: "note" }>): OverlayScreen {
+ * on the same desk page. `pockets` is Pockets as it would open now. */
+function noteReturn(
+  note: Extract<OverlayScreen, { kind: "note" }>,
+  pockets: OverlayScreen,
+): OverlayScreen {
   if (note.returnTo === "mailbox") return { kind: "mailbox", fixture: note.fixture };
   if (note.returnTo === "desk") return { kind: "desk", fixture: note.fixture, page: note.page };
-  return { kind: "pockets" };
+  return pockets;
 }
+
+/** What a passer-by learns at a gathering they weren't invited to. */
+const PASSING_LINE = "A gathering is happening here.";
 
 /** Blur whatever holds focus so a keyboard Enter goes back to the world
  * instead of re-clicking whatever DOM control the overlay left focused (see
@@ -132,6 +177,8 @@ export default function WorldOverlays({
   signedIn,
   username,
   ownerDisplayName,
+  onMushroomsChange,
+  onGatheringsChange,
 }: WorldOverlaysProps) {
   /** Both mailbox panels report back through this after every load and every
    * mutation, so the flag on the world stays exactly what's really inside —
@@ -160,6 +207,23 @@ export default function WorldOverlays({
     blurActiveElement();
   }
 
+  /** Pockets as it opens right now, with the spot a mushroom would be planted
+   * on: the tile in front of the player, checked by the same rule the server
+   * uses. Only ever called from an event handler, since it reads the state. */
+  function pocketsScreen(): OverlayScreen {
+    const state = stateRef.current;
+    if (!state) return { kind: "pockets", plant: null };
+    const player = getLocalEntity(state);
+    const tile = frontTile(player.col, player.row, player.dir);
+    const plant: PlantSpot = {
+      worldId: world.id,
+      ...tile,
+      problem: plantProblem(world, tile.col, tile.row),
+      now: Date.now(),
+    };
+    return { kind: "pockets", plant };
+  }
+
   function openPockets() {
     const state = stateRef.current;
     // Only from a plain, unpaused world — never steals a fade or an
@@ -167,7 +231,50 @@ export default function WorldOverlays({
     // own resume path that pauseForOverlay would otherwise clobber.
     if (!state || overlay.kind !== "none" || state.mode !== "overworld") return;
     pauseForOverlay(state);
-    setOverlay({ kind: "pockets" });
+    setOverlay(pocketsScreen());
+  }
+
+  /** Back to the world with a toast, the way every mushroom action reports. */
+  function closeWithToast(text: string) {
+    closeToWorld();
+    const state = stateRef.current;
+    if (state) showToast(state, text);
+  }
+
+  async function plantMushroom(item: PocketItem, spot: PlantSpot) {
+    try {
+      const data = await apiFetch<{ message: string }>(
+        `/api/gatherings/${item.gathering_id}/mushroom`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ world: spot.worldId, col: spot.col, row: spot.row }),
+        },
+      );
+      closeWithToast(data.message);
+      onMushroomsChange();
+    } catch (err) {
+      closeWithToast(userMessage(err, "Couldn't plant the mushroom."));
+    }
+  }
+
+  /** Switch the card's tab. Travel reads the network's rows now, in this
+   * handler, since the engine state can't be read while rendering. */
+  function showCardTab(fixture: EventMushroomFixture, tab: GatheringCardTab) {
+    const state = stateRef.current;
+    const travel = tab === "travel" && state ? travelEntries(state, world) : [];
+    setOverlay({ kind: "gathering", fixture, tab, travel });
+  }
+
+  /** Take a Travel row: the engine leaves the pause and commits it like the
+   * shrine menu would, so the card just gets out of the way. */
+  function travelFromMushroom(entry: MenuEntry) {
+    const state = stateRef.current;
+    if (state) chooseTravel(state, entry);
+    inputRef.current.consume("Enter");
+    inputRef.current.consume("Space");
+    setOverlay({ kind: "none" });
+    blurActiveElement();
   }
 
   useEffect(() => {
@@ -211,10 +318,36 @@ export default function WorldOverlays({
           onClose={closeToWorld}
           onOpenNotebook={() => setOverlay({ kind: "notebook" })}
           onReadNote={(item) => setOverlay({ kind: "note", item, returnTo: "pockets" })}
+          plant={overlay.plant}
+          onPlant={(item, spot) => void plantMushroom(item, spot)}
         />
       )}
-      {overlay.kind === "notebook" && (
-        <NotebookPanel onClose={() => setOverlay({ kind: "pockets" })} />
+      {overlay.kind === "notebook" && <NotebookPanel onClose={() => setOverlay(pocketsScreen())} />}
+      {overlay.kind === "gathering" && (
+        <GatheringCard
+          gatheringId={overlay.fixture.gatheringId}
+          tab={overlay.tab}
+          travel={overlay.travel}
+          onTab={(tab) => showCardTab(overlay.fixture, tab)}
+          onTravel={travelFromMushroom}
+          onClose={closeToWorld}
+          onPickedUp={(message) => {
+            closeWithToast(message);
+            onMushroomsChange();
+          }}
+          onAnswered={onGatheringsChange}
+        />
+      )}
+      {overlay.kind === "passing-mushroom" && (
+        // No request: a passer-by learns only that something's happening.
+        <DialogueBox
+          speaker={null}
+          text={PASSING_LINE}
+          italic
+          hasMore={false}
+          ariaLabel="The Event Mushroom"
+          onAdvance={closeToWorld}
+        />
       )}
       {overlay.kind === "mailbox" &&
         (isOwner(overlay.fixture, username) ? (
@@ -273,7 +406,7 @@ export default function WorldOverlays({
         <NoteReader
           item={overlay.item}
           returnTo={overlay.returnTo}
-          onBack={() => setOverlay(noteReturn(overlay))}
+          onBack={() => setOverlay(noteReturn(overlay, pocketsScreen()))}
         />
       )}
     </>

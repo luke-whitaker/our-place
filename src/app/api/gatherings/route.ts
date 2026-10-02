@@ -1,10 +1,11 @@
+import type { Prisma } from "@/generated/prisma/client";
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { createGatheringLimiter } from "@/lib/rate-limit";
 import { createGatheringSchema, getZodErrorMessage } from "@/lib/schemas";
 import { inviteMembers, MAX_COMMUNITY_INVITEES, timesProblem } from "@/lib/gatherings";
-import { isUniqueConstraintError } from "@/lib/pockets";
+import { firstFreeSlot, isUniqueConstraintError } from "@/lib/pockets";
 
 type Invitees = { ok: true; ids: string[] } | { ok: false; response: NextResponse };
 
@@ -47,9 +48,21 @@ async function resolveInvitees(
   return { ok: true, ids: [...members.map((m) => m.userId), ...picked] };
 }
 
-// POST: host a gathering. In person only until v0.20.0 brings gatherings in
-// the world. The gathering, the host's own "accepted" invite, and every
-// invitation (row, letter, notification) are written in one transaction.
+/** Where a new Event Mushroom lands: the host's mailbox, else their pockets
+ * (Luke, October 2), else nowhere, and the gathering isn't made. */
+async function mushroomSlot(
+  tx: Prisma.TransactionClient,
+  hostId: string,
+): Promise<{ location: "mailbox" | "pocket"; slot: number } | null> {
+  const mailbox = await firstFreeSlot(tx, hostId, "mailbox");
+  if (mailbox !== null) return { location: "mailbox", slot: mailbox };
+  const pocket = await firstFreeSlot(tx, hostId, "pocket");
+  return pocket === null ? null : { location: "pocket", slot: pocket };
+}
+
+// POST: host a gathering, in person or in the world. The gathering, the
+// host's own "accepted" invite, every invitation (row, letter, notification),
+// and a world gathering's Event Mushroom are written in one transaction.
 export async function POST(request: NextRequest) {
   try {
     const auth = await requireAuth();
@@ -69,13 +82,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
     const input = parsed.data;
-    if (input.kind === "world") {
-      return NextResponse.json(
-        { error: "Gatherings in the world are coming soon. For now, host one in person." },
-        { status: 400 },
-      );
-    }
-    if (!input.address) {
+    const inWorld = input.kind === "world";
+    if (!inWorld && !input.address) {
       return NextResponse.json(
         { error: "Add an address so people know where to go." },
         { status: 400 },
@@ -92,6 +100,10 @@ export async function POST(request: NextRequest) {
     const create = () =>
       prisma.$transaction(
         async (tx) => {
+          // A world gathering's mushroom needs somewhere to land before
+          // anything else is written; with no room, nothing is.
+          const mushroomSpot = inWorld ? await mushroomSlot(tx, hostId) : null;
+          if (inWorld && !mushroomSpot) return null;
           const gathering = await tx.gathering.create({
             data: {
               hostId,
@@ -101,10 +113,22 @@ export async function POST(request: NextRequest) {
               description: input.description,
               startsAt,
               endsAt,
-              address: input.address,
+              // A gathering in the world happens at its mushroom, not an address.
+              address: inWorld ? "" : input.address,
             },
             select: { id: true, hostId: true, title: true, startsAt: true },
           });
+          if (mushroomSpot) {
+            await tx.item.create({
+              data: {
+                ownerId: hostId,
+                kind: "event_mushroom",
+                ...mushroomSpot,
+                placedAt: mushroomSpot.location === "mailbox" ? new Date() : null,
+                gatheringId: gathering.id,
+              },
+            });
+          }
           await tx.gatheringInvite.create({
             data: {
               gatheringId: gathering.id,
@@ -130,10 +154,18 @@ export async function POST(request: NextRequest) {
       if (!isUniqueConstraintError(error)) throw error;
       gathering = await create();
     }
+    if (!gathering) {
+      return NextResponse.json(
+        { error: "Your Event Mushroom needs room. Make room in your mailbox or pockets first." },
+        { status: 409 },
+      );
+    }
 
     return NextResponse.json(
       {
-        message: "Your gathering is set, and the invitations are out.",
+        message: inWorld
+          ? "Your gathering is set, and the invitations are out. Your Event Mushroom is waiting in your mailbox."
+          : "Your gathering is set, and the invitations are out.",
         gathering: { id: gathering.id },
       },
       { status: 201 },

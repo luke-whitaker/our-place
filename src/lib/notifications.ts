@@ -23,7 +23,8 @@ type NotificationKind =
   | "reaction"
   | "comment"
   | "gathering_invite"
-  | "gathering_cancelled";
+  | "gathering_cancelled"
+  | "gathering_unplanted";
 
 interface NewNotification {
   recipientId: string;
@@ -130,7 +131,9 @@ export function groupNotifications(rows: NotificationRow[]): NotificationItem[] 
         excerpt: excerptOf(row.comment.content),
       });
     } else if (
-      (row.kind === "gathering_invite" || row.kind === "gathering_cancelled") &&
+      (row.kind === "gathering_invite" ||
+        row.kind === "gathering_cancelled" ||
+        row.kind === "gathering_unplanted") &&
       row.gathering
     ) {
       items.push({

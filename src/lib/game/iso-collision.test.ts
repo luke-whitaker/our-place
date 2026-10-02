@@ -152,4 +152,15 @@ describe("resolveMove", () => {
     expect(result.col).toBe(0.5);
     expect(result.row).toBe(1.5);
   });
+
+  it("lets a player walk off a tile that turned solid under them, but not onto another", () => {
+    // Someone planted an Event Mushroom on the tile this player stands on.
+    const under: SolidGrid = [
+      [true, true, false],
+      [false, false, false],
+    ];
+    expect(resolveMove(under, 0.4, 0.4, 0.05, 0)).toEqual({ col: 0.45, row: 0.4 });
+    expect(resolveMove(under, 0.4, 0.9, 0, 0.2)).toEqual({ col: 0.4, row: 1.1 });
+    expect(resolveMove(under, 0.9, 0.4, 0.2, 0)).toEqual({ col: 0.9, row: 0.4 });
+  });
 });

@@ -355,7 +355,7 @@ model Notification {
   recipientId  String    @map("recipient_id")
   actorId      String    @map("actor_id")
   // "friend_request" | "friend_accepted" | "reaction" | "comment" |
-  // "gathering_invite" | "gathering_cancelled"
+  // "gathering_invite" | "gathering_cancelled" | "gathering_unplanted"
   kind         String
   friendshipId String?   @map("friendship_id")
   gatheringId  String?   @map("gathering_id")
@@ -403,21 +403,29 @@ model ActivityDay {
 // on its calendar. Cancelling keeps the row (status "cancelled") so letters
 // and notifications about it can still say so.
 model Gathering {
-  id          String    @id @default(uuid())
-  hostId      String    @map("host_id")
-  communityId String?   @map("community_id")
-  // "in_person" | "world"; only "in_person" is accepted until v0.20.0.
-  kind        String
-  title       String
-  description String    @default("")
-  startsAt    DateTime  @map("starts_at")
-  endsAt      DateTime  @map("ends_at")
-  // Shown only to people who can see the gathering; never in a letter.
-  address     String    @default("")
+  id            String    @id @default(uuid())
+  hostId        String    @map("host_id")
+  communityId   String?   @map("community_id")
+  // "in_person" | "world"
+  kind          String
+  title         String
+  description   String    @default("")
+  startsAt      DateTime  @map("starts_at")
+  endsAt        DateTime  @map("ends_at")
+  // Shown only to people who can see the gathering; never in a letter. Empty
+  // for a gathering in the world.
+  address       String    @default("")
   // "scheduled" | "cancelled"
-  status      String    @default("scheduled")
-  cancelledAt DateTime? @map("cancelled_at")
-  createdAt   DateTime  @default(now()) @map("created_at")
+  status        String    @default("scheduled")
+  cancelledAt   DateTime? @map("cancelled_at")
+  // Where a world gathering's Event Mushroom stands: a world id ("capital",
+  // "island:<host id>", or "<slug>-inside") and a tile. All null until the
+  // host plants it, and null again while it's picked up.
+  mushroomWorld String?   @map("mushroom_world")
+  mushroomCol   Int?      @map("mushroom_col")
+  mushroomRow   Int?      @map("mushroom_row")
+  plantedAt     DateTime? @map("planted_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
 
   host          User              @relation("GatheringHost", fields: [hostId], references: [id], onDelete: Cascade)
   community     Community?        @relation(fields: [communityId], references: [id], onDelete: Cascade)
@@ -428,6 +436,7 @@ model Gathering {
   @@index([communityId, startsAt])
   @@index([hostId])
   @@index([startsAt])
+  @@index([mushroomWorld])
   @@map("gatherings")
 }
 

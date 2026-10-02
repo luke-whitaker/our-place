@@ -8,7 +8,29 @@ import { gatheringWhen } from "@/lib/time-utils";
 import { useAuth } from "@/components/AuthProvider";
 import GatheringAnswerButtons from "@/components/GatheringAnswerButtons";
 import GatheringHostPanel from "@/components/GatheringHostPanel";
+import MushroomPortal from "@/components/MushroomPortal";
 import type { GatheringDetail } from "@/lib/types";
+
+/** Where a gathering in the world happens: its Event Mushroom, with the
+ * portal once it's planted, or what the host still has to do. */
+function MushroomWhere({ gathering }: { gathering: GatheringDetail }) {
+  if (gathering.portal) {
+    return (
+      <span className="flex flex-wrap items-center gap-2">
+        At the Event Mushroom <MushroomPortal href={gathering.portal} />
+      </span>
+    );
+  }
+  if (gathering.status === "cancelled" || gathering.ended) return <>At the Event Mushroom</>;
+  return gathering.is_host ? (
+    <>
+      At your Event Mushroom. Take it from your mailbox and plant it in the world before the start,
+      or the gathering is cancelled.
+    </>
+  ) : (
+    <>At the Event Mushroom, once the host plants it. A portal shows here then.</>
+  );
+}
 
 // One gathering: when, where (the address, shown only to people who can see
 // it at all), and your answer. The host also sees the guest list and can
@@ -69,12 +91,13 @@ export default function GatheringPage() {
 
   const cancelled = gathering.status === "cancelled";
   const started = gathering.started;
+  const inWorld = gathering.kind === "world";
 
   return (
     <div className="mx-auto max-w-2xl space-y-6 px-4 py-8 sm:px-6">
       <section className="op-card rounded-2xl border border-line bg-surface p-5 sm:p-6">
         <p className="text-xs font-medium uppercase tracking-wider text-ink-muted">
-          In person
+          {inWorld ? "In the world" : "In person"}
           {gathering.community && (
             <>
               {" · "}
@@ -103,7 +126,7 @@ export default function GatheringPage() {
           <div>
             <dt className="text-xs text-ink-faint">Where</dt>
             <dd className="whitespace-pre-wrap break-words text-ink-secondary">
-              {gathering.address}
+              {inWorld ? <MushroomWhere gathering={gathering} /> : gathering.address}
             </dd>
           </div>
           <div>

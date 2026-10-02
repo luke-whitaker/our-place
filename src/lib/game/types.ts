@@ -81,7 +81,18 @@ export interface ArmoireFixture extends FixtureBase {
   kind: "armoire";
 }
 
-export type WorldFixture = MailboxFixture | DeskFixture | ArmoireFixture;
+/** A gathering's Event Mushroom, planted by its host. Never authored: the
+ * world page fetches the planted ones and adds them at runtime (see
+ * event-mushroom.ts). `owner` is the host's username; `invited` says whether
+ * this viewer may open the gathering (host, invitee, or community member), so
+ * a passer-by gets one line without a request. */
+export interface EventMushroomFixture extends FixtureBase {
+  kind: "event_mushroom";
+  gatheringId: string;
+  invited: boolean;
+}
+
+export type WorldFixture = MailboxFixture | DeskFixture | ArmoireFixture | EventMushroomFixture;
 
 // ── Mushroom warp network (mycelium fast-travel) ──
 
@@ -121,4 +132,10 @@ export interface Region {
 // ── Game Mode ──
 
 export type GameMode =
-  "overworld" | "dialogue" | "fading" | "warp-menu" | "pc-menu" | "friends-menu";
+  | "overworld"
+  | "dialogue"
+  | "fading"
+  | "warp-menu"
+  | "pc-menu"
+  | "friends-menu"
+  | "gatherings-menu";

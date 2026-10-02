@@ -36,7 +36,9 @@ export async function loadWorldAssets(
   avatar: AvatarConfig | null = null,
 ): Promise<IsoAssets> {
   const tint: TintPreset = world.tint ?? "forest";
-  const fixtureKinds = (world.fixtures ?? []).flatMap(fixtureSpriteKinds);
+  // Event Mushrooms are planted while a world is open, so their sprite loads
+  // with every world rather than waiting to be seen in the document.
+  const fixtureKinds = [...(world.fixtures ?? []).flatMap(fixtureSpriteKinds), "event_mushroom"];
   const kinds = [...new Set([...world.objects.map((o) => o.kind), ...fixtureKinds])];
   // Every NPC the world places, deduplicated (a future world could repeat one).
   const npcIds = [...new Set((world.npcs ?? []).map((n) => n.id))];

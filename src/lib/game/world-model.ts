@@ -313,6 +313,17 @@ export const OBJECT_CATALOG: Record<string, ObjectDef> = {
     tint: "building",
     anchor: { x: 16, y: 56 },
   },
+  // A gathering's Event Mushroom, placed at runtime (event-mushroom.ts), never
+  // authored. The shrine's big mushroom alone, smaller and toadstool red, by
+  // ~/Desktop/pixel_art/tools/event_mushroom.py; the anchor is the ground point
+  // under its stem, which the script prints, since the gold specks sit below it.
+  event_mushroom: {
+    src: "/world/objects/event_mushroom.png",
+    footprint: SINGLE,
+    solid: true,
+    tint: "brand",
+    anchor: { x: 10, y: 22 },
+  },
 };
 
 // ── World ──

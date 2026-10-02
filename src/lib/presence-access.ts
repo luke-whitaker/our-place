@@ -4,6 +4,8 @@
 // presence request, so answers are cached briefly to spare the database.
 
 import { checkIslandAccessById, type IslandRefusal } from "@/lib/islands";
+import { gatheringOpensIsland } from "@/lib/event-mushrooms";
+import { islandWorldId } from "@/lib/game/worlds/island";
 
 const UUID = "[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}";
 const ISLAND_WORLD = new RegExp(`^island:(${UUID})(?::inside)?$`, "i");
@@ -43,7 +45,13 @@ export async function checkWorldAccess(viewerId: string, worldId: string): Promi
   if (hit && hit.expires > now) return hit.access;
 
   const gate = await checkIslandAccessById(viewerId, world.ownerId);
-  const access: WorldAccess = gate.ok ? { ok: true } : refusalAccess(gate.refusal);
+  // A gathering's guests are on the island through its portal, so they show
+  // up for each other there too. Never in the house, which keeps its gate.
+  const asGuest =
+    !gate.ok &&
+    worldId.toLowerCase() === islandWorldId(world.ownerId) &&
+    (await gatheringOpensIsland(viewerId, world.ownerId));
+  const access: WorldAccess = gate.ok || asGuest ? { ok: true } : refusalAccess(gate.refusal);
   remember(key, access, now);
   return access;
 }
