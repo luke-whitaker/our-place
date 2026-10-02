@@ -137,6 +137,47 @@ export function hashResetCode(code: string): string {
   return crypto.createHmac("sha256", JWT_SECRET).update(code).digest("hex");
 }
 
+/** The cookie marking a browser its member has signed in from before. */
+export const TRUSTED_DEVICE_COOKIE = "trusted_device";
+
+/** Lives a year and travels only to the login route, the one place that reads it. */
+export const TRUSTED_DEVICE_COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === "production",
+  sameSite: "strict",
+  maxAge: 365 * 24 * 60 * 60,
+  path: "/api/auth/login",
+} as const;
+
+function trustedDeviceMac(userId: string, issuedAtSeconds: string): string {
+  return crypto
+    .createHmac("sha256", JWT_SECRET)
+    .update(`trusted-device:${userId}:${issuedAtSeconds}`)
+    .digest("hex");
+}
+
+/** `userId.issuedAt.mac`, set on every successful sign-in. */
+export function signTrustedDevice(userId: string): string {
+  const issuedAtSeconds = String(Math.floor(Date.now() / 1000));
+  return `${userId}.${issuedAtSeconds}.${trustedDeviceMac(userId, issuedAtSeconds)}`;
+}
+
+/**
+ * Whether this browser signed in to this account before. A password change
+ * revokes the trust along with every session, so a reset after a break-in also
+ * forgets the intruder's browser.
+ */
+export function isTrustedDevice(
+  cookie: string | undefined,
+  userId: string,
+  passwordChangedAt: Date | null,
+): boolean {
+  const [cookieUserId, issuedAtSeconds, mac] = cookie?.split(".") ?? [];
+  if (cookieUserId !== userId || !/^\d+$/.test(issuedAtSeconds ?? "") || !mac) return false;
+  if (!constantTimeEqual(mac, trustedDeviceMac(userId, issuedAtSeconds))) return false;
+  return !tokenIssuedBeforePasswordChange(Number(issuedAtSeconds), passwordChangedAt);
+}
+
 /**
  * Constant-time comparison for short secrets (reset codes), so a partial match
  * can't be inferred from response timing. Returns false on length mismatch

@@ -54,6 +54,27 @@ class RateLimiter {
     return { allowed: false, remaining: 0, retryAfterMs: entry.resetAt - now };
   }
 
+  /** Reads a key's state without spending an attempt, for limiters that count failures only. */
+  peek(key: string): { allowed: boolean; retryAfterMs: number } {
+    const now = Date.now();
+    const entry = this.store.get(key);
+    if (!entry || now > entry.resetAt || entry.count < this.maxAttempts) {
+      return { allowed: true, retryAfterMs: 0 };
+    }
+    return { allowed: false, retryAfterMs: entry.resetAt - now };
+  }
+
+  /** Spends one attempt without asking whether it was allowed; pairs with peek. */
+  recordFailure(key: string): void {
+    const now = Date.now();
+    const entry = this.store.get(key);
+    if (!entry || now > entry.resetAt) {
+      this.store.set(key, { count: 1, resetAt: now + this.windowMs });
+      return;
+    }
+    entry.count = Math.min(entry.count + 1, this.maxAttempts);
+  }
+
   /** Remove expired entries */
   private cleanup() {
     const now = Date.now();
@@ -71,9 +92,11 @@ class RateLimiter {
 export const loginLimiter = new RateLimiter({ maxAttempts: 10, windowMs: 15 * 60 * 1000 });
 
 /**
- * Login per account: 10 attempts per hour per member. IPv6 hands an attacker an
- * endless supply of addresses, so the per-IP limit alone can't stop a slow
- * password guess against one member.
+ * Login per account: 10 failed attempts per hour per member. IPv6 hands an
+ * attacker an endless supply of addresses, so the per-IP limit alone can't stop
+ * a slow password guess against one member. Only failures count, and a browser
+ * the member has signed in from before skips it (see isTrustedDevice), so a
+ * stranger who knows a username can't lock its owner out.
  */
 export const accountLoginLimiter = new RateLimiter({ maxAttempts: 10, windowMs: 60 * 60 * 1000 });
 
