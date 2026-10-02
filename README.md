@@ -171,7 +171,7 @@ scripts/
 
 ### Prerequisites
 
-- Node.js 20+
+- Node.js 22+
 - npm
 - PostgreSQL (local or hosted)
 
@@ -264,6 +264,29 @@ Open [http://localhost:3000](http://localhost:3000).
 ---
 
 ## Version History
+
+### v0.19.1 — Harder Sign-In, Tighter Limits (October 2026)
+
+**Why:** A September review left a list of smaller security gaps: sign-in was limited per
+address but not per account, reset codes sat in the database as plain text with unlimited
+guesses, and a few inputs had no upper bound. None was being used, and each was cheap to close.
+
+**What changed:**
+
+- **Each account allows 10 sign-in attempts an hour,** counted across its username and email
+  and from any address, on top of the per-address limit. A name with no account is limited the
+  same way, so the two can't be told apart.
+- **Reset codes are stored as a keyed hash and allow 5 wrong guesses.** The fifth wipes the
+  code, and you request a new one. Codes outstanding when this shipped stopped working.
+- **New passwords stop at 128 characters.** Signing in still accepts a longer one set before.
+- **Post media must be uploaded here or come from YouTube or Vimeo,** with at most 10 items.
+  Rich posts' image and video blocks follow the same rule.
+- **Community descriptions stop at 1,000 characters and guidelines at 5,000.**
+- **Behind the scenes:** sign-in tokens are checked with one pinned algorithm (HS256), responses
+  no longer send `x-powered-by`, production runs Node 22, Next.js is on 16.3.8, workflows get a
+  read-only token, and Dependabot proposes weekly updates.
+
+**What didn't change:** members sign in, post, and reset passwords the same way as before.
 
 ### v0.19.0 — Gatherings, in Person (September 2026)
 
