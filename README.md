@@ -248,6 +248,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] API route tests — the reaction, comment, post, and island routes run against a real Postgres in CI
 - [x] Gatherings in person: invitations by letter and notification, and calendars for communities and for you
 - [x] Gatherings in the world, at an Event Mushroom the host plants
+- [x] A map of the Capital, with the places you've been and the shrines you've found saved to your account
 - [ ] Polls (designed, not built)
 - [ ] Welcome tour — a once-per-version walkthrough for new members on their first visit and everyone else on their next (designed, not built)
 - [x] A bigger world: snow, swamp, lake, autumn, and the sea, from Luke's hand-drawn map
@@ -264,6 +265,28 @@ Open [http://localhost:3000](http://localhost:3000).
 ---
 
 ## Version History
+
+### v0.21.0 — The Map (October 2026)
+
+**Why:** The Capital grew three times bigger in September, and it's easy to lose your way in it.
+A new phone also forgot every shrine you'd found, because discoveries lived in the browser.
+
+**What changed:**
+
+- **A minimap in the top-left of the Capital,** centred on you, in the same isometric
+  direction as the screen, so up on the map is up on screen. Places you haven't been are
+  greyed out, and the grey clears as you explore.
+- **Tap or click it, or press M, for the whole map.** It marks where you are and names the
+  shrines you've found. Close it with the ×, a tap outside, Esc, or M.
+- **Your map follows your account.** The ground you've explored and the shrines you've found
+  are saved to your account, so a new phone or laptop knows them. Shrines found on this device
+  before today move over the first time you open the world, and the ground around each one
+  counts as explored.
+- **Just you on it.** The map never shows other members, and there's no count of who's
+  exploring.
+
+**What didn't change:** islands and building interiors have no map; they fit on one screen.
+Your last position is still remembered per device. One migration adds `world_discoveries`.
 
 ### v0.20.0 — Gatherings in the World (October 2026)
 
