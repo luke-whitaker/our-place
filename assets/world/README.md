@@ -176,6 +176,19 @@ the desk. The script also writes the three options Luke chose between
 below the stems and would move a scanned anchor. Its `tint` is `brand`: biomes and
 dusk dim it but never shift its hue.
 
+### The Event Mushroom
+
+`~/Desktop/pixel_art/tools/event_mushroom.py OUT_DIR` writes
+`objects/event_mushroom.png` (20x26), a gathering's mushroom, and
+`items/event_mushroom.png` (16x16), its Pockets icon. It is the shrine's big
+mushroom alone, drawn by the same ray march (it imports `Mushroom` from
+`shrine_mushroom.py`) at about two thirds of the size, in toadstool red with
+white spots that wrap the dome, a pale stem, and gold specks at its feet. Drawn
+smaller by construction rather than scaled down, so the outline stays one pixel.
+The catalog anchors it at `(10, 22)`, the ground point under the stem, and gives
+it the `brand` tint. Checked in game on grass, snow, sand, an island, and
+floorboards.
+
 ## Authoring a town
 
 Towns are composed in code as `IsoWorld` documents under

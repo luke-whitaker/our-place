@@ -247,7 +247,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Post interaction controls — the author chooses whether a post can be liked, disliked, or commented on
 - [x] API route tests — the reaction, comment, post, and island routes run against a real Postgres in CI
 - [x] Gatherings in person: invitations by letter and notification, and calendars for communities and for you
-- [ ] Gatherings in the world, at an Event Mushroom the host plants
+- [x] Gatherings in the world, at an Event Mushroom the host plants
 - [ ] Polls (designed, not built)
 - [ ] Welcome tour — a once-per-version walkthrough for new members on their first visit and everyone else on their next (designed, not built)
 - [x] A bigger world: snow, swamp, lake, autumn, and the sea, from Luke's hand-drawn map
@@ -264,6 +264,38 @@ Open [http://localhost:3000](http://localhost:3000).
 ---
 
 ## Version History
+
+### v0.20.0 — Gatherings in the World (October 2026)
+
+**Why:** Some gatherings happen in the world itself: a walk to the Frost Shrine, tea on
+someone's island, a social in a community's building. The Event Mushroom marks where, and gets
+everyone there.
+
+**What changed:**
+
+- **Host a gathering "In the world"** from the same form. There's no address: it happens at
+  your **Event Mushroom**, which arrives in your mailbox (or your pockets if the mailbox is full).
+- **Plant it from your pockets** ("Plant here") in the shared world, on your own island, or
+  inside the building of the gathering's community. It stands on open ground in front of you,
+  clear of doors, shrines, and other mushrooms, and never where it would block a path. Until the
+  start you can pick it up and move it; at the start it stays put, and at the end it's gone.
+- **Plant it before the start, or the gathering is cancelled.** You and everyone going get a
+  notification saying why.
+- **Everyone sees a planted mushroom; only guests use it.** Your guests (the host, anyone
+  invited, or members of the gathering's community) open a card with two tabs: **Gathering**
+  (the time in Central time, the host, who's going, Accept and Decline, and Pick up for the
+  host) and **Travel** (the same destinations as a shrine). Anyone else hears "A gathering is
+  happening here."
+- **The mushroom is on the Mycelium Network for its guests.** Every shrine and computer shows a
+  **Gatherings** row while one is planted for you, landing beside its mushroom.
+- **A Portal button** on every calendar the gathering appears on, and on its page, once the
+  mushroom is planted.
+- **Your island stays yours.** When a host plants on their own island, the gathering's guests
+  can reach it through the portal while the mushroom stands, even if the island is closed to
+  them. The house on it stays closed.
+
+**What didn't change:** gatherings in person work exactly as before. One migration adds the
+mushroom's world, tile, and planting time to `gatherings`.
 
 ### v0.19.1 — Harder Sign-In, Tighter Limits (October 2026)
 
