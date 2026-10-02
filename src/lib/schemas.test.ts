@@ -9,6 +9,11 @@ import {
   createReactionSchema,
   getZodErrorMessage,
   normalizePhone,
+  resetPasswordSchema,
+  createCommunitySchema,
+  PASSWORD_MAX,
+  COMMUNITY_DESCRIPTION_MAX,
+  COMMUNITY_GUIDELINES_MAX,
 } from "./schemas";
 
 // ── Phone normalization ──
@@ -77,6 +82,43 @@ describe("loginSchema", () => {
 
   it("rejects empty login", () => {
     expect(loginSchema.safeParse({ login: "", password: "pass123" }).success).toBe(false);
+  });
+
+  it("still accepts a long password set before the cap", () => {
+    expect(loginSchema.safeParse({ login: "jane", password: "a".repeat(200) }).success).toBe(true);
+  });
+});
+
+describe("password length", () => {
+  const atCap = "a".repeat(PASSWORD_MAX);
+  const overCap = "a".repeat(PASSWORD_MAX + 1);
+
+  it("caps a new password at 128 characters when resetting", () => {
+    const body = { email: "jane@test.com", code: "123456" };
+    expect(resetPasswordSchema.safeParse({ ...body, new_password: atCap }).success).toBe(true);
+    expect(resetPasswordSchema.safeParse({ ...body, new_password: overCap }).success).toBe(false);
+  });
+
+  it("caps a new password at 128 characters when changing it", () => {
+    const body = { current_password: "oldpassword" };
+    expect(updateAccountSchema.safeParse({ ...body, new_password: overCap }).success).toBe(false);
+  });
+
+  it("caps the password an admin sets on a new account", () => {
+    const body = { username: "jane", display_name: "Jane", email: "jane@test.com" };
+    expect(createUserSchema.safeParse({ ...body, password: overCap }).success).toBe(false);
+  });
+});
+
+describe("createCommunitySchema", () => {
+  const body = { name: "Gardening", description: "A".repeat(20), category: "Hobbies" };
+
+  it("caps the description and guidelines", () => {
+    expect(createCommunitySchema.safeParse(body).success).toBe(true);
+    const longDescription = { ...body, description: "a".repeat(COMMUNITY_DESCRIPTION_MAX + 1) };
+    expect(createCommunitySchema.safeParse(longDescription).success).toBe(false);
+    const longGuidelines = { ...body, guidelines: "a".repeat(COMMUNITY_GUIDELINES_MAX + 1) };
+    expect(createCommunitySchema.safeParse(longGuidelines).success).toBe(false);
   });
 });
 
@@ -205,7 +247,7 @@ describe("createPostSchema", () => {
     const result = createPostSchema.safeParse({
       post_type: "photo",
       title: "My photo",
-      media: [{ url: "https://example.com/photo.jpg" }],
+      media: [{ url: "https://www.youtube.com/watch?v=dQw4w9WgXcQ" }],
     });
     expect(result.success).toBe(true);
   });

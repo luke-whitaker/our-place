@@ -1,4 +1,5 @@
 import prisma from "./db";
+import { isAllowedMediaUrl } from "./media-utils";
 
 interface PostWithId {
   id: string;
@@ -71,6 +72,13 @@ interface MediaItem {
   file_size?: number | null;
 }
 
+/** A rich post's image and video blocks carry URLs too; hold them to the media rule. */
+function richBlockMediaAllowed(block: unknown): boolean {
+  if (typeof block !== "object" || block === null || !("url" in block)) return true;
+  const { url } = block;
+  return typeof url === "string" && isAllowedMediaUrl(url, process.env.R2_PUBLIC_BASE_URL);
+}
+
 export function validatePostContent(
   postType: string,
   title: string,
@@ -100,6 +108,12 @@ export function validatePostContent(
       const blocks = JSON.parse(content);
       if (!Array.isArray(blocks) || blocks.length === 0) {
         return { valid: false, error: "Rich content must have at least one block." };
+      }
+      if (!blocks.every(richBlockMediaAllowed)) {
+        return {
+          valid: false,
+          error: "Media must be uploaded here or linked from YouTube or Vimeo.",
+        };
       }
     } catch {
       return { valid: false, error: "Invalid rich content format." };

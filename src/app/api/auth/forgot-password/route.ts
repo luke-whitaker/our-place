@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
-import { generateCode } from "@/lib/auth";
+import { generateCode, hashResetCode } from "@/lib/auth";
 import { sendPasswordResetCode } from "@/lib/email";
 import { forgotPasswordLimiter, getClientIp } from "@/lib/rate-limit";
 import { forgotPasswordSchema, getZodErrorMessage } from "@/lib/schemas";
@@ -42,7 +42,11 @@ export async function POST(request: NextRequest) {
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { resetCode, resetCodeExpiresAt: expiresAt },
+      data: {
+        resetCodeHash: hashResetCode(resetCode),
+        resetCodeAttempts: 0,
+        resetCodeExpiresAt: expiresAt,
+      },
     });
 
     // Deliver the code. A send failure is logged but never surfaced — the

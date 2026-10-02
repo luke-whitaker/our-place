@@ -2,6 +2,7 @@ import { z } from "zod";
 import { TINT_PRESETS } from "@/lib/game/terrain-tint";
 import { MAILBOX_COLORS } from "@/lib/game/mailbox-colors";
 import { DESK_SLOTS, NOTE_MAX_CHARS } from "@/lib/items";
+import { isAllowedMediaUrl, MAX_IMAGES_PER_POST } from "@/lib/media-utils";
 import {
   EMOTES,
   HAIR_STYLES,
@@ -12,6 +13,19 @@ import {
 } from "@/lib/types";
 
 const ISLAND_VISIBILITIES: readonly IslandVisibility[] = ["anyone", "friends", "nobody"];
+
+// bcrypt reads only the first 72 bytes, so a longer password adds nothing but
+// hashing work. New passwords stop at 128 characters.
+export const PASSWORD_MAX = 128;
+const newPassword = (requiredError: string) =>
+  z
+    .string({ error: requiredError })
+    .min(8, "Password must be at least 8 characters.")
+    .max(PASSWORD_MAX, `Password must be ${PASSWORD_MAX} characters or fewer.`);
+
+// A password being checked rather than set gets a looser bound: a member who
+// chose a longer one before the cap must still be able to sign in.
+const PASSWORD_CHECK_MAX = 1024;
 
 // ── Auth schemas ──
 
@@ -34,9 +48,7 @@ export const createUserSchema = z.object({
     .string({ error: "All fields are required." })
     .email("Please enter a valid email address."),
   phone: z.string().max(30, "Phone number is too long.").optional(),
-  password: z
-    .string({ error: "All fields are required." })
-    .min(8, "Password must be at least 8 characters."),
+  password: newPassword("All fields are required."),
 });
 
 // The admin dashboard's create-account form: the web of trust requires every
@@ -49,10 +61,12 @@ export const adminCreateUserSchema = createUserSchema.extend({
 export const loginSchema = z.object({
   login: z
     .string({ error: "Please enter your email/username and password." })
-    .min(1, "Please enter your email/username and password."),
+    .min(1, "Please enter your email/username and password.")
+    .max(254, "Invalid email/username or password."),
   password: z
     .string({ error: "Please enter your email/username and password." })
-    .min(1, "Please enter your email/username and password."),
+    .min(1, "Please enter your email/username and password.")
+    .max(PASSWORD_CHECK_MAX, "Invalid email/username or password."),
 });
 
 export const updateAccountSchema = z
@@ -71,8 +85,11 @@ export const updateAccountSchema = z
     mailbox_color: z.enum(MAILBOX_COLORS).optional(),
     island_visibility: z.enum(ISLAND_VISIBILITIES).optional(),
     exclude_from_metrics: z.boolean().optional(),
-    current_password: z.string().optional(),
-    new_password: z.string().min(8, "Password must be at least 8 characters.").optional(),
+    current_password: z
+      .string()
+      .max(PASSWORD_CHECK_MAX, "Current password is incorrect.")
+      .optional(),
+    new_password: newPassword("Password must be at least 8 characters.").optional(),
   })
   .refine(
     (d) =>
@@ -112,10 +129,9 @@ export const resetPasswordSchema = z.object({
     .min(1, "Email, reset code, and new password are all required."),
   code: z
     .string({ error: "Email, reset code, and new password are all required." })
-    .min(1, "Email, reset code, and new password are all required."),
-  new_password: z
-    .string({ error: "Email, reset code, and new password are all required." })
-    .min(8, "Password must be at least 8 characters."),
+    .min(1, "Email, reset code, and new password are all required.")
+    .max(16, "Invalid email or reset code."),
+  new_password: newPassword("Email, reset code, and new password are all required."),
 });
 
 // ── Friendship schemas ──
@@ -128,6 +144,11 @@ export const sendFriendRequestSchema = z.object({
 
 // ── Content schemas ──
 
+// Today's longest are a few hundred characters; these leave room without
+// letting one community page carry a novel.
+export const COMMUNITY_DESCRIPTION_MAX = 1000;
+export const COMMUNITY_GUIDELINES_MAX = 5000;
+
 export const createCommunitySchema = z.object({
   name: z
     .string({ error: "Name, description, and category are required." })
@@ -135,12 +156,23 @@ export const createCommunitySchema = z.object({
     .max(50, "Community name must be 3-50 characters."),
   description: z
     .string({ error: "Name, description, and category are required." })
-    .min(20, "Description must be at least 20 characters."),
+    .min(20, "Description must be at least 20 characters.")
+    .max(
+      COMMUNITY_DESCRIPTION_MAX,
+      `Description must be ${COMMUNITY_DESCRIPTION_MAX} characters or fewer.`,
+    ),
   category: z
     .string({ error: "Name, description, and category are required." })
-    .min(1, "Name, description, and category are required."),
-  icon: z.string().optional(),
-  guidelines: z.string().optional(),
+    .min(1, "Name, description, and category are required.")
+    .max(50, "Category must be 50 characters or fewer."),
+  icon: z.string().max(32, "Pick an icon from the list.").optional(),
+  guidelines: z
+    .string()
+    .max(
+      COMMUNITY_GUIDELINES_MAX,
+      `Guidelines must be ${COMMUNITY_GUIDELINES_MAX} characters or fewer.`,
+    )
+    .optional(),
 });
 
 const postTypeEnum = z.enum(["text", "photo", "video", "rich"]);
@@ -148,7 +180,13 @@ const postTypeEnum = z.enum(["text", "photo", "video", "rich"]);
 const mediaItemSchema = z.object({
   media_type: z.string().optional(),
   media_source: z.string().optional(),
-  url: z.string(),
+  // Read at parse time, not import time, so tests and dev can set the base.
+  url: z
+    .string()
+    .max(2048, "That media link is too long.")
+    .refine((url) => isAllowedMediaUrl(url, process.env.R2_PUBLIC_BASE_URL), {
+      message: "Media must be uploaded here or linked from YouTube or Vimeo.",
+    }),
   filename: z.string().optional().nullable(),
   file_size: z.number().optional().nullable(),
 });
@@ -165,7 +203,10 @@ export const createPostSchema = z.object({
   post_type: postTypeEnum.default("text"),
   title: z.string().max(200, "Title must be under 200 characters.").default(""),
   content: z.string().max(50000, "Post content must be under 50,000 characters.").default(""),
-  media: z.array(mediaItemSchema).default([]),
+  media: z
+    .array(mediaItemSchema)
+    .max(MAX_IMAGES_PER_POST, "Maximum 10 images per post.")
+    .default([]),
   post_to_profile: z.union([z.boolean(), z.number()]).optional(),
   ...interactionControlFields,
 });
@@ -174,7 +215,10 @@ export const createMyPlacePostSchema = z.object({
   post_type: postTypeEnum.default("text"),
   title: z.string().max(200, "Title must be under 200 characters.").default(""),
   content: z.string().max(50000, "Post content must be under 50,000 characters.").default(""),
-  media: z.array(mediaItemSchema).default([]),
+  media: z
+    .array(mediaItemSchema)
+    .max(MAX_IMAGES_PER_POST, "Maximum 10 images per post.")
+    .default([]),
   ...interactionControlFields,
 });
 

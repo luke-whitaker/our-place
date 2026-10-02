@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { apiFetch, userMessage } from "@/lib/api-client";
+import { COMMUNITY_DESCRIPTION_MAX, COMMUNITY_GUIDELINES_MAX } from "@/lib/schemas";
 import { COMMUNITY_CATEGORIES } from "@/lib/types";
 
 const COMMUNITY_ICONS = [
@@ -198,6 +199,7 @@ export default function CreateCommunityPage() {
               onChange={(e) => updateField("description", e.target.value)}
               placeholder="What is this community about? What can members expect?"
               rows={4}
+              maxLength={COMMUNITY_DESCRIPTION_MAX}
               required
               className="w-full resize-none rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             />
@@ -217,6 +219,7 @@ export default function CreateCommunityPage() {
               onChange={(e) => updateField("guidelines", e.target.value)}
               placeholder="Set expectations for how members should interact..."
               rows={3}
+              maxLength={COMMUNITY_GUIDELINES_MAX}
               className="w-full resize-none rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
             />
           </div>

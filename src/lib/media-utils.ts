@@ -46,6 +46,39 @@ export function parseVideoUrl(url: string): {
   return null;
 }
 
+const VIDEO_HOSTS = new Set([
+  "youtube.com",
+  "www.youtube.com",
+  "m.youtube.com",
+  "youtu.be",
+  "vimeo.com",
+  "www.vimeo.com",
+  "player.vimeo.com",
+]);
+
+/**
+ * Whether a post may carry this media URL: a file uploaded to our own storage
+ * (under `uploadBase`, R2_PUBLIC_BASE_URL), or a YouTube or Vimeo video the
+ * player can embed. Anything else is refused at the API, not just by the CSP.
+ */
+export function isAllowedMediaUrl(url: string, uploadBase: string | undefined): boolean {
+  const base = uploadBase?.replace(/\/$/, "");
+  if (base && url.startsWith(`${base}/`)) return true;
+  // Members paste links as typed ("youtu.be/..." or http), and the player
+  // always embeds from the parsed id over https, so only the host matters.
+  let parsed: URL;
+  try {
+    parsed = new URL(url.includes("://") ? url : `https://${url}`);
+  } catch {
+    return false;
+  }
+  return (
+    (parsed.protocol === "https:" || parsed.protocol === "http:") &&
+    VIDEO_HOSTS.has(parsed.hostname) &&
+    parseVideoUrl(url) !== null
+  );
+}
+
 // Accepted file types
 export const ACCEPTED_IMAGE_TYPES = ["image/jpeg", "image/png", "image/gif", "image/webp"];
 export const ACCEPTED_VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime"];

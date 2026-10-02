@@ -35,7 +35,10 @@ model User {
   excludeFromMetrics Boolean   @default(false) @map("exclude_from_metrics")
   role               String    @default("user")
   isVerified         Boolean   @default(true) @map("is_verified")
-  resetCode          String?   @map("reset_code")
+  // An HMAC of the emailed code, never the code itself, and the wrong guesses
+  // against it: the fifth wipes the code, so a new one has to be requested.
+  resetCodeHash      String?   @map("reset_code_hash")
+  resetCodeAttempts  Int       @default(0) @map("reset_code_attempts")
   resetCodeExpiresAt DateTime? @map("reset_code_expires_at")
   passwordChangedAt  DateTime? @map("password_changed_at")
   invitedById        String?   @map("invited_by_id")

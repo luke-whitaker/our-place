@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { NextRequest } from "next/server";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 import type { AuthPayload } from "@/lib/types";
@@ -81,5 +81,70 @@ describe("POST /api/communities/[id]/posts", () => {
       allow_comments: true,
       allow_dislikes: false,
     });
+  });
+});
+
+describe("POST /api/communities/[id]/posts media links", () => {
+  const uploadBase = "https://media.example.test";
+
+  beforeEach(() => {
+    mockGetAuthUser.mockReset();
+    mockRequireAuth.mockReset();
+    vi.stubEnv("R2_PUBLIC_BASE_URL", uploadBase);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
+  async function memberOfNewCommunity() {
+    const user = await createTestUser();
+    authAs(user);
+    const communityId = await createTestCommunity(user.userId);
+    await joinCommunity(user.userId, communityId);
+    return communityId;
+  }
+
+  it("accepts an uploaded photo and a YouTube video", async () => {
+    const communityId = await memberOfNewCommunity();
+    const photo = await createPost(communityId, {
+      post_type: "photo",
+      media: [{ url: `${uploadBase}/images/a.jpg`, media_source: "upload" }],
+    });
+    expect(photo.status).toBe(201);
+    const video = await createPost(communityId, {
+      post_type: "video",
+      media: [{ url: "https://youtu.be/dQw4w9WgXcQ", media_source: "youtube" }],
+    });
+    expect(video.status).toBe(201);
+  });
+
+  it("refuses media hosted anywhere else", async () => {
+    const communityId = await memberOfNewCommunity();
+    const res = await createPost(communityId, {
+      post_type: "photo",
+      media: [{ url: "https://tracker.example.com/pixel.gif" }],
+    });
+    expect(res.status).toBe(400);
+    expect((await res.json()).error).toBe(
+      "Media must be uploaded here or linked from YouTube or Vimeo.",
+    );
+  });
+
+  it("refuses more than 10 media items", async () => {
+    const communityId = await memberOfNewCommunity();
+    const media = Array.from({ length: 11 }, (_, i) => ({ url: `${uploadBase}/images/${i}.jpg` }));
+    const res = await createPost(communityId, { post_type: "photo", media });
+    expect(res.status).toBe(400);
+  });
+
+  it("refuses a rich post whose image block points elsewhere", async () => {
+    const communityId = await memberOfNewCommunity();
+    const res = await createPost(communityId, {
+      post_type: "rich",
+      title: "Rich",
+      content: JSON.stringify([{ type: "image", url: "https://tracker.example.com/a.png" }]),
+    });
+    expect(res.status).toBe(400);
   });
 });

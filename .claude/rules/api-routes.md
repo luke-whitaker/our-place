@@ -47,7 +47,11 @@ A route that should tell someone about something calls `notify(tx, {...})` from 
 - `getAuthUser` hits the database on every request: it revokes tokens issued before a password change and takes `role` from the row rather than the token, so promotions and demotions apply immediately.
 - `is_verified` is always true because accounts are admin-created. Treat those branches as vestigial.
 - Accounts exist only through `POST /api/admin/users` with a required `invited_by_id`. There is no registration route, and there must never be one.
-- Reset codes are compared with `constantTimeEqual`.
+- Tokens are signed and verified with `HS256` only (`JWT_ALGORITHM` in `auth.ts`); never let a token pick its algorithm.
+- Login has two limiters: `loginLimiter` per IP and `accountLoginLimiter` per account (keyed on the user id, or the typed name when no account matches, so a missing account answers the same 429).
+- Reset codes are stored only as `hashResetCode(code)` (an HMAC keyed with `JWT_SECRET`, so rotating the secret voids outstanding codes), compared with `constantTimeEqual`, and wiped after `RESET_CODE_MAX_ATTEMPTS` wrong guesses.
+- New passwords go through `newPassword()` in `schemas.ts` (8 to 128 characters). Schemas that only check a password use the looser `PASSWORD_CHECK_MAX`, so members with longer, older passwords can still sign in.
+- Post media URLs must pass `isAllowedMediaUrl` (under `R2_PUBLIC_BASE_URL`, or a YouTube or Vimeo video), in the media array and in rich posts' blocks.
 
 ## Client side
 

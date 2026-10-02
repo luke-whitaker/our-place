@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { signToken, AUTH_COOKIE_OPTIONS } from "@/lib/auth";
-import { loginLimiter, getClientIp } from "@/lib/rate-limit";
+import { accountLoginLimiter, loginLimiter, getClientIp } from "@/lib/rate-limit";
 import { loginSchema, getZodErrorMessage } from "@/lib/schemas";
 import bcrypt from "bcryptjs";
 
@@ -43,6 +43,20 @@ export async function POST(request: NextRequest) {
         passwordHash: true,
       },
     });
+
+    // Keyed on the account when it exists, so its username and email share one
+    // budget, and on the typed name otherwise, so a missing account reaches the
+    // same 429 as a real one and the two can't be told apart.
+    const accountLimit = accountLoginLimiter.check(user?.id ?? loginLower);
+    if (!accountLimit.allowed) {
+      return NextResponse.json(
+        { error: "Too many login attempts. Please try again later." },
+        {
+          status: 429,
+          headers: { "Retry-After": String(Math.ceil(accountLimit.retryAfterMs / 1000)) },
+        },
+      );
+    }
 
     if (!user) {
       return NextResponse.json({ error: "Invalid email/username or password." }, { status: 401 });

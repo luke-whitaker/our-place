@@ -9,6 +9,7 @@ import {
   isImageType,
   isVideoType,
   formatFileSize,
+  isAllowedMediaUrl,
 } from "./media-utils";
 
 // ── YouTube ID extraction ──
@@ -135,5 +136,37 @@ describe("formatFileSize", () => {
 
   it("formats megabytes", () => {
     expect(formatFileSize(5 * 1024 * 1024)).toBe("5.0 MB");
+  });
+});
+
+describe("isAllowedMediaUrl", () => {
+  const base = "https://pub-media.r2.dev";
+
+  it("accepts files under our upload base, with or without a trailing slash on the base", () => {
+    expect(isAllowedMediaUrl(`${base}/images/a.jpg`, base)).toBe(true);
+    expect(isAllowedMediaUrl(`${base}/images/a.jpg`, `${base}/`)).toBe(true);
+  });
+
+  it("accepts YouTube and Vimeo links as members paste them", () => {
+    expect(isAllowedMediaUrl("https://www.youtube.com/watch?v=dQw4w9WgXcQ", base)).toBe(true);
+    expect(isAllowedMediaUrl("youtu.be/dQw4w9WgXcQ", base)).toBe(true);
+    expect(isAllowedMediaUrl("http://vimeo.com/123456", base)).toBe(true);
+  });
+
+  it("refuses other hosts, including ones that only mention a video site", () => {
+    expect(isAllowedMediaUrl("https://example.com/photo.jpg", base)).toBe(false);
+    expect(isAllowedMediaUrl("https://evil.com/?u=youtube.com/watch?v=dQw4w9WgXcQ", base)).toBe(
+      false,
+    );
+    expect(isAllowedMediaUrl("https://pub-media.r2.dev.evil.com/a.jpg", base)).toBe(false);
+    expect(isAllowedMediaUrl("javascript:alert(1)", base)).toBe(false);
+  });
+
+  it("refuses video-site pages that aren't videos", () => {
+    expect(isAllowedMediaUrl("https://www.youtube.com/feed/trending", base)).toBe(false);
+  });
+
+  it("refuses uploads when no base is configured", () => {
+    expect(isAllowedMediaUrl(`${base}/images/a.jpg`, undefined)).toBe(false);
   });
 });

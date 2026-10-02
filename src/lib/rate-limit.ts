@@ -70,6 +70,13 @@ class RateLimiter {
 /** Login: 10 attempts per 15 minutes per IP */
 export const loginLimiter = new RateLimiter({ maxAttempts: 10, windowMs: 15 * 60 * 1000 });
 
+/**
+ * Login per account: 10 attempts per hour per member. IPv6 hands an attacker an
+ * endless supply of addresses, so the per-IP limit alone can't stop a slow
+ * password guess against one member.
+ */
+export const accountLoginLimiter = new RateLimiter({ maxAttempts: 10, windowMs: 60 * 60 * 1000 });
+
 /** Password reset request: 3 attempts per 15 minutes per IP */
 export const forgotPasswordLimiter = new RateLimiter({ maxAttempts: 3, windowMs: 15 * 60 * 1000 });
 

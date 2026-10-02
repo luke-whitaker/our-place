@@ -20,8 +20,11 @@ function getJwtSecret(): string {
 
 const JWT_SECRET = getJwtSecret();
 
+// Pinned on both sides, so a token never gets to choose how it is checked.
+const JWT_ALGORITHM = "HS256";
+
 export function signToken(payload: AuthPayload): string {
-  return jwt.sign(payload, JWT_SECRET, { expiresIn: "24h" });
+  return jwt.sign(payload, JWT_SECRET, { algorithm: JWT_ALGORITHM, expiresIn: "24h" });
 }
 
 /**
@@ -55,7 +58,7 @@ export function tokenIssuedBeforePasswordChange(
 
 export function verifyToken(token: string): AuthPayload | null {
   try {
-    return jwt.verify(token, JWT_SECRET) as AuthPayload;
+    return jwt.verify(token, JWT_SECRET, { algorithms: [JWT_ALGORITHM] }) as AuthPayload;
   } catch {
     return null;
   }
@@ -120,6 +123,18 @@ export async function requireAdmin(): Promise<
 
 export function generateCode(): string {
   return crypto.randomInt(100000, 999999).toString();
+}
+
+/** Wrong reset-code guesses allowed before the code is wiped. */
+export const RESET_CODE_MAX_ATTEMPTS = 5;
+
+/**
+ * What the database stores for a reset code. Six digits are a million guesses,
+ * so a plain hash of a leaked row would fall in a second; keyed with the server
+ * secret, a database copy alone reveals nothing.
+ */
+export function hashResetCode(code: string): string {
+  return crypto.createHmac("sha256", JWT_SECRET).update(code).digest("hex");
 }
 
 /**
