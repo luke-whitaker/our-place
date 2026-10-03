@@ -151,6 +151,17 @@ export const gatheringResponseLimiter = new RateLimiter({
   windowMs: 60 * 60 * 1000,
 });
 
+/** Changing a gathering's time: 10 per hour per user (each change emails
+ * everyone invited) */
+export const changeGatheringTimeLimiter = new RateLimiter({
+  maxAttempts: 10,
+  windowMs: 60 * 60 * 1000,
+});
+
+/** Turning gathering emails off from an email's link: 20 per 15 minutes per
+ * IP. The link needs no sign-in, so it's keyed on the address. */
+export const unsubscribeLimiter = new RateLimiter({ maxAttempts: 20, windowMs: 15 * 60 * 1000 });
+
 /** Pocket/Notebook/NPC-talk mutations: 120 per hour per user */
 export const itemsLimiter = new RateLimiter({ maxAttempts: 120, windowMs: 60 * 60 * 1000 });
 

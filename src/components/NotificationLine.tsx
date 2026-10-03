@@ -144,6 +144,13 @@ function Message({ item }: { item: NotificationItem }) {
           <Name actor={item.actor} /> cancelled <GatheringLink item={item} />.
         </>
       );
+    case "gathering_time_changed":
+      return (
+        <>
+          <Name actor={item.actor} /> moved <GatheringLink item={item} /> to{" "}
+          {shortWhen(item.gathering.starts_at)}.
+        </>
+      );
     case "gathering_unplanted":
       return (
         <>
@@ -156,7 +163,7 @@ function Message({ item }: { item: NotificationItem }) {
 
 type GatheringItem = Extract<
   NotificationItem,
-  { kind: "gathering_invite" | "gathering_cancelled" | "gathering_unplanted" }
+  { kind: "gathering_invite" | "gathering_cancelled" | "gathering_unplanted" | "gathering_time_changed" }
 >;
 
 function GatheringLink({ item }: { item: GatheringItem }) {
@@ -216,7 +223,9 @@ export default function NotificationLine({ item }: { item: NotificationItem }) {
           </p>
         )}
         {item.kind === "friend_request" && <RequestButtons friendshipId={item.friendship_id} />}
-        {item.kind === "gathering_invite" && <InvitationAnswer item={item} />}
+        {(item.kind === "gathering_invite" || item.kind === "gathering_time_changed") && (
+          <InvitationAnswer item={item} />
+        )}
         <p className="mt-1 text-xs text-ink-faint">{timeAgo(item.created_at)}</p>
       </div>
     </li>

@@ -25,7 +25,8 @@ type NotificationKind =
   | "comment"
   | "gathering_invite"
   | "gathering_cancelled"
-  | "gathering_unplanted";
+  | "gathering_unplanted"
+  | "gathering_time_changed";
 
 interface NewNotification {
   recipientId: string;
@@ -136,7 +137,8 @@ export function groupNotifications(rows: NotificationRow[]): NotificationItem[] 
     } else if (
       (row.kind === "gathering_invite" ||
         row.kind === "gathering_cancelled" ||
-        row.kind === "gathering_unplanted") &&
+        row.kind === "gathering_unplanted" ||
+        row.kind === "gathering_time_changed") &&
       row.gathering
     ) {
       items.push({

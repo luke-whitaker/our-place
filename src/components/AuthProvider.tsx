@@ -22,6 +22,7 @@ interface User {
    * nobody else sees you. */
   ghost?: boolean;
   exclude_from_metrics?: boolean;
+  email_gatherings?: boolean;
   is_verified: number;
   role: string;
   community_count?: number;

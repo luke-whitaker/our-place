@@ -40,7 +40,11 @@ export type NotificationItem =
       excerpt: string;
     })
   | (NotificationBase & {
-      kind: "gathering_invite" | "gathering_cancelled" | "gathering_unplanted";
+      kind:
+        | "gathering_invite"
+        | "gathering_cancelled"
+        | "gathering_unplanted"
+        | "gathering_time_changed";
       /** The host. */
       actor: NotificationActor;
       gathering: GatheringInviteSummary;

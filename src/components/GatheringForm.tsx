@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { apiFetch, userMessage } from "@/lib/api-client";
+import { toLocalInput } from "@/lib/time-utils";
 import { useAuth } from "@/components/AuthProvider";
 import InviteePicker, { type Invitee } from "@/components/InviteePicker";
 import type { CommunityWithMembership, GatheringKind } from "@/lib/types";
@@ -11,12 +12,6 @@ import type { CommunityWithMembership, GatheringKind } from "@/lib/types";
 const inputClass =
   "w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400";
 const labelClass = "mb-1.5 block text-sm font-medium text-ink-secondary";
-
-/** A Date as a datetime-local input's value, in the browser's own time zone. */
-function toLocalInput(date: Date): string {
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
-}
 
 /** Tomorrow at 6 pm, for two hours: a sensible first guess to edit. */
 function defaultTimes(): { starts: string; ends: string } {

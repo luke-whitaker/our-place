@@ -43,7 +43,7 @@ export default function GatheringPage() {
   const { id } = useParams<{ id: string }>();
   const [gathering, setGathering] = useState<GatheringDetail | null>(null);
   const [error, setError] = useState("");
-  // Bumped after an answer or a cancel, so the page re-reads the gathering.
+  // Bumped after an answer, a new time, or a cancel, so the page re-reads it.
   const [version, setVersion] = useState(0);
   const reload = () => setVersion((v) => v + 1);
 
@@ -164,7 +164,7 @@ export default function GatheringPage() {
       </section>
 
       {gathering.is_host ? (
-        <GatheringHostPanel gathering={gathering} onCancelled={reload} />
+        <GatheringHostPanel gathering={gathering} onChanged={reload} />
       ) : (
         <section className="op-card rounded-2xl border border-line bg-surface p-5">
           <h2 className="text-sm font-semibold text-ink">Going ({gathering.going.length})</h2>

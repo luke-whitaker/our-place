@@ -9,6 +9,7 @@ import { METRICS_TIME_ZONE } from "@/lib/activity";
 import { cancelUnplanted } from "@/lib/gathering-sweep";
 import { mushroomPortal } from "@/lib/event-mushrooms";
 import { isBlockedEitherWay } from "@/lib/blocks";
+import { stillInvitedIds } from "@/lib/gathering-emails";
 import type { GatheringAnswer, GatheringEntry, GatheringKind } from "@/lib/types";
 
 export { MAX_COMMUNITY_INVITEES } from "@/lib/types";
@@ -244,4 +245,39 @@ export async function cancelGathering(
     })),
   });
   return true;
+}
+
+/**
+ * Move a gathering to new times inside the caller's transaction, guarded on
+ * it still being scheduled and not yet started, so a change racing the start
+ * or a cancel loses. Invitation letters are rewritten to the new time (their
+ * words carry it), answers stay as they were, and everyone still invited gets
+ * a notification. Returns who was told, or null when the guard refused.
+ */
+export async function moveGathering(
+  tx: Prisma.TransactionClient,
+  gathering: { id: string; hostId: string; title: string },
+  startsAt: Date,
+  endsAt: Date,
+  now: Date,
+): Promise<string[] | null> {
+  const moved = await tx.gathering.updateMany({
+    where: { id: gathering.id, status: "scheduled", startsAt: { gt: now } },
+    data: { startsAt, endsAt },
+  });
+  if (moved.count !== 1) return null;
+  await tx.item.updateMany({
+    where: { gatheringId: gathering.id, kind: "note" },
+    data: { body: invitationLetterBody(gathering.title, startsAt) },
+  });
+  const invited = await stillInvitedIds(tx, gathering.id, gathering.hostId);
+  await tx.notification.createMany({
+    data: invited.map((recipientId) => ({
+      recipientId,
+      actorId: gathering.hostId,
+      kind: "gathering_time_changed",
+      gatheringId: gathering.id,
+    })),
+  });
+  return invited;
 }

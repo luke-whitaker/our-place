@@ -39,6 +39,7 @@ async function profile(userId: string) {
       mailboxColor: true,
       ghost: true,
       excludeFromMetrics: true,
+      emailGatherings: true,
       createdAt: true,
       inviter: { select: { username: true, displayName: true } },
     },
@@ -57,6 +58,7 @@ async function profile(userId: string) {
     mailbox_color: u.mailboxColor,
     ghost_mode: u.ghost,
     left_out_of_activity_counts: u.excludeFromMetrics,
+    gathering_emails: u.emailGatherings,
     joined_at: iso(u.createdAt),
     invited_by: person(u.inviter),
   };

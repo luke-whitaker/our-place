@@ -8,6 +8,7 @@ import { useAuth } from "@/components/AuthProvider";
 import AvatarPreview from "@/components/AvatarPreview";
 import IslandSettings from "@/components/IslandSettings";
 import MetricsSettings from "@/components/MetricsSettings";
+import GatheringEmailSettings from "@/components/GatheringEmailSettings";
 import BlockedMembersSettings from "@/components/BlockedMembersSettings";
 import AccountDataSettings from "@/components/AccountDataSettings";
 
@@ -412,6 +413,10 @@ export default function AccountSettings() {
 
         {/* Members you blocked */}
         <BlockedMembersSettings />
+        <div className="border-t border-line-soft" />
+
+        {/* Gathering emails */}
+        <GatheringEmailSettings />
         <div className="border-t border-line-soft" />
 
         {/* Activity counts */}

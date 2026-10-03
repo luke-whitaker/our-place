@@ -33,6 +33,12 @@ export function gatheringWhen(startsAt: string, endsAt: string, timeZone?: strin
   return `${startText} to ${endText}`;
 }
 
+/** A Date as a datetime-local input's value, in the browser's own time zone. */
+export function toLocalInput(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
+
 /** The world shows gathering times in Chicago's, like the letters do: one
  * place, one clock (Luke, October 2). */
 export const WORLD_TIME_ZONE = "America/Chicago";

@@ -44,6 +44,7 @@ export async function PATCH(request: NextRequest) {
       mailbox_color,
       island_visibility,
       exclude_from_metrics,
+      email_gatherings,
       current_password,
       new_password,
     } = parsed.data;
@@ -74,6 +75,7 @@ export async function PATCH(request: NextRequest) {
       mailboxColor?: string;
       islandVisibility?: string;
       excludeFromMetrics?: boolean;
+      emailGatherings?: boolean;
       passwordHash?: string;
       passwordChangedAt?: Date;
     } = {};
@@ -100,6 +102,10 @@ export async function PATCH(request: NextRequest) {
 
     if (exclude_from_metrics !== undefined) {
       data.excludeFromMetrics = exclude_from_metrics;
+    }
+
+    if (email_gatherings !== undefined) {
+      data.emailGatherings = email_gatherings;
     }
 
     if (new_password) {

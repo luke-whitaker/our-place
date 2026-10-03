@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { apiFetch, userMessage } from "@/lib/api-client";
+import GatheringTimeForm from "@/components/GatheringTimeForm";
 import type { GatheringDetail, GatheringPerson } from "@/lib/types";
 
 function People({ title, people }: { title: string; people: GatheringPerson[] }) {
@@ -29,13 +30,14 @@ function People({ title, people }: { title: string; people: GatheringPerson[] })
   );
 }
 
-/** The host's view: everyone's answers, and cancelling before it ends. */
+/** The host's view: everyone's answers, changing the time before it starts,
+ * and cancelling before it ends. */
 export default function GatheringHostPanel({
   gathering,
-  onCancelled,
+  onChanged,
 }: {
   gathering: GatheringDetail;
-  onCancelled: () => void;
+  onChanged: () => void;
 }) {
   const [confirming, setConfirming] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -47,7 +49,7 @@ export default function GatheringHostPanel({
     setError("");
     try {
       await apiFetch(`/api/gatherings/${gathering.id}/cancel`, { method: "POST" });
-      onCancelled();
+      onChanged();
     } catch (err) {
       setError(userMessage(err, "Couldn't cancel the gathering."));
       setBusy(false);
@@ -66,6 +68,12 @@ export default function GatheringHostPanel({
           <People title="Going" people={gathering.attendees.accepted} />
           <People title="Not answered" people={gathering.attendees.pending} />
           <People title="Declined" people={gathering.attendees.declined} />
+        </div>
+      )}
+
+      {gathering.status === "scheduled" && !gathering.started && (
+        <div className="mt-5 border-t border-line-soft pt-4">
+          <GatheringTimeForm gathering={gathering} onChanged={onChanged} />
         </div>
       )}
 
