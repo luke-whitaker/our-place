@@ -63,61 +63,69 @@ async function profile(userId: string) {
 }
 
 async function forum(userId: string, truncated: string[]) {
-  const [memberships, posts, comments, reactions, pollVotes, friendships] = await Promise.all([
-    prisma.communityMember.findMany({
-      where: { userId },
-      select: { role: true, joinedAt: true, community: { select: { name: true, slug: true } } },
-      take: TAKE,
-    }),
-    prisma.post.findMany({
-      where: { authorId: userId },
-      orderBy: { createdAt: "asc" },
-      take: TAKE,
-      select: {
-        id: true,
-        postType: true,
-        title: true,
-        content: true,
-        postedToProfile: true,
-        createdAt: true,
-        community: { select: { slug: true } },
-        media: { select: { mediaType: true, url: true }, orderBy: { sortOrder: "asc" } },
-      },
-    }),
-    prisma.comment.findMany({
-      where: { authorId: userId },
-      orderBy: { createdAt: "asc" },
-      take: TAKE,
-      select: { id: true, postId: true, content: true, createdAt: true },
-    }),
-    prisma.reaction.findMany({
-      where: { userId },
-      orderBy: { createdAt: "asc" },
-      take: TAKE,
-      select: { postId: true, type: true, createdAt: true },
-    }),
-    prisma.pollVote.findMany({
-      where: { userId },
-      orderBy: { createdAt: "asc" },
-      take: TAKE,
-      select: {
-        createdAt: true,
-        poll: { select: { postId: true } },
-        option: { select: { label: true } },
-      },
-    }),
-    prisma.friendship.findMany({
-      where: { OR: [{ userId }, { friendId: userId }] },
-      take: TAKE,
-      select: {
-        userId: true,
-        status: true,
-        createdAt: true,
-        user: { select: { username: true, displayName: true } },
-        friend: { select: { username: true, displayName: true } },
-      },
-    }),
-  ]);
+  const [memberships, posts, comments, reactions, pollVotes, friendships, blocks] =
+    await Promise.all([
+      prisma.communityMember.findMany({
+        where: { userId },
+        select: { role: true, joinedAt: true, community: { select: { name: true, slug: true } } },
+        take: TAKE,
+      }),
+      prisma.post.findMany({
+        where: { authorId: userId },
+        orderBy: { createdAt: "asc" },
+        take: TAKE,
+        select: {
+          id: true,
+          postType: true,
+          title: true,
+          content: true,
+          postedToProfile: true,
+          createdAt: true,
+          community: { select: { slug: true } },
+          media: { select: { mediaType: true, url: true }, orderBy: { sortOrder: "asc" } },
+        },
+      }),
+      prisma.comment.findMany({
+        where: { authorId: userId },
+        orderBy: { createdAt: "asc" },
+        take: TAKE,
+        select: { id: true, postId: true, content: true, createdAt: true },
+      }),
+      prisma.reaction.findMany({
+        where: { userId },
+        orderBy: { createdAt: "asc" },
+        take: TAKE,
+        select: { postId: true, type: true, createdAt: true },
+      }),
+      prisma.pollVote.findMany({
+        where: { userId },
+        orderBy: { createdAt: "asc" },
+        take: TAKE,
+        select: {
+          createdAt: true,
+          poll: { select: { postId: true } },
+          option: { select: { label: true } },
+        },
+      }),
+      prisma.friendship.findMany({
+        where: { OR: [{ userId }, { friendId: userId }] },
+        take: TAKE,
+        select: {
+          userId: true,
+          status: true,
+          createdAt: true,
+          user: { select: { username: true, displayName: true } },
+          friend: { select: { username: true, displayName: true } },
+        },
+      }),
+      // Only the blocks they made: who blocked them is never theirs to see.
+      prisma.block.findMany({
+        where: { blockerId: userId },
+        orderBy: { createdAt: "asc" },
+        take: TAKE,
+        select: { createdAt: true, blocked: { select: { username: true, displayName: true } } },
+      }),
+    ]);
   return {
     communities: capped("communities", memberships, truncated).map((m) => ({
       name: m.community.name,
@@ -160,6 +168,10 @@ async function forum(userId: string, truncated: string[]) {
         since: iso(f.createdAt),
       };
     }),
+    blocked_members: capped("blocked_members", blocks, truncated).map((b) => ({
+      ...person(b.blocked),
+      since: iso(b.createdAt),
+    })),
   };
 }
 

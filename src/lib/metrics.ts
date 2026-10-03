@@ -43,6 +43,8 @@ export interface Metrics {
   weeks: WeekMetrics[];
   cohorts: Cohort[];
   optedOut: number;
+  /** Blocks in place right now. A count only: who blocked whom is never shown. */
+  activeBlocks: number;
   /** The first day with any activity row, or null before anything was recorded. */
   trackingSince: string | null;
 }
@@ -203,10 +205,11 @@ async function retention(today: string) {
 
 export async function getMetrics(now = new Date()): Promise<Metrics> {
   const today = metricsDay(now);
-  const [weeks, { cohorts, trackingSince }, optedOut] = await Promise.all([
+  const [weeks, { cohorts, trackingSince }, optedOut, activeBlocks] = await Promise.all([
     weeklyMetrics(today),
     retention(today),
     prisma.user.count({ where: { excludeFromMetrics: true, username: { not: WORLD_ACCOUNT } } }),
+    prisma.block.count(),
   ]);
-  return { weeks, cohorts, optedOut, trackingSince };
+  return { weeks, cohorts, optedOut, activeBlocks, trackingSince };
 }

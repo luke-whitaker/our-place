@@ -159,7 +159,7 @@ export default async function AdminMetricsPage() {
   if (!auth) redirect("/auth/login");
   if (auth.role !== "admin") redirect("/feed");
 
-  const { weeks, cohorts, optedOut, trackingSince } = await getMetrics();
+  const { weeks, cohorts, optedOut, activeBlocks, trackingSince } = await getMetrics();
 
   return (
     <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6">
@@ -194,6 +194,13 @@ export default async function AdminMetricsPage() {
         description={'Members who turned on "Leave me out of activity counts" in Account settings.'}
       >
         <p className="text-2xl font-bold text-ink tabular-nums">{optedOut}</p>
+      </Section>
+
+      <Section
+        title="Blocks"
+        description="Blocks members have in place right now. Only the number: who blocked whom stays between them."
+      >
+        <p className="text-2xl font-bold text-ink tabular-nums">{activeBlocks}</p>
       </Section>
     </div>
   );

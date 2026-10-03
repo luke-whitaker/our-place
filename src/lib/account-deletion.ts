@@ -188,6 +188,7 @@ export async function deleteAccount(userId: string, mode: DeletionMode): Promise
         await tx.post.deleteMany({ where: { authorId: userId } });
       }
       await tx.friendship.deleteMany({ where: { OR: [{ userId }, { friendId: userId }] } });
+      await tx.block.deleteMany({ where: { OR: [{ blockerId: userId }, { blockedId: userId }] } });
       await leaveCommunities(tx, userId);
       await tx.eventRsvp.deleteMany({ where: { userId } });
       await tx.event.deleteMany({ where: { creatorId: userId } });

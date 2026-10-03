@@ -71,7 +71,7 @@ export default function InviteePicker({
     const timer = setTimeout(() => {
       void (async () => {
         try {
-          const params = new URLSearchParams({ search, limit: "8" });
+          const params = new URLSearchParams({ search, limit: "8", invitable: "true" });
           const data = await apiFetch<{ users: PeopleEntry[] }>(`/api/users?${params}`);
           if (!cancelled) {
             setResults(data.users);

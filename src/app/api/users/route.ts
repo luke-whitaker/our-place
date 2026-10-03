@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { notBlockedWith } from "@/lib/blocks";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 import { toPeopleEntry } from "@/lib/people";
 
@@ -15,7 +16,9 @@ const directorySelect = {
 
 // GET: the member directory for /people — every account on the platform,
 // searchable by name, with the viewer's friendship status to each. Never
-// returns password hashes, emails, or phone numbers.
+// returns password hashes, emails, or phone numbers. With `invitable=true`
+// (the gathering invitee picker) it leaves out anyone the viewer is in a
+// block with, either way; the plain directory still lists them.
 export async function GET(request: NextRequest) {
   try {
     const auth = await requireAuth();
@@ -25,11 +28,13 @@ export async function GET(request: NextRequest) {
     const searchParams = new URL(request.url).searchParams;
     const { limit, offset, page } = parsePagination(searchParams);
     const search = searchParams.get("search")?.trim() ?? "";
+    const invitable = searchParams.get("invitable") === "true";
 
     // Former members are tombstones, not members: never listed.
     const users = await prisma.user.findMany({
       where: {
         deletedAt: null,
+        ...(invitable ? notBlockedWith(me) : {}),
         ...(search
           ? {
               OR: [
