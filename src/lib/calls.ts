@@ -299,15 +299,16 @@ export async function joinCall(
     const elsewhere = await presentCallId(tx, userId, now);
     if (elsewhere && elsewhere !== callId) return refuse(409, ALREADY_IN_CALL);
 
-    // An empty call ends here rather than being rejoined. LiveKit closes the
-    // empty room itself after its idle timeout.
+    // A call with nobody present, the caller included, ends here rather than
+    // being revived. A caller who is present themselves (the starter's first
+    // token, or anyone alone while others are invited) keeps it going.
+    // LiveKit closes an empty room itself after its idle timeout.
     if (await settleCall(tx, callId, now)) return refuse(409, CALL_ENDED);
     const present = await tx.callInvite.findMany({
       where: { callId, ...presentWhere(now), userId: { not: userId } },
       select: { userId: true },
       take: MAX_CALL_SIZE,
     });
-    if (present.length === 0) return refuse(409, CALL_ENDED);
     if (present.length >= MAX_CALL_SIZE) return refuse(409, "This call is full.");
     const others = present.map((p) => p.userId);
     const blocked = await tx.block.findFirst({

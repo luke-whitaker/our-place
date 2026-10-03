@@ -3,9 +3,10 @@ import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { mintCallToken, voiceConfigured } from "@/lib/livekit";
 import type { AuthPayload, CallTokenResponse } from "@/lib/types";
-import { createTestUser } from "@/test/route-helpers";
-import { block, minutesAgo, seatStatus, seedCall } from "@/test/call-helpers";
+import { createTestUser, jsonRequest } from "@/test/route-helpers";
+import { befriend, block, minutesAgo, seatStatus, seedCall } from "@/test/call-helpers";
 import { POST } from "./route";
+import { POST as startCall } from "../../route";
 
 vi.mock("@/lib/auth", () => ({ requireAuth: vi.fn() }));
 vi.mock("@/lib/livekit", () => ({
@@ -69,6 +70,47 @@ describe("POST /api/calls/[id]/token", () => {
     expect((await tokenAs(me, callId)).status).toBe(200);
     expect((await tokenAs(caller, callId)).status).toBe(200);
     expect(await seatStatus(callId, me)).toBe("joined");
+  });
+
+  it("gives the starter a token right after starting, with only invitations out", async () => {
+    const me = await createTestUser();
+    const friend = await createTestUser();
+    await befriend(me, friend);
+    mockRequireAuth.mockResolvedValue({ user: me });
+    const started = await startCall(
+      jsonRequest("http://localhost/api/calls", { usernames: [friend.username] }),
+    );
+    const { call_id } = await started.json();
+
+    expect((await tokenAs(me, call_id)).status).toBe(200);
+    expect(await seatStatus(call_id, me)).toBe("joined");
+  });
+
+  it("lets a member alone in a call refresh their token while others are invited", async () => {
+    const me = await createTestUser();
+    const invited = await createTestUser();
+    const left = await createTestUser();
+    const callId = await seedCall([
+      { user: me, status: "joined", at: new Date(Date.now() - 20_000) },
+      { user: invited, status: "pending" },
+      { user: left, status: "left" },
+    ]);
+
+    expect((await tokenAs(me, callId)).status).toBe(200);
+    const call = await prisma.call.findUniqueOrThrow({ where: { id: callId } });
+    expect(call.endedAt).toBeNull();
+  });
+
+  it("won't let someone who isn't present revive a call nobody is in", async () => {
+    const caller = await createTestUser();
+    const me = await createTestUser();
+    const callId = await seedCall([
+      { user: caller, status: "left" },
+      { user: me, status: "left" },
+    ]);
+
+    expect(await refusal(await tokenAs(me, callId), 409)).toBe("This call has ended.");
+    expect(await seatStatus(callId, me)).toBe("left");
   });
 
   it("refuses someone never invited", async () => {
