@@ -10,6 +10,7 @@ import { useAuth } from "./AuthProvider";
 import { PhotoGallery, VideoPlayer, RichContentRenderer, PostTypeBadge } from "./PostMedia";
 import CommentSection from "./CommentSection";
 import PostActions from "./feed/PostActions";
+import PollCard from "./feed/PollCard";
 
 export default function PostCard({
   post,
@@ -176,6 +177,17 @@ export default function PostCard({
           )}
 
           {postType === "rich" && <RichContentRenderer content={post.content} />}
+
+          {postType === "poll" && (
+            <>
+              {post.content && (
+                <p className="mt-1.5 text-sm text-ink-tertiary leading-relaxed whitespace-pre-wrap">
+                  {post.content}
+                </p>
+              )}
+              {post.poll && <PollCard postId={post.id} initial={post.poll} />}
+            </>
+          )}
         </div>
 
         <PostActions

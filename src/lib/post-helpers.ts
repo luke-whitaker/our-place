@@ -1,5 +1,6 @@
 import prisma from "./db";
 import { isAllowedMediaUrl } from "./media-utils";
+import { pollsForPosts } from "./polls";
 
 interface PostWithId {
   id: string;
@@ -84,10 +85,23 @@ export function validatePostContent(
   title: string,
   content: string,
   media: MediaItem[],
+  hasPoll = false,
 ): { valid: true } | { valid: false; error: string } {
+  if (postType === "poll" && !hasPoll) {
+    return { valid: false, error: "Add the options people can choose from." };
+  }
+  if (postType !== "poll" && hasPoll) {
+    return { valid: false, error: "Only poll posts can have options." };
+  }
+
   if (postType === "text") {
     if (!title) return { valid: false, error: "Title is required for text posts." };
     if (!content) return { valid: false, error: "Content is required for text posts." };
+  }
+
+  if (postType === "poll") {
+    if (!title) return { valid: false, error: "Ask a question for your poll." };
+    if (media.length) return { valid: false, error: "Polls can't carry photos or videos." };
   }
 
   if (postType === "photo") {
@@ -124,10 +138,25 @@ export function validatePostContent(
 }
 
 /**
+ * Everything a listed post needs beyond its row: its media, and its poll as
+ * this viewer sees it (null for any other post type). Two queries per page,
+ * whatever its length.
+ */
+export async function enrichPosts<T extends PostWithId>(posts: T[], viewerId: string) {
+  const withMedia = await enrichPostsWithMedia(posts);
+  const polls = await pollsForPosts(
+    posts.map((p) => p.id),
+    viewerId,
+    new Date(),
+  );
+  return withMedia.map((p) => ({ ...p, poll: polls.get(p.id) ?? null }));
+}
+
+/**
  * Batch-loads media for an array of posts and attaches it to each post.
  * Uses a single query for efficiency.
  */
-export async function enrichPostsWithMedia<T extends PostWithId>(posts: T[]): Promise<T[]> {
+async function enrichPostsWithMedia<T extends PostWithId>(posts: T[]): Promise<T[]> {
   if (posts.length === 0) return posts;
 
   const postIds = posts.map((p) => p.id);

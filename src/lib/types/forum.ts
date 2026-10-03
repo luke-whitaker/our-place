@@ -18,7 +18,22 @@ export interface CommunityWithMembership extends Community {
   role: string | null;
 }
 
-export type PostType = "text" | "photo" | "video" | "rich";
+export type PostType = "text" | "photo" | "video" | "rich" | "poll";
+
+export type PollResultsVisible = "after_vote" | "always" | "after_close";
+
+/** A poll as one viewer sees it. `vote_count` is null until results show. */
+export interface PollWire {
+  id: string;
+  multiple_choice: boolean;
+  results_visible: PollResultsVisible;
+  closes_at: string | null;
+  closed: boolean;
+  has_voted: boolean;
+  show_results: boolean;
+  total_votes: number;
+  options: { id: string; label: string; vote_count: number | null; voted: boolean }[];
+}
 
 export interface PostMedia {
   id: string;
@@ -67,6 +82,8 @@ export interface Post {
   // "like", "dislike", another reaction type, or null when the viewer hasn't reacted.
   user_reaction?: string | null;
   media?: PostMedia[];
+  // Present on poll posts, null on every other type.
+  poll?: PollWire | null;
 }
 
 export interface Comment {

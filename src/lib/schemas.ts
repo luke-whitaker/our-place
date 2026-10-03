@@ -186,7 +186,42 @@ export const createCommunitySchema = z.object({
     .optional(),
 });
 
-const postTypeEnum = z.enum(["text", "photo", "video", "rich"]);
+const postTypeEnum = z.enum(["text", "photo", "video", "rich", "poll"]);
+
+export const POLL_MIN_OPTIONS = 2;
+export const POLL_MAX_OPTIONS = 6;
+export const POLL_OPTION_MAX_CHARS = 80;
+
+/** A poll's answers and how it's run. The question is the post's title. */
+export const pollSchema = z
+  .object({
+    options: z
+      .array(
+        z
+          .string()
+          .trim()
+          .min(1, "Every option needs some words.")
+          .max(POLL_OPTION_MAX_CHARS, "Options must be under 80 characters."),
+      )
+      .min(POLL_MIN_OPTIONS, "A poll needs at least two options.")
+      .max(POLL_MAX_OPTIONS, "A poll can have at most six options.")
+      .refine((options) => new Set(options.map((o) => o.toLowerCase())).size === options.length, {
+        message: "Each option needs to be different.",
+      }),
+    multiple_choice: z.boolean().default(false),
+    results_visible: z.enum(["after_vote", "always", "after_close"]).default("after_vote"),
+    closes_in: z.enum(["1d", "3d", "1w"]).optional(),
+  })
+  // A poll that never closes would never show these results.
+  .refine((poll) => poll.results_visible !== "after_close" || poll.closes_in !== undefined, {
+    message: "Pick when the poll closes to show results then.",
+  });
+
+export type PollInput = z.infer<typeof pollSchema>;
+
+export const pollVoteSchema = z.object({
+  option_id: z.string().uuid("Pick an option."),
+});
 
 const mediaItemSchema = z.object({
   media_type: z.string().optional(),
@@ -219,6 +254,7 @@ export const createPostSchema = z.object({
     .max(MAX_IMAGES_PER_POST, "Maximum 10 images per post.")
     .default([]),
   post_to_profile: z.union([z.boolean(), z.number()]).optional(),
+  poll: pollSchema.optional(),
   ...interactionControlFields,
 });
 
@@ -230,6 +266,7 @@ export const createMyPlacePostSchema = z.object({
     .array(mediaItemSchema)
     .max(MAX_IMAGES_PER_POST, "Maximum 10 images per post.")
     .default([]),
+  poll: pollSchema.optional(),
   ...interactionControlFields,
 });
 

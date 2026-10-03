@@ -76,6 +76,7 @@ model User {
   gatheringInvites    GatheringInvite[]
   worldDiscoveries    WorldDiscovery[]
   worldPlants         WorldPlant[]
+  pollVotes           PollVote[]
 
   @@index([email])
   @@index([username])
@@ -148,6 +149,7 @@ model Post {
   media     PostMedia[]
   comments  Comment[]
   reactions Reaction[]
+  poll      Poll?
 
   notifications Notification[]
 
@@ -157,6 +159,58 @@ model Post {
   @@index([communityId, createdAt(sort: Desc)])
   @@index([authorId, postedToProfile])
   @@map("posts")
+}
+
+// A poll post's question is the post's title; this row holds how it's
+// answered. Coordination, not engagement: no ranking, no notifications.
+model Poll {
+  id             String    @id @default(uuid())
+  postId         String    @unique @map("post_id")
+  multipleChoice Boolean   @default(false) @map("multiple_choice")
+  // "after_vote" | "always" | "after_close"; after_vote by default, so
+  // nobody answers with the crowd.
+  resultsVisible String    @default("after_vote") @map("results_visible")
+  closesAt       DateTime? @map("closes_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  post    Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  options PollOption[]
+  votes   PollVote[]
+
+  @@map("polls")
+}
+
+model PollOption {
+  id        String @id @default(uuid())
+  pollId    String @map("poll_id")
+  label     String
+  sortOrder Int    @map("sort_order")
+  // Kept in the vote transaction, like posts.reaction_count.
+  voteCount Int    @default(0) @map("vote_count")
+
+  poll  Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  votes PollVote[]
+
+  @@index([pollId])
+  @@map("poll_options")
+}
+
+// One row per member per option chosen. Single choice is enforced in the
+// vote transaction, since a partial unique index can't read polls.
+model PollVote {
+  id        String   @id @default(uuid())
+  pollId    String   @map("poll_id")
+  optionId  String   @map("option_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  poll   Poll       @relation(fields: [pollId], references: [id], onDelete: Cascade)
+  option PollOption @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  user   User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([optionId, userId])
+  @@index([pollId, userId])
+  @@map("poll_votes")
 }
 
 model PostMedia {

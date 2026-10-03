@@ -14,7 +14,38 @@ import {
   PASSWORD_MAX,
   COMMUNITY_DESCRIPTION_MAX,
   COMMUNITY_GUIDELINES_MAX,
+  pollSchema,
 } from "./schemas";
+
+describe("pollSchema", () => {
+  it("defaults to single choice, results after you vote, and no close", () => {
+    const parsed = pollSchema.parse({ options: [" Park ", "Cafe"] });
+    expect(parsed).toEqual({
+      options: ["Park", "Cafe"],
+      multiple_choice: false,
+      results_visible: "after_vote",
+    });
+  });
+
+  it("takes two to six distinct options of 1 to 80 characters", () => {
+    expect(pollSchema.safeParse({ options: ["One"] }).success).toBe(false);
+    expect(pollSchema.safeParse({ options: ["a", "b", "c", "d", "e", "f"] }).success).toBe(true);
+    expect(pollSchema.safeParse({ options: ["a", "b", "c", "d", "e", "f", "g"] }).success).toBe(
+      false,
+    );
+    expect(pollSchema.safeParse({ options: ["Park", "PARK"] }).success).toBe(false);
+    expect(pollSchema.safeParse({ options: ["Park", "  "] }).success).toBe(false);
+    expect(pollSchema.safeParse({ options: ["Park", "x".repeat(81)] }).success).toBe(false);
+  });
+
+  it("only shows results at close for a poll that closes", () => {
+    const options = ["Park", "Cafe"];
+    expect(pollSchema.safeParse({ options, results_visible: "after_close" }).success).toBe(false);
+    expect(
+      pollSchema.safeParse({ options, results_visible: "after_close", closes_in: "1w" }).success,
+    ).toBe(true);
+  });
+});
 
 // ── Phone normalization ──
 

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { areFriends } from "@/lib/friends";
-import { enrichPostsWithMedia, mapPostRow } from "@/lib/post-helpers";
+import { enrichPosts, mapPostRow } from "@/lib/post-helpers";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 
 // GET: Someone's My Place posts. Friend-gated on the server: only the owner
@@ -50,7 +50,7 @@ export async function GET(
     );
 
     const { data, hasMore } = paginateResults(mapped, limit, page);
-    const enrichedPosts = await enrichPostsWithMedia(data);
+    const enrichedPosts = await enrichPosts(data, auth.user.userId);
 
     return NextResponse.json({ posts: enrichedPosts, hasMore, page });
   } catch (error) {

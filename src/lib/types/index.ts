@@ -7,6 +7,8 @@ export type {
   CommunityMember,
   Post,
   PostType,
+  PollResultsVisible,
+  PollWire,
   PostMedia,
   RichContentBlock,
   Comment,

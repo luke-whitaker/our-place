@@ -124,6 +124,9 @@ export const createCommentLimiter = new RateLimiter({ maxAttempts: 30, windowMs:
 /** Reactions: 60 per hour per user */
 export const reactionLimiter = new RateLimiter({ maxAttempts: 60, windowMs: 60 * 60 * 1000 });
 
+/** Poll votes: 120 per hour per user (switching and taking a vote back count too) */
+export const pollVoteLimiter = new RateLimiter({ maxAttempts: 120, windowMs: 60 * 60 * 1000 });
+
 /** File uploads: 30 per hour per user */
 export const uploadLimiter = new RateLimiter({ maxAttempts: 30, windowMs: 60 * 60 * 1000 });
 

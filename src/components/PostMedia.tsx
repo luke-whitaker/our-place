@@ -328,6 +328,7 @@ export function PostTypeBadge({ postType }: { postType: string }) {
     photo: { label: "Photo", color: "bg-emerald-50 text-emerald-600" },
     video: { label: "Video", color: "bg-purple-50 text-purple-600" },
     rich: { label: "Rich", color: "bg-amber-50 text-amber-600" },
+    poll: { label: "Poll", color: "bg-sky-50 text-sky-600" },
   };
 
   const c = config[postType];

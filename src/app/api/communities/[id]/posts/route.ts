@@ -3,7 +3,8 @@ import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { createPostLimiter } from "@/lib/rate-limit";
 import { createPostSchema, getZodErrorMessage } from "@/lib/schemas";
-import { enrichPostsWithMedia, mapPostRow, validatePostContent } from "@/lib/post-helpers";
+import { enrichPosts, mapPostRow, validatePostContent } from "@/lib/post-helpers";
+import { pollCreateData } from "@/lib/polls";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 import { v4 as uuidv4 } from "uuid";
 
@@ -41,7 +42,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     );
 
     const { data, hasMore } = paginateResults(mapped, limit, page);
-    const enrichedPosts = await enrichPostsWithMedia(data);
+    const enrichedPosts = await enrichPosts(data, auth.user.userId);
 
     return NextResponse.json({ posts: enrichedPosts, hasMore, page });
   } catch (error) {
@@ -95,14 +96,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const media = parsed.data.media;
     const postToProfile = parsed.data.post_to_profile ? true : false;
 
-    const validation = validatePostContent(postType, title, content, media);
+    const poll = parsed.data.poll;
+    const validation = validatePostContent(postType, title, content, media, poll !== undefined);
     if (!validation.valid) {
       return NextResponse.json({ error: validation.error }, { status: 400 });
     }
 
     const postId = uuidv4();
 
-    // Insert the post
+    // Insert the post. A poll and its options are created in the same statement.
     await prisma.post.create({
       data: {
         id: postId,
@@ -115,6 +117,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         allowReactions: parsed.data.allow_reactions,
         allowComments: parsed.data.allow_comments,
         allowDislikes: parsed.data.allow_dislikes,
+        poll: poll ? pollCreateData(poll, new Date()) : undefined,
       },
     });
 

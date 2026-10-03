@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
-import { enrichPostsWithMedia, mapPostRow } from "@/lib/post-helpers";
+import { enrichPosts, mapPostRow } from "@/lib/post-helpers";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 
 export async function GET(request: NextRequest) {
@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     );
 
     const { data, hasMore } = paginateResults(mapped, limit, page);
-    const enrichedPosts = await enrichPostsWithMedia(data);
+    const enrichedPosts = await enrichPosts(data, auth.user.userId);
 
     return NextResponse.json({ posts: enrichedPosts, hasMore, page });
   } catch (error) {
