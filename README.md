@@ -32,7 +32,8 @@ The forum is fully functional today. The world is actively in development.
 ### Forum Platform
 
 - **Communities** — Create or join communities organized by category (Gaming, Creative, Tech, etc.)
-- **Rich Posts** — Text, photo, video, and rich editor post types
+- **Rich Posts** — Text, photo, video, rich editor, and poll post types
+- **Polls** — Ask a question with two to six options, for deciding something together. Counts only, nobody's vote is shown, and by default results appear after you answer.
 - **Comments & Reactions** — Threaded comments and emoji reactions on posts
 - **Interaction controls** — The author chooses per post whether it can be liked, disliked, or commented on. Dislikes are off unless the author opts in.
 - **Feed** — Three chronological views (your friends, your communities, everyone), each stating under its heading what it shows and how it is ordered. Nothing is ranked.
@@ -249,7 +250,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Gatherings in person: invitations by letter and notification, and calendars for communities and for you
 - [x] Gatherings in the world, at an Event Mushroom the host plants
 - [x] A map of the Capital, with the places you've been and the shrines you've found saved to your account
-- [ ] Polls (designed, not built)
+- [x] Polls — a post type for deciding something together
 - [ ] Welcome tour — a once-per-version walkthrough for new members on their first visit and everyone else on their next (designed, not built)
 - [x] A bigger world: snow, swamp, lake, autumn, and the sea, from Luke's hand-drawn map
 - [ ] User-placed content sprites in the wilds
@@ -290,6 +291,32 @@ what happens to what they wrote.
 
 **What didn't change:** nobody else's posts, comments, or letters are touched, apart from the
 replies on posts you remove. One migration adds `users.deleted_at`.
+
+### v0.23.0 — Polls (October 2026)
+
+**Why:** Gatherings need a date and a place, and a thread of replies is a slow way to choose
+one. A poll asks the question once and everyone answers once. It's for coordinating, not for
+engagement, so nothing about it is ranked or announced.
+
+**What changed:**
+
+- **A Poll tab on the compose form,** in communities and on My Place. The title is your
+  question; add two to six options, and optional context.
+- **Pick one, or let people pick more than one.** Tap your choice again to take it back; in a
+  single choice poll, tapping another option moves your vote.
+- **Close it in a day, three days, or a week, or leave it open.** A closed poll keeps its
+  results and stops taking votes.
+- **Results show after you vote** by default, so nobody answers with the crowd. You can show
+  them always, or only once the poll closes. The total number of votes always shows.
+- **Counts only.** Who voted for what is never shown, and votes send no notifications.
+- Community polls are for that community's members, the same as commenting.
+
+**Behind the scenes:** the compose form now keeps each post type's fields in its own small
+component, so adding the fifth type didn't add to one form's tangle of state. Each tab's button
+also has a name screen readers can say on a phone, where its label is hidden.
+
+**What didn't change:** every feed stays chronological. One migration adds `polls`,
+`poll_options`, and `poll_votes`.
 
 ### v0.22.0 — Seeds, Flowers, and Flower Hats (October 2026)
 
