@@ -23,6 +23,8 @@ export interface WeekMetrics {
   friendships: number;
   /** Gatherings, not cancelled, that ended that week. */
   gatherings: number;
+  /** Voice calls started that week. Never who called whom. */
+  calls: number;
 }
 
 export type RetentionCell =
@@ -107,7 +109,8 @@ interface WeekCountRow {
   count: number;
 }
 
-/** Posts, comments, reactions, letters, and accepted friendships per Chicago week. */
+/** Posts, comments, reactions, letters, accepted friendships, gatherings, and
+ * calls per Chicago week. */
 async function contentByWeek(firstWeek: string): Promise<WeekCountRow[]> {
   // A day early in UTC, so the index narrows the scan without cutting off the
   // first Chicago morning; the outer filter is exact.
@@ -139,6 +142,9 @@ async function contentByWeek(firstWeek: string): Promise<WeekCountRow[]> {
       UNION ALL
       SELECT 'gatherings', date_trunc('week', ends_at AT TIME ZONE 'UTC' AT TIME ZONE ${tz})::date
         FROM gatherings WHERE status <> 'cancelled' AND ends_at >= ${since}
+      UNION ALL
+      SELECT 'calls', date_trunc('week', started_at AT TIME ZONE 'UTC' AT TIME ZONE ${tz})::date
+        FROM calls WHERE started_at >= ${since}
     ) counted
     WHERE week >= ${dayToDate(firstWeek)}
     GROUP BY kind, week`;
@@ -175,6 +181,7 @@ async function weeklyMetrics(today: string): Promise<WeekMetrics[]> {
       letters: count("letters"),
       friendships: count("friendships"),
       gatherings: count("gatherings"),
+      calls: count("calls"),
     };
   });
 }

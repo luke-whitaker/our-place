@@ -227,6 +227,30 @@ async function gatherings(userId: string, truncated: string[]) {
   };
 }
 
+/** Calls they were invited to or in, by date and their own answer. Who else
+ * was there isn't theirs alone, and those rows go after
+ * CALL_PEOPLE_RETENTION_DAYS anyway. */
+async function calls(userId: string, truncated: string[]) {
+  const rows = await prisma.callInvite.findMany({
+    where: { userId },
+    orderBy: { invitedAt: "asc" },
+    take: TAKE,
+    select: {
+      status: true,
+      invitedAt: true,
+      call: { select: { startedAt: true, endedAt: true } },
+    },
+  });
+  return {
+    calls: capped("calls", rows, truncated).map((r) => ({
+      started_at: iso(r.call.startedAt),
+      ended_at: iso(r.call.endedAt),
+      invited_at: iso(r.invitedAt),
+      your_status: r.status,
+    })),
+  };
+}
+
 async function world(userId: string, truncated: string[], now: Date) {
   const [items, pages, outfits, discoveries, plants, activity] = await Promise.all([
     prisma.item.findMany({
@@ -328,10 +352,11 @@ async function world(userId: string, truncated: string[], now: Date) {
 export async function exportAccount(userId: string) {
   const now = new Date();
   const truncated: string[] = [];
-  const [me, forumData, gatheringData, worldData] = await Promise.all([
+  const [me, forumData, gatheringData, callData, worldData] = await Promise.all([
     profile(userId),
     forum(userId, truncated),
     gatherings(userId, truncated),
+    calls(userId, truncated),
     world(userId, truncated, now),
   ]);
   return {
@@ -342,6 +367,7 @@ export async function exportAccount(userId: string) {
     profile: me,
     ...forumData,
     ...gatheringData,
+    ...callData,
     ...worldData,
   };
 }

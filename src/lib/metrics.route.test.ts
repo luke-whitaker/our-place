@@ -82,6 +82,7 @@ describe("getMetrics", () => {
       letters: 1,
       friendships: 1,
       gatherings: 0,
+      calls: 0,
     });
     expect(metrics.weeks[1]).toMatchObject({ start: "2026-09-21", activeMembers: 1, posts: 1 });
     expect(metrics.weeks[11].start).toBe("2026-07-13");
@@ -138,6 +139,26 @@ describe("getMetrics", () => {
 
     expect(metrics.weeks[0]).toMatchObject({ gatherings: 1, letters: 0 });
     expect(metrics.weeks[1]).toMatchObject({ gatherings: 1 });
+  });
+
+  it("counts calls in the week they started, with nobody's name attached", async () => {
+    const caller = await joinedOn("2026-09-02T18:00:00Z");
+    await prisma.call.create({
+      data: { startedById: caller, startedAt: new Date("2026-09-29T20:00:00Z") },
+    });
+    // A month-old call, cleared of who started it, still counts.
+    await prisma.call.create({
+      data: {
+        startedById: null,
+        startedAt: new Date("2026-09-22T20:00:00Z"),
+        endedAt: new Date("2026-09-22T21:00:00Z"),
+      },
+    });
+
+    const metrics = await getMetrics(NOW);
+
+    expect(metrics.weeks[0]).toMatchObject({ calls: 1 });
+    expect(metrics.weeks[1]).toMatchObject({ calls: 1 });
   });
 
   it("shows empty weeks and no tracking date before anything is counted", async () => {
