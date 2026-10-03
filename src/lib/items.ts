@@ -42,7 +42,15 @@ export const LOCATION_SLOTS: Record<ItemLocation, number> = {
  * or production asks the app's own origin for art that only lives on R2. */
 export const ITEM_CATALOG: Record<
   ItemKind,
-  { name: string; icon: string; discardable: boolean; mailable: boolean; deskable: boolean }
+  {
+    name: string;
+    icon: string;
+    discardable: boolean;
+    mailable: boolean;
+    deskable: boolean;
+    /** Many share one slot, counted by `items.quantity` (at most MAX_STACK). */
+    stackable: boolean;
+  }
 > = {
   notebook: {
     name: "Notebook",
@@ -50,6 +58,7 @@ export const ITEM_CATALOG: Record<
     discardable: false,
     mailable: false,
     deskable: true,
+    stackable: false,
   },
   note: {
     name: "Note",
@@ -57,6 +66,7 @@ export const ITEM_CATALOG: Record<
     discardable: true,
     mailable: true,
     deskable: true,
+    stackable: false,
   },
   // A world gathering's mushroom (its `gathering_id` says which). It arrives in
   // the host's mailbox and is planted from pockets. It can't go in the desk,
@@ -68,8 +78,9 @@ export const ITEM_CATALOG: Record<
     discardable: false,
     mailable: false,
     deskable: false,
+    stackable: false,
   },
-  // Gnomette gives the first seed; after that, a plant grown from a seed gives
+  // Gnomette gives the first five; after that, a plant grown from a seed gives
   // one back the first time its flower is picked (src/lib/plants.ts).
   seed: {
     name: "Seed",
@@ -77,6 +88,7 @@ export const ITEM_CATALOG: Record<
     discardable: true,
     mailable: true,
     deskable: true,
+    stackable: true,
   },
   // A flower carries its color on the item (`items.color`); its icon is the
   // one for that color (itemIcon below), this one only a fallback.
@@ -86,15 +98,59 @@ export const ITEM_CATALOG: Record<
     discardable: true,
     mailable: true,
     deskable: true,
+    stackable: false,
   },
 };
 
-/** What to call one item: "Pink flower" for a flower, else its kind's name. */
-export function itemName(item: { kind: ItemKind; color?: string | null }): string {
+/** The most of one stackable kind a single slot holds. Matches the
+ * `items_quantity_range` check constraint. */
+export const MAX_STACK = 99;
+
+/** What to call an item: "Pink flower" for a flower, "5 seeds" for a stack,
+ * else its kind's name. */
+export function itemName(item: {
+  kind: ItemKind;
+  color?: string | null;
+  quantity?: number;
+}): string {
   if (item.kind === "flower" && item.color) {
     return `${item.color[0].toUpperCase()}${item.color.slice(1)} flower`;
   }
-  return ITEM_CATALOG[item.kind].name;
+  const name = ITEM_CATALOG[item.kind].name;
+  const quantity = item.quantity ?? 1;
+  return quantity > 1 ? `${quantity} ${name.toLowerCase()}s` : name;
+}
+
+/** Where `count` more of a stackable kind would go: topped up into the
+ * existing stacks first (in the order given), then into new stacks in free
+ * slots. Null when they don't all fit, so the caller adds nothing. */
+export function planStackAdd(
+  stacks: readonly { id: string; quantity: number }[],
+  freeSlots: readonly number[],
+  count: number,
+): {
+  topUps: { id: string; add: number }[];
+  newStacks: { slot: number; quantity: number }[];
+} | null {
+  if (!Number.isInteger(count) || count < 1) return null;
+  let left = count;
+  const topUps: { id: string; add: number }[] = [];
+  for (const stack of stacks) {
+    if (left === 0) break;
+    const add = Math.min(MAX_STACK - stack.quantity, left);
+    if (add > 0) {
+      topUps.push({ id: stack.id, add });
+      left -= add;
+    }
+  }
+  const newStacks: { slot: number; quantity: number }[] = [];
+  for (const slot of freeSlots) {
+    if (left === 0) break;
+    const quantity = Math.min(MAX_STACK, left);
+    newStacks.push({ slot, quantity });
+    left -= quantity;
+  }
+  return left === 0 ? { topUps, newStacks } : null;
 }
 
 /** The icon to show for one item: a flower's own color, else its kind's. */

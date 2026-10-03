@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
-import { moveOwnItem, toPocketItem, isUniqueConstraintError } from "@/lib/pockets";
+import { moveOwnItem, toPocketItem, isItemRaceError } from "@/lib/pockets";
 
 // POST: take one of the caller's own desk items into their pockets. The move
 // is guarded on the caller's own id and the "desk" location, so anyone else's
@@ -34,7 +34,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
 
       return NextResponse.json({ message: "Taken.", item: toPocketItem(result.item) });
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
+      if (isItemRaceError(error)) {
         return NextResponse.json(
           { error: "Your pockets changed just then. Try again." },
           { status: 409 },

@@ -25,6 +25,38 @@ export function slotCells(
   return Array.from({ length: count }, (_, i) => bySlot.get(first + i) ?? null);
 }
 
+/** `items` with `item` in it: replacing the row with the same id, since a
+ * stack that merged into one already shown comes back under that one's id. */
+export function upsertItem(items: readonly PocketItem[], item: PocketItem): PocketItem[] {
+  return [...items.filter((i) => i.id !== item.id), item];
+}
+
+/** `items` after one of item `id` is gone: a stack shrinks by one, a single
+ * item leaves the list. */
+export function dropOne(items: readonly PocketItem[], id: string): PocketItem[] {
+  return items.flatMap((i) =>
+    i.id !== id ? [i] : i.quantity > 1 ? [{ ...i, quantity: i.quantity - 1 }] : [],
+  );
+}
+
+/** The count drawn on a stack's icon: pixel digits in the bottom-right
+ * corner, with a dark outline so they read on any icon. */
+function StackCount({ quantity }: { quantity: number }) {
+  return (
+    <span
+      aria-hidden
+      className="pointer-events-none absolute right-0.5 bottom-0 font-mono text-xs leading-none font-bold"
+      style={{
+        color: PAL.white,
+        textShadow:
+          "1px 0 0 #000, -1px 0 0 #000, 0 1px 0 #000, 0 -1px 0 #000, 1px 1px 0 #000, -1px -1px 0 #000",
+      }}
+    >
+      {quantity}
+    </span>
+  );
+}
+
 /**
  * <ItemSlotGrid /> — a 5-wide grid of item slots with 44px tap targets, shared
  * by Pockets (10 slots) and a page of the desk (10 of its 100). Empty cells
@@ -48,7 +80,7 @@ export default function ItemSlotGrid({
             onClick={() => item && onSelect(item)}
             aria-label={item ? itemName(item) : emptyLabel}
             title={item ? itemName(item) : undefined}
-            className="flex min-h-11 items-center justify-center rounded-sm border p-1"
+            className="relative flex min-h-11 items-center justify-center rounded-sm border p-1"
             style={{
               borderColor: item ? PAL.textBorder : "rgba(238,228,218,0.2)",
               backgroundColor:
@@ -66,6 +98,7 @@ export default function ItemSlotGrid({
                 style={{ imageRendering: "pixelated" }}
               />
             )}
+            {item && item.quantity > 1 && <StackCount quantity={item.quantity} />}
           </button>
         );
       })}

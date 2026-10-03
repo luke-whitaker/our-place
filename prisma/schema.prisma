@@ -284,6 +284,9 @@ model Item {
   // other kind. A column rather than the body, so a note can never pass as
   // a red flower.
   color       String?
+  // How many share this slot. Only stackable kinds (ITEM_CATALOG) go above
+  // 1, never past MAX_STACK; a check constraint keeps it between 1 and 99.
+  quantity    Int       @default(1)
   createdAt   DateTime  @default(now()) @map("created_at")
 
   owner     User       @relation("ItemOwner", fields: [ownerId], references: [id], onDelete: Cascade)

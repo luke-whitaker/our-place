@@ -7,7 +7,7 @@ import { PAL } from "@/lib/game/constants";
 import OverlayPanel from "@/components/OverlayPanel";
 import InlineConfirm from "@/components/InlineConfirm";
 import OverlayActionButton from "@/components/OverlayActionButton";
-import ItemSlotGrid, { slotCells } from "@/components/ItemSlotGrid";
+import ItemSlotGrid, { dropOne, slotCells, upsertItem } from "@/components/ItemSlotGrid";
 import type { DeskContents, PocketItem } from "@/lib/types";
 
 const PAGE_COUNT = DESK_SLOTS / DESK_PAGE_SLOTS;
@@ -108,8 +108,12 @@ export default function DeskPanel({ initialPage, onClose, onReadNote }: DeskPane
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ item_id: item.id, slot }),
       });
+      // A stack may merge into one already in the desk, so place by id.
       return (c) => ({
-        desk: [...c.desk, res.item],
+        desk: upsertItem(
+          c.desk.filter((i) => i.id !== item.id),
+          res.item,
+        ),
         pockets: c.pockets.filter((i) => i.id !== item.id),
       });
     }, "Failed to put that away.");
@@ -122,7 +126,7 @@ export default function DeskPanel({ initialPage, onClose, onReadNote }: DeskPane
       });
       return (c) => ({
         desk: c.desk.filter((i) => i.id !== item.id),
-        pockets: [...c.pockets, res.item],
+        pockets: upsertItem(c.pockets, res.item),
       });
     }, "Failed to take that out.");
   }
@@ -130,7 +134,7 @@ export default function DeskPanel({ initialPage, onClose, onReadNote }: DeskPane
   function discard(item: PocketItem) {
     void act(async () => {
       await apiFetch(`/api/pockets/${item.id}`, { method: "DELETE" });
-      return (c) => ({ ...c, desk: c.desk.filter((i) => i.id !== item.id) });
+      return (c) => ({ ...c, desk: dropOne(c.desk, item.id) });
     }, "Failed to throw that away.");
   }
 

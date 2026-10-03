@@ -274,7 +274,9 @@ and wear.
 
 **What changed:**
 
-- **Gnomette, by the mirror pond, gives you a seed** the first time you talk to her.
+- **Gnomette, by the mirror pond, gives you five seeds** the first time you talk to her.
+- **Seeds stack:** they share one pocket slot, with the count on the icon (up to 99 in a slot).
+  Planting takes one; a seed you dig up or find in a flower joins the stack.
 - **Plant it from Pockets** on the tile in front of you, on your own island or anywhere open in
   the Capital. It shows as a little mound with a sprout and blooms 12 to 24 hours later. Nobody,
   not even you, learns its color until it blooms.
@@ -285,13 +287,13 @@ and wear.
   Seeds and flowers never block a path.
 - **The Capital is shared,** so each member can have 10 things growing there at once. Your own
   island holds up to 200.
-- **Leave a gift in a friend's mailbox:** seeds and flowers go in like letters, and the
-  flower keeps its color.
+- **Leave a gift in a friend's mailbox:** seeds and flowers go in like letters, one seed at a
+  time from a stack, and the flower keeps its color.
 - **Wear a flower** from Pockets. Everyone in the world sees it on your head, and Ghost Mode
   hides it along with the rest of you. Pockets shows what you're wearing, with Take off.
 
 **What didn't change:** nothing grows inside buildings or houses, or on someone else's island.
-One migration adds `world_plants` and `items.color`.
+Two migrations add `world_plants`, `items.color`, and `items.quantity`.
 
 ### v0.21.0 — The Map (October 2026)
 

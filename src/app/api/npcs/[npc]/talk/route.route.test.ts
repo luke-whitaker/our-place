@@ -62,7 +62,7 @@ describe("POST /api/npcs/[npc]/talk", () => {
     expect((await retry.json()).state).toBe("gift");
   });
 
-  it("gives Gnomette's seed once, then only chats after", async () => {
+  it("gives Gnomette's five seeds once, as one stack, then only chats after", async () => {
     const user = await createTestUser();
     authAs(user);
 
@@ -70,13 +70,45 @@ describe("POST /api/npcs/[npc]/talk", () => {
     expect(first.status).toBe(200);
     const body = await first.json();
     expect(body.state).toBe("gift");
-    expect(body.item.kind).toBe("seed");
-    expect(body.item.color).toBeNull();
+    expect(body.count).toBe(5);
+    expect(body.item).toMatchObject({ kind: "seed", color: null, quantity: 5 });
 
     const second = await talk("gnomette");
     expect(await second.json()).toEqual({ state: "after" });
-    const seeds = await prisma.item.count({ where: { ownerId: user.userId, kind: "seed" } });
-    expect(seeds).toBe(1);
+    const seeds = await prisma.item.findMany({
+      where: { ownerId: user.userId, kind: "seed" },
+      select: { quantity: true },
+    });
+    expect(seeds).toEqual([{ quantity: 5 }]);
+  });
+
+  it("adds Gnomette's seeds to a stack already in full pockets", async () => {
+    const user = await createTestUser();
+    authAs(user);
+    await createTestItem({ ownerId: user.userId, kind: "seed", slot: 0, quantity: 2 });
+    for (let slot = 1; slot < 10; slot++) {
+      await createTestItem({ ownerId: user.userId, kind: "note", slot });
+    }
+
+    const res = await talk("gnomette");
+
+    expect((await res.json()).item).toMatchObject({ kind: "seed", slot: 0, quantity: 7 });
+  });
+
+  it("keeps Gnomette's seeds when full pockets hold no seed stack with room", async () => {
+    const user = await createTestUser();
+    authAs(user);
+    await createTestItem({ ownerId: user.userId, kind: "seed", slot: 0, quantity: 97 });
+    for (let slot = 1; slot < 10; slot++) {
+      await createTestItem({ ownerId: user.userId, kind: "note", slot });
+    }
+
+    expect((await (await talk("gnomette")).json()).state).toBe("pockets_full");
+    const stack = await prisma.item.findFirstOrThrow({
+      where: { ownerId: user.userId, kind: "seed" },
+    });
+    expect(stack.quantity).toBe(97);
+    expect(await prisma.npcGift.findFirst({ where: { userId: user.userId } })).toBeNull();
   });
 
   it("returns 404 for an npc that doesn't exist", async () => {

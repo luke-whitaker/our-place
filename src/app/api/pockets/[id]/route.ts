@@ -2,10 +2,11 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
-import { ITEM_CATALOG, isItemKind } from "@/lib/items";
+import { ITEM_CATALOG, isItemKind, type ItemLocation } from "@/lib/items";
+import { takeOne } from "@/lib/pockets";
 
 // DELETE: throw away one of the caller's own items, wherever it sits —
-// pockets or their own mailbox. The Notebook can never be thrown away; an
+// pockets or their own mailbox. A stack loses one at a time. The Notebook can never be thrown away; an
 // Event Mushroom only once its gathering is cancelled or gone.
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
@@ -56,7 +57,11 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       );
     }
 
-    await prisma.item.delete({ where: { id } });
+    const location = item.location as ItemLocation;
+    const thrown = await prisma.$transaction((tx) => takeOne(tx, auth.user.userId, id, location));
+    if (!thrown) {
+      return NextResponse.json({ error: "Item not found." }, { status: 404 });
+    }
 
     return NextResponse.json({ message: "Thrown away." });
   } catch (error) {

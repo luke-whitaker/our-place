@@ -20,6 +20,8 @@ export interface PocketItem {
   gathering_id: string | null;
   /** A flower's color; null for every other kind. */
   color: FlowerColor | null;
+  /** How many share the slot: above 1 only for a stackable kind (seeds). */
+  quantity: number;
   /** An Event Mushroom's gathering, filled in by GET /api/pockets only. */
   mushroom?: PocketMushroomInfo | null;
 }
@@ -53,4 +55,7 @@ export type NpcTalkState = "gift" | "after" | "pockets_full" | "chat";
 export interface NpcTalkResult {
   state: NpcTalkState;
   item?: PocketItem;
+  /** How many were given ("5 seeds"); the item may be a bigger stack they
+   * joined. */
+  count?: number;
 }

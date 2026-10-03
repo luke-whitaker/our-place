@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import { v4 as uuidv4 } from "uuid";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
-import { ITEM_SELECT, isUniqueConstraintError, toPocketItem } from "@/lib/pockets";
-import { POCKET_SLOTS } from "@/lib/items";
+import { addItems, isItemRaceError, toPocketItem } from "@/lib/pockets";
 import { isBloomed, plantById } from "@/lib/plants";
 
 /** A write that lost a race inside its transaction: thrown to roll it back,
@@ -48,34 +46,23 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
       : [{ kind: "seed", color: null }];
 
     const items = await prisma.$transaction(async (tx) => {
-      const occupied = await tx.item.findMany({
-        where: { ownerId: me, location: "pocket" },
-        select: { slot: true },
-      });
-      const taken = new Set(occupied.map((i) => i.slot));
-      const free = Array.from({ length: POCKET_SLOTS }, (_, slot) => slot).filter(
-        (slot) => !taken.has(slot),
-      );
-      if (free.length < returns.length) {
-        throw new PickConflict(
-          returns.length === 2
-            ? "Make room for two things in your pockets: the flower and its seed."
-            : "Make room in your pockets first.",
-        );
-      }
       const lifted = await tx.worldPlant.deleteMany({ where: { id, ownerId: me } });
       if (lifted.count !== 1) throw new PickConflict("Someone just picked that.");
-      // One at a time: an interactive transaction runs on one connection.
-      const created = [];
-      for (const [i, r] of returns.entries()) {
-        created.push(
-          await tx.item.create({
-            data: { id: uuidv4(), ownerId: me, kind: r.kind, color: r.color, slot: free[i] },
-            select: ITEM_SELECT,
-          }),
-        );
+      // One at a time: an interactive transaction runs on one connection. A
+      // seed joins the seed stack already in pockets before taking a slot.
+      const landed = [];
+      for (const r of returns) {
+        const rows = await addItems(tx, me, "pocket", r.kind, 1, { color: r.color });
+        if (!rows) {
+          throw new PickConflict(
+            returns.length === 2
+              ? "Make room in your pockets for the flower and its seed."
+              : "Make room in your pockets first.",
+          );
+        }
+        landed.push(...rows);
       }
-      return created;
+      return landed;
     });
 
     const message = !bloomed
@@ -86,8 +73,7 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     return NextResponse.json({ message, items: items.map(toPocketItem) });
   } catch (error) {
     if (error instanceof PickConflict) return refuse(error.message, 409);
-    if (isUniqueConstraintError(error))
-      return refuse("Your pockets changed just then. Try again.", 409);
+    if (isItemRaceError(error)) return refuse("Your pockets changed just then. Try again.", 409);
     console.error("Pick plant error:", error);
     return refuse("Failed to pick that up.", 500);
   }

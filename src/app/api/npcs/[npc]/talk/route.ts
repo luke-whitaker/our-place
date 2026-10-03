@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { v4 as uuidv4 } from "uuid";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
 import { isNpcId, NPC_GIFTS } from "@/lib/npcs";
-import { firstFreeSlot, toPocketItem, isUniqueConstraintError, ITEM_SELECT } from "@/lib/pockets";
+import { addItems, isUniqueConstraintError, StackRaceError, toPocketItem } from "@/lib/pockets";
 
 // POST: talk to an NPC. gift/after/pockets_full/chat are dialogue branches
 // the world client renders, not error states, so they're all 200 — the only
@@ -45,24 +44,34 @@ export async function POST(_request: Request, { params }: { params: Promise<{ np
       // double gift under concurrency; the findUnique above is just the
       // common-case fast path. A P2002 here means a concurrent talk already
       // won that race, so it's read the same as "after" rather than a 500.
-      const created = await prisma.$transaction(async (tx) => {
-        const slot = await firstFreeSlot(tx, auth.user.userId, "pocket");
-        if (slot === null) return null;
-
+      // A stackable gift (Gnomette's seeds) tops up a stack already in
+      // pockets first; when it doesn't all fit, nothing is given and the gnome
+      // keeps it for next time.
+      const given = await prisma.$transaction(async (tx) => {
+        const rows = await addItems(tx, auth.user.userId, "pocket", gift.kind, gift.quantity);
+        if (!rows) return null;
         await tx.npcGift.create({ data: { userId: auth.user.userId, giftId: gift.giftId } });
-        return tx.item.create({
-          data: { id: uuidv4(), ownerId: auth.user.userId, kind: gift.kind, slot },
-          select: ITEM_SELECT,
-        });
+        return rows;
       });
 
-      if (!created) {
+      if (!given) {
         return NextResponse.json({ state: "pockets_full" });
       }
-      return NextResponse.json({ state: "gift", item: toPocketItem(created) });
+      return NextResponse.json({
+        state: "gift",
+        item: toPocketItem(given[0]),
+        count: gift.quantity,
+      });
     } catch (error) {
       if (isUniqueConstraintError(error)) {
         return NextResponse.json({ state: "after" });
+      }
+      // Something else moved the seed stack mid-gift: nothing was given.
+      if (error instanceof StackRaceError) {
+        return NextResponse.json(
+          { error: "Your pockets changed just then. Try again." },
+          { status: 409 },
+        );
       }
       throw error;
     }

@@ -2,10 +2,10 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { apiFetch, userMessage } from "@/lib/api-client";
-import { ITEM_CATALOG } from "@/lib/items";
+import { ITEM_CATALOG, itemName } from "@/lib/items";
 import { NPC_DIALOGUE, dialogueLinesFor, type DialogueLine } from "@/lib/game/npc-dialogue";
 import type { NpcId } from "@/lib/npcs";
-import type { NpcTalkResult, NpcTalkState, PocketItem } from "@/lib/types";
+import type { NpcTalkResult, PocketItem } from "@/lib/types";
 import DialogueBox from "@/components/DialogueBox";
 
 interface WorldDialogueProps {
@@ -33,7 +33,12 @@ interface ResolvedLine {
   italic?: boolean;
 }
 
-function resolveLine(name: string, line: DialogueLine, item: PocketItem | undefined): ResolvedLine {
+function resolveLine(
+  name: string,
+  line: DialogueLine,
+  item: PocketItem | undefined,
+  count: number,
+): ResolvedLine {
   if (line.kind === "say") return { speaker: name, text: line.text };
   if (line.kind === "say-random") {
     const text = line.options[Math.floor(Math.random() * line.options.length)];
@@ -43,17 +48,21 @@ function resolveLine(name: string, line: DialogueLine, item: PocketItem | undefi
   // authored copy, so this never drifts from what ITEM_CATALOG calls it.
   if (!item) return { speaker: null, text: "Something went into your pockets.", italic: true };
   const catalog = ITEM_CATALOG[item.kind];
+  const what =
+    count > 1 ? `${itemName({ kind: item.kind, quantity: count })}` : `The ${catalog.name}`;
   return {
     speaker: null,
-    text: `The ${catalog.name} went into your pockets.`,
+    text: `${what[0].toUpperCase()}${what.slice(1)} went into your pockets.`,
     icon: catalog.icon,
     italic: true,
   };
 }
 
-function resolveLines(npcId: NpcId, state: NpcTalkState, item: PocketItem | undefined) {
+function resolveLines(npcId: NpcId, result: NpcTalkResult) {
   const name = NPC_DIALOGUE[npcId].name;
-  return dialogueLinesFor(npcId, state).map((line) => resolveLine(name, line, item));
+  return dialogueLinesFor(npcId, result.state).map((line) =>
+    resolveLine(name, line, result.item, result.count ?? 1),
+  );
 }
 
 /**
@@ -94,9 +103,8 @@ export default function WorldDialogue({ npcId, signedIn, onClose }: WorldDialogu
   // matters for React re-rendering this component for other reasons.
   const lines = useMemo<ResolvedLine[]>(() => {
     if (fetchState.status === "visitor")
-      return NPC_DIALOGUE[npcId].visitor.map((line) => resolveLine(name, line, undefined));
-    if (fetchState.status === "ok")
-      return resolveLines(npcId, fetchState.data.state, fetchState.data.item);
+      return NPC_DIALOGUE[npcId].visitor.map((line) => resolveLine(name, line, undefined, 1));
+    if (fetchState.status === "ok") return resolveLines(npcId, fetchState.data);
     if (fetchState.status === "error") return [{ speaker: name, text: fetchState.message }];
     return [{ speaker: name, text: "…" }];
   }, [fetchState, npcId, name]);

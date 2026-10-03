@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
 import { getZodErrorMessage, mushroomWorldSchema, plantSchema } from "@/lib/schemas";
 import { checkWorldAccess, parseWorldId } from "@/lib/presence-access";
-import { isUniqueConstraintError } from "@/lib/pockets";
+import { isUniqueConstraintError, takeOne } from "@/lib/pockets";
 import { plantingWorld, plantsInWorld, toPlantWire } from "@/lib/plants";
 import { chooseBloom, isFlowerColor, plantCap, plotProblem } from "@/lib/game/plants";
 
@@ -105,10 +105,9 @@ export async function POST(request: Request) {
           409,
         );
       }
-      const taken = await tx.item.deleteMany({
-        where: { id: itemId, ownerId: me, location: "pocket" },
-      });
-      if (taken.count !== 1) throw new PlantConflict("That just left your pockets.", 409);
+      // One seed off a stack (or the single item's row).
+      const taken = await takeOne(tx, me, itemId, "pocket");
+      if (!taken) throw new PlantConflict("That just left your pockets.", 409);
       return tx.worldPlant.create({
         data: { ownerId: me, worldId, col, row, plantedAt: now, ...growth },
         select: {

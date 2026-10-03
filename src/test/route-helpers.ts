@@ -92,6 +92,7 @@ export async function createTestItem(overrides: {
   fromId?: string | null;
   placedAt?: Date | null;
   color?: string | null;
+  quantity?: number;
 }): Promise<string> {
   const item = await prisma.item.create({
     data: {
@@ -104,6 +105,7 @@ export async function createTestItem(overrides: {
       fromId: overrides.fromId ?? null,
       placedAt: overrides.placedAt ?? null,
       color: overrides.color ?? null,
+      quantity: overrides.quantity ?? 1,
     },
     select: { id: true },
   });

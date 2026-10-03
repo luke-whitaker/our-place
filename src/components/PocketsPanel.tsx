@@ -6,7 +6,7 @@ import { ITEM_CATALOG, POCKET_SLOTS, itemIcon, itemName } from "@/lib/items";
 import { worldAsset } from "@/lib/game/asset-url";
 import { PAL } from "@/lib/game/constants";
 import OverlayPanel from "@/components/OverlayPanel";
-import ItemSlotGrid, { slotCells } from "@/components/ItemSlotGrid";
+import ItemSlotGrid, { dropOne, slotCells } from "@/components/ItemSlotGrid";
 import InlineConfirm from "@/components/InlineConfirm";
 import OverlayActionButton from "@/components/OverlayActionButton";
 import { WORLD_TIME_ZONE } from "@/lib/time-utils";
@@ -81,8 +81,9 @@ export default function PocketsPanel({
     if (!selected) return;
     try {
       await apiFetch(`/api/pockets/${selected.id}`, { method: "DELETE" });
-      setItems((prev) => (prev ?? []).filter((i) => i.id !== selected.id));
-      setSelectedId(null);
+      setItems((prev) => dropOne(prev ?? [], selected.id));
+      // A stack stays selected while some are left.
+      if (selected.quantity <= 1) setSelectedId(null);
     } catch (err) {
       setError(userMessage(err, "Failed to throw that away."));
     } finally {
@@ -184,7 +185,7 @@ export default function PocketsPanel({
           )}
           {confirmingDiscard ? (
             <InlineConfirm
-              message={`Throw this ${itemName(selected).toLowerCase()} away? It's gone for good.`}
+              message={discardQuestion(selected)}
               onConfirm={discardSelected}
               onCancel={() => setConfirmingDiscard(false)}
             />
@@ -293,4 +294,14 @@ function startsAt(iso: string): string {
     minute: "2-digit",
     timeZoneName: "short",
   });
+}
+
+/** "Throw this note away?", or for a stack, "Throw one seed away?": a stack
+ * loses one at a time. */
+function discardQuestion(item: PocketItem): string {
+  const one =
+    item.quantity > 1
+      ? `one ${itemName({ kind: item.kind }).toLowerCase()}`
+      : `this ${itemName(item).toLowerCase()}`;
+  return `Throw ${one} away? It's gone for good.`;
 }

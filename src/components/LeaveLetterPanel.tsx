@@ -6,6 +6,7 @@ import { ITEM_CATALOG, itemName } from "@/lib/items";
 import { PAL } from "@/lib/game/constants";
 import OverlayPanel from "@/components/OverlayPanel";
 import OverlayActionButton from "@/components/OverlayActionButton";
+import { dropOne } from "@/components/ItemSlotGrid";
 import type { PocketItem } from "@/lib/types";
 import type { WorldFixture } from "@/lib/game/types";
 
@@ -78,11 +79,12 @@ export default function LeaveLetterPanel({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ item_id: item.id }),
       });
-      setItems((prev) => (prev ?? []).filter((i) => i.id !== item.id));
+      // A stack gives one at a time, so it shrinks rather than leaves.
+      setItems((prev) => dropOne(prev ?? [], item.id));
       setNotice(
         item.kind === "note"
           ? `You left a letter for ${ownerDisplayName}.`
-          : `You left ${ownerDisplayName} a gift: ${itemName(item).toLowerCase()}.`,
+          : `You left ${ownerDisplayName} a gift: ${itemName({ ...item, quantity: 1 }).toLowerCase()}.`,
       );
       onMailChange(true);
     } catch (err) {
@@ -125,7 +127,11 @@ export default function LeaveLetterPanel({
               </span>
               <div className="shrink-0">
                 <OverlayActionButton onClick={() => leave(item)} disabled={leavingId === item.id}>
-                  {leavingId === item.id ? "Leaving..." : "Leave it here"}
+                  {leavingId === item.id
+                    ? "Leaving..."
+                    : item.quantity > 1
+                      ? "Leave one here"
+                      : "Leave it here"}
                 </OverlayActionButton>
               </div>
             </div>

@@ -81,14 +81,14 @@ export const NPC_DIALOGUE: Record<NpcId, NpcDialogue> = {
         { kind: "say", text: "Oh! You found me. I'm Gnomette." },
         {
           kind: "say",
-          text: "I've been keeping something small and very patient for you. Here.",
+          text: "I've been keeping some small and very patient things for you. Here.",
         },
         { kind: "system" },
         {
           kind: "say",
-          text: "Plant it on your island, or somewhere out here, and give it a day or so. Twelve hours, maybe twenty-four. Seeds don't like being rushed.",
+          text: "Plant them on your island, or somewhere out here, and give each a day or so. Twelve hours, maybe twenty-four. Seeds don't like being rushed.",
         },
-        { kind: "say", text: "I won't tell you what it becomes. That's the fun part." },
+        { kind: "say", text: "I won't tell you what they become. That's the fun part." },
       ],
       after: [
         { kind: "say", text: "Oh! You came back." },

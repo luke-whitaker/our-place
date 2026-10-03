@@ -299,7 +299,7 @@ describe("DELETE /api/world/plants/[id]", () => {
     const res = await pick(id);
 
     expect(res.status).toBe(409);
-    expect((await res.json()).error).toMatch(/two things/);
+    expect((await res.json()).error).toMatch(/the flower and its seed/);
     expect(await prisma.worldPlant.count()).toBe(1);
   });
 

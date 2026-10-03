@@ -3,7 +3,7 @@ import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
 import { deskStoreSchema, getZodErrorMessage } from "@/lib/schemas";
-import { ITEM_SELECT, isUniqueConstraintError, moveOwnItem, toPocketItem } from "@/lib/pockets";
+import { ITEM_SELECT, isItemRaceError, moveOwnItem, toPocketItem } from "@/lib/pockets";
 import { ITEM_CATALOG, isItemKind } from "@/lib/items";
 
 // The house desk belongs to the signed-in member alone. Neither handler takes
@@ -78,7 +78,7 @@ export async function POST(request: Request) {
 
       return NextResponse.json({ message: "Put away.", item: toPocketItem(result.item) });
     } catch (error) {
-      if (isUniqueConstraintError(error)) {
+      if (isItemRaceError(error)) {
         return NextResponse.json(
           { error: "Your desk changed just then. Try again." },
           { status: 409 },

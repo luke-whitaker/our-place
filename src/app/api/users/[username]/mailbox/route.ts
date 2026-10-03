@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
+import { v4 as uuidv4 } from "uuid";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
 import { leaveLetterSchema, getZodErrorMessage } from "@/lib/schemas";
 import { isItemKind, ITEM_CATALOG } from "@/lib/items";
-import { firstFreeSlot, isUniqueConstraintError } from "@/lib/pockets";
+import { firstFreeSlot, isUniqueConstraintError, takeOne } from "@/lib/pockets";
 import { requireIslandAccess } from "@/lib/islands";
 
 // GET: whether a member's mailbox holds any mail — the flag the world shows
@@ -85,9 +86,10 @@ export async function POST(
     if (!isItemKind(item.kind)) {
       throw new Error(`Unknown item kind "${item.kind}" on item ${item.id}`);
     }
-    if (!ITEM_CATALOG[item.kind].mailable) {
+    const kind = item.kind;
+    if (!ITEM_CATALOG[kind].mailable) {
       return NextResponse.json(
-        { error: `The ${ITEM_CATALOG[item.kind].name} can't go in a mailbox.` },
+        { error: `The ${ITEM_CATALOG[kind].name} can't go in a mailbox.` },
         { status: 400 },
       );
     }
@@ -96,6 +98,24 @@ export async function POST(
       const outcome = await prisma.$transaction(async (tx): Promise<LeaveOutcome> => {
         const slot = await firstFreeSlot(tx, gate.owner.id, "mailbox");
         if (slot === null) return "mailbox_full";
+
+        // A stack gives one at a time: one seed leaves the sender's stack and
+        // lands as its own gift, so the mailbox keeps who sent which.
+        if (ITEM_CATALOG[kind].stackable) {
+          if (!(await takeOne(tx, auth.user.userId, item.id, "pocket"))) return "item_gone";
+          await tx.item.create({
+            data: {
+              id: uuidv4(),
+              ownerId: gate.owner.id,
+              kind,
+              location: "mailbox",
+              slot,
+              fromId: auth.user.userId,
+              placedAt: new Date(),
+            },
+          });
+          return "moved";
+        }
 
         // Guarded write: only moves the item if it's still the sender's and
         // still in their pockets, so a concurrent double-send can't move it
