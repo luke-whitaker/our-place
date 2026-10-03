@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { blockMember, MAX_BLOCKS } from "@/lib/blocks";
+import { separateInCalls } from "@/lib/calls";
 import { presenceHub } from "@/lib/presence";
 import { blockLimiter } from "@/lib/rate-limit";
 import { blockMemberSchema, getZodErrorMessage } from "@/lib/schemas";
@@ -87,6 +88,7 @@ export async function POST(request: NextRequest) {
       );
     }
     presenceHub().setBlocked(me, target.id, true);
+    await separateInCalls(me, target.id, new Date());
     return NextResponse.json({ message: `You blocked ${target.displayName}.` }, { status: 201 });
   } catch (error) {
     console.error("Block member error:", error);

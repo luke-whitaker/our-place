@@ -8,6 +8,7 @@ import { forgetVisit } from "@/lib/activity";
 import { presenceHub } from "@/lib/presence";
 import { deleteAccount, deleteUploadedMedia } from "@/lib/account-deletion";
 import { emailStillInvited } from "@/lib/gathering-emails";
+import { leaveEveryCall } from "@/lib/calls";
 
 // POST: delete the caller's own account, after checking their password. The
 // member chooses whether their posts and comments go too ("remove_everything")
@@ -50,6 +51,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Current password is incorrect." }, { status: 403 });
     }
 
+    // Out of any call first, so LiveKit drops them while the rows still say
+    // where they were; deleteAccount then removes those rows.
+    await leaveEveryCall(me, new Date());
     const { mediaKeys, cancelledGatheringIds } = await deleteAccount(me, parsed.data.mode);
     // The account is gone either way; these only tidy up after it. Guests of
     // a gathering it cancelled get the same email as any cancellation, one

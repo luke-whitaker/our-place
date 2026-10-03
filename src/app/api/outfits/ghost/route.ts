@@ -4,10 +4,12 @@ import { requireAuth } from "@/lib/auth";
 import { ghostModeSchema, getZodErrorMessage } from "@/lib/schemas";
 import { presenceHub } from "@/lib/presence";
 import { armoireRateLimited } from "@/lib/outfits";
+import { leaveEveryCall } from "@/lib/calls";
 
 // POST { on }: turn Ghost Mode on or off. While it's on, nobody else in the
 // world sees the caller or their emotes; it stays on across visits until they
-// change it here. The presence hub applies it at once to everyone nearby.
+// change it here. The presence hub applies it at once to everyone nearby, and
+// a ghost can't be heard either: turning it on takes them out of any call.
 export async function POST(request: Request) {
   try {
     const auth = await requireAuth();
@@ -25,6 +27,7 @@ export async function POST(request: Request) {
 
     await prisma.user.update({ where: { id: userId }, data: { ghost } });
     presenceHub().setGhost(userId, ghost);
+    if (ghost) await leaveEveryCall(userId, new Date());
 
     return NextResponse.json({
       message: ghost ? "You're a ghost now. Nobody else can see you." : "You're visible again.",

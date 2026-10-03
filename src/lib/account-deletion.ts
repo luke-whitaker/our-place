@@ -184,6 +184,14 @@ export async function deleteAccount(
       });
       const cancelled = await settleGatherings(tx, userId, mode, now);
       await tx.gatheringInvite.deleteMany({ where: { userId } });
+      // The route has already taken them out of any call they were in. Calls
+      // keep their dates for the metrics count, never the former member.
+      await tx.callInvite.deleteMany({ where: { userId } });
+      await tx.callInvite.updateMany({
+        where: { invitedById: userId },
+        data: { invitedById: null },
+      });
+      await tx.call.updateMany({ where: { startedById: userId }, data: { startedById: null } });
       await removeReactions(tx, userId);
       await removePollVotes(tx, userId);
       if (mode === "remove_everything") {
