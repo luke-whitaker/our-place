@@ -76,5 +76,5 @@ export type {
   PocketMushroomInfo,
 } from "./gatherings";
 
-export { MAX_PICKED_INVITEES } from "./gatherings";
+export { MAX_COMMUNITY_INVITEES, MAX_PICKED_INVITEES } from "./gatherings";
 export type { PlantWire, PlantsInWorld, PickedPlant, WornHat } from "./plants";

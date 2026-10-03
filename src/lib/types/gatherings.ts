@@ -1,8 +1,12 @@
 // Gathering wire types, as the /api/gatherings routes return them.
 
 /** The most members a host may pick by hand. A community gathering invites the
- * whole community instead, capped by MAX_COMMUNITY_INVITEES in @/lib/gatherings. */
+ * whole community instead, capped by MAX_COMMUNITY_INVITEES. */
 export const MAX_PICKED_INVITEES = 100;
+
+/** A community gathering invites every member; past this many, it's refused
+ * rather than writing an unbounded number of letters in one request. */
+export const MAX_COMMUNITY_INVITEES = 500;
 
 /** In person (with an address) or in the world (from v0.20.0). */
 export type GatheringKind = "in_person" | "world";

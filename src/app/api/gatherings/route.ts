@@ -6,6 +6,7 @@ import { createGatheringLimiter } from "@/lib/rate-limit";
 import { createGatheringSchema, getZodErrorMessage } from "@/lib/schemas";
 import { blockedIdsFor } from "@/lib/blocks";
 import { inviteMembers, MAX_COMMUNITY_INVITEES, timesProblem } from "@/lib/gatherings";
+import { emailGathering } from "@/lib/gathering-emails";
 import { firstFreeSlot, isUniqueConstraintError } from "@/lib/pockets";
 
 type Invitees = { ok: true; ids: string[] } | { ok: false; response: NextResponse };
@@ -144,8 +145,8 @@ export async function POST(request: NextRequest) {
               respondedAt: new Date(),
             },
           });
-          await inviteMembers(tx, gathering, invitees.ids);
-          return gathering;
+          const invited = await inviteMembers(tx, gathering, invitees.ids);
+          return { id: gathering.id, invited };
         },
         // A community gathering writes up to three rows per member.
         { timeout: 20_000 },
@@ -167,6 +168,9 @@ export async function POST(request: NextRequest) {
         { status: 409 },
       );
     }
+    // After the commit, and not awaited: the invitations exist whether or
+    // not the emails go out, and emailGathering logs its own failures.
+    void emailGathering("invited", gathering.id, gathering.invited);
 
     return NextResponse.json(
       {

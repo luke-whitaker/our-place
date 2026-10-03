@@ -6,6 +6,7 @@
 // scheduled and unplanted, so two runs racing can't notify twice.
 
 import prisma from "@/lib/db";
+import { emailStillInvited } from "@/lib/gathering-emails";
 
 /** How many overdue gatherings one run cancels. Anything past it waits for
  * the next run, so a backlog can never make one request slow. */
@@ -52,7 +53,10 @@ export async function cancelUnplanted(now: Date = new Date()): Promise<number> {
   });
   let count = 0;
   for (const g of overdue) {
-    if (await cancelOne(g.id, g.hostId, now)) count++;
+    if (!(await cancelOne(g.id, g.hostId, now))) continue;
+    count++;
+    // Not awaited, so a sweep run inside a page load never waits on email.
+    void emailStillInvited("unplanted", g.id);
   }
   return count;
 }

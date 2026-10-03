@@ -11,9 +11,7 @@ import { mushroomPortal } from "@/lib/event-mushrooms";
 import { isBlockedEitherWay } from "@/lib/blocks";
 import type { GatheringAnswer, GatheringEntry, GatheringKind } from "@/lib/types";
 
-/** A community gathering invites every member; past this many, it's refused
- * rather than writing an unbounded number of letters in one request. */
-export const MAX_COMMUNITY_INVITEES = 500;
+export { MAX_COMMUNITY_INVITEES } from "@/lib/types";
 /** The longest a gathering may run. */
 export const MAX_GATHERING_MS = 7 * 24 * 60 * 60 * 1000;
 /** How far ahead a gathering may be planned. */
@@ -175,15 +173,16 @@ async function freeMailboxSlots(
  * createMany rather than notify() per person, because a community gathering
  * can invite hundreds at once; the host is never among the recipients, which
  * is the only thing notify() would otherwise check. A full mailbox skips the
- * letter, never the invitation or the notification.
+ * letter, never the invitation or the notification. Returns who was invited,
+ * for the emails sent after the commit.
  */
 export async function inviteMembers(
   tx: Prisma.TransactionClient,
   gathering: { id: string; hostId: string; title: string; startsAt: Date },
   inviteeIds: string[],
-): Promise<void> {
+): Promise<string[]> {
   const ids = [...new Set(inviteeIds)].filter((id) => id !== gathering.hostId);
-  if (ids.length === 0) return;
+  if (ids.length === 0) return ids;
   await tx.gatheringInvite.createMany({
     data: ids.map((userId) => ({ gatheringId: gathering.id, userId })),
   });
@@ -210,6 +209,7 @@ export async function inviteMembers(
       gatheringId: gathering.id,
     })),
   });
+  return ids;
 }
 
 /**

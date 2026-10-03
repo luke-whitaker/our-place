@@ -107,14 +107,14 @@ async function leaveCommunities(tx: Prisma.TransactionClient, userId: string): P
  * cancel path, so everyone going is told. Every hosted gathering loses its
  * address and description (an address may be a home). Under "remove
  * everything" the rest go, keeping only the ones cancelled now, whose notices
- * guests still need to read.
+ * guests still need to read. Returns the ones cancelled now.
  */
 async function settleGatherings(
   tx: Prisma.TransactionClient,
   userId: string,
   mode: DeletionMode,
   now: Date,
-): Promise<void> {
+): Promise<string[]> {
   const open = await tx.gathering.findMany({
     where: { hostId: userId, status: "scheduled", endsAt: { gt: now } },
     select: { id: true },
@@ -130,6 +130,7 @@ async function settleGatherings(
   if (mode === "remove_everything") {
     await tx.gathering.deleteMany({ where: { hostId: userId, id: { notIn: cancelledNow } } });
   }
+  return cancelledNow;
 }
 
 /** Wipe the row down to a tombstone that can never sign in or be found. */
@@ -150,6 +151,7 @@ async function tombstone(tx: Prisma.TransactionClient, userId: string, now: Date
       islandVisibility: "nobody",
       ghost: true,
       excludeFromMetrics: true,
+      emailGatherings: false,
       role: "former",
       resetCodeHash: null,
       resetCodeAttempts: 0,
@@ -162,22 +164,25 @@ async function tombstone(tx: Prisma.TransactionClient, userId: string, now: Date
 }
 
 /**
- * Delete a member's account in one transaction. Returns the R2 keys of the
- * media they uploaded when those should go too ("remove everything"), for
- * the caller to delete after the commit: storage can't roll back with the
- * database, so it goes last and best-effort.
+ * Delete a member's account in one transaction. Returns, for the caller to
+ * act on after the commit: the R2 keys of the media they uploaded when those
+ * should go too ("remove everything"), since storage can't roll back with the
+ * database, and the gatherings this cancelled, whose guests get an email.
  */
-export async function deleteAccount(userId: string, mode: DeletionMode): Promise<string[]> {
+export async function deleteAccount(
+  userId: string,
+  mode: DeletionMode,
+): Promise<{ mediaKeys: string[]; cancelledGatheringIds: string[] }> {
   const mediaKeys = mode === "remove_everything" ? await uploadedMediaKeys(userId) : [];
   const now = new Date();
-  await prisma.$transaction(
+  const cancelledGatheringIds = await prisma.$transaction(
     async (tx) => {
       // Notifications they caused or received go first, so the cancel notices
       // settleGatherings writes next are the only ones left with their name.
       await tx.notification.deleteMany({
         where: { OR: [{ recipientId: userId }, { actorId: userId }] },
       });
-      await settleGatherings(tx, userId, mode, now);
+      const cancelled = await settleGatherings(tx, userId, mode, now);
       await tx.gatheringInvite.deleteMany({ where: { userId } });
       await removeReactions(tx, userId);
       await removePollVotes(tx, userId);
@@ -202,10 +207,11 @@ export async function deleteAccount(userId: string, mode: DeletionMode): Promise
       await tx.worldDiscovery.deleteMany({ where: { userId } });
       await tx.worldPlant.deleteMany({ where: { ownerId: userId } });
       await tombstone(tx, userId, now);
+      return cancelled;
     },
     { timeout: DELETION_TIMEOUT_MS },
   );
-  return mediaKeys;
+  return { mediaKeys, cancelledGatheringIds };
 }
 
 /**

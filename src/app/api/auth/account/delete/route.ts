@@ -7,6 +7,7 @@ import { deleteAccountSchema, getZodErrorMessage } from "@/lib/schemas";
 import { forgetVisit } from "@/lib/activity";
 import { presenceHub } from "@/lib/presence";
 import { deleteAccount, deleteUploadedMedia } from "@/lib/account-deletion";
+import { emailStillInvited } from "@/lib/gathering-emails";
 
 // POST: delete the caller's own account, after checking their password. The
 // member chooses whether their posts and comments go too ("remove_everything")
@@ -49,10 +50,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Current password is incorrect." }, { status: 403 });
     }
 
-    const mediaKeys = await deleteAccount(me, parsed.data.mode);
-    // The account is gone either way; these only tidy up after it.
+    const { mediaKeys, cancelledGatheringIds } = await deleteAccount(me, parsed.data.mode);
+    // The account is gone either way; these only tidy up after it. Guests of
+    // a gathering it cancelled get the same email as any cancellation, one
+    // gathering after another so the sends stay under the provider's rate.
     presenceHub().setGhost(me, true);
     forgetVisit(me);
+    void (async () => {
+      for (const id of cancelledGatheringIds) await emailStillInvited("cancelled", id);
+    })();
     await deleteUploadedMedia(mediaKeys);
 
     const response = NextResponse.json({ message: "Your account is deleted. Take care." });

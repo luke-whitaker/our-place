@@ -285,14 +285,16 @@ describe("deleteAccount media", () => {
         { postId, mediaType: "video", mediaSource: "youtube", url: "https://youtu.be/abc" },
       ],
     });
-    expect(await deleteAccount(me.userId, "remove_everything")).toEqual(["images/a1.jpg"]);
+    expect((await deleteAccount(me.userId, "remove_everything")).mediaKeys).toEqual([
+      "images/a1.jpg",
+    ]);
 
     const other = await createTestUser();
     const kept = await createTestPost({ authorId: other.userId });
     await prisma.postMedia.create({
       data: { postId: kept, mediaType: "image", url: "https://pub-test.r2.dev/images/b2.jpg" },
     });
-    expect(await deleteAccount(other.userId, "leave_posts")).toEqual([]);
+    expect((await deleteAccount(other.userId, "leave_posts")).mediaKeys).toEqual([]);
   });
 
   it("never deletes from storage outside production", async () => {

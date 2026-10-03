@@ -13,12 +13,37 @@
 // instead of sent, so local flows (password reset) work without a provider.
 
 const RESEND_ENDPOINT = "https://api.resend.com/emails";
+const RESEND_BATCH_ENDPOINT = "https://api.resend.com/emails/batch";
+/** The most emails Resend accepts in one batch request. */
+export const EMAIL_BATCH_MAX = 100;
+/** A provider that doesn't answer in this long is treated as a failed send,
+ * so a hung request can't hold a caller (or a background job) open. */
+const SEND_TIMEOUT_MS = 10_000;
 
-interface SendEmailParams {
+export interface SendEmailParams {
   to: string;
   subject: string;
   html: string;
   text: string;
+  /** Extra headers, such as List-Unsubscribe. */
+  headers?: Record<string, string>;
+}
+
+/** POST to Resend, throwing on a non-2xx answer. */
+async function postToResend(url: string, apiKey: string, payload: unknown): Promise<void> {
+  const res = await fetch(url, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(SEND_TIMEOUT_MS),
+  });
+  if (!res.ok) {
+    const detail = await res.text().catch(() => "");
+    throw new Error(`Email send failed (${res.status}): ${detail.slice(0, 200)}`);
+  }
 }
 
 function getFrom(): string {
@@ -32,30 +57,43 @@ function getFrom(): string {
  * error so callers can log it. In development without RESEND_API_KEY, logs the
  * message and resolves (no send).
  */
-export async function sendEmail({ to, subject, html, text }: SendEmailParams): Promise<void> {
+export async function sendEmail(email: SendEmailParams): Promise<void> {
+  const apiKey = devOrKey([email]);
+  if (!apiKey) return;
+  await postToResend(RESEND_ENDPOINT, apiKey, { from: getFrom(), ...email });
+}
+
+/**
+ * Send up to EMAIL_BATCH_MAX different emails in one request (each its own
+ * recipient, subject, and headers). Same failure and dev behavior as sendEmail.
+ */
+export async function sendEmailBatch(emails: SendEmailParams[]): Promise<void> {
+  if (emails.length === 0) return;
+  if (emails.length > EMAIL_BATCH_MAX) {
+    throw new Error(`An email batch holds at most ${EMAIL_BATCH_MAX}, not ${emails.length}.`);
+  }
+  const apiKey = devOrKey(emails);
+  if (!apiKey) return;
+  const from = getFrom();
+  await postToResend(
+    RESEND_BATCH_ENDPOINT,
+    apiKey,
+    emails.map((email) => ({ from, ...email })),
+  );
+}
+
+/** The API key, or null in development without one, after logging the
+ * messages instead of sending them. Production without a key throws. */
+function devOrKey(emails: SendEmailParams[]): string | null {
   const apiKey = process.env.RESEND_API_KEY;
-
-  if (!apiKey) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("RESEND_API_KEY is not set — cannot send email in production.");
-    }
+  if (apiKey) return apiKey;
+  if (process.env.NODE_ENV === "production") {
+    throw new Error("RESEND_API_KEY is not set, so email can't be sent in production.");
+  }
+  for (const { to, subject, text } of emails) {
     console.log(`[EMAIL:dev] To: ${to}\n  Subject: ${subject}\n  ${text}`);
-    return;
   }
-
-  const res = await fetch(RESEND_ENDPOINT, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from: getFrom(), to, subject, html, text }),
-  });
-
-  if (!res.ok) {
-    const detail = await res.text().catch(() => "");
-    throw new Error(`Email send failed (${res.status}): ${detail.slice(0, 200)}`);
-  }
+  return null;
 }
 
 /** Deliver a password-reset code. Plain-text + a minimal inline-styled HTML body. */
@@ -83,7 +121,7 @@ export async function sendPasswordResetCode(to: string, code: string): Promise<v
 }
 
 /** Escapes the characters that would let a value break out of HTML text. */
-function escapeHtml(value: string): string {
+export function escapeHtml(value: string): string {
   return value.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 }
 

@@ -3,6 +3,7 @@ import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { gatheringResponseLimiter } from "@/lib/rate-limit";
 import { cancelGathering, gatheringAccess } from "@/lib/gatherings";
+import { emailStillInvited } from "@/lib/gathering-emails";
 
 // POST: the host cancels a gathering before it ends. The row stays, marked
 // cancelled, so letters and notifications about it can say so; everyone who
@@ -36,7 +37,10 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "This gathering has already ended." }, { status: 409 });
     }
 
-    await prisma.$transaction((tx) => cancelGathering(tx, id, me));
+    const cancelledNow = await prisma.$transaction((tx) => cancelGathering(tx, id, me));
+    // Everyone still invited gets an email, not only those going: an
+    // invitation that arrived by email should be taken back the same way.
+    if (cancelledNow) void emailStillInvited("cancelled", id);
 
     return NextResponse.json({ message: "Your gathering is cancelled. Everyone going was told." });
   } catch (error) {
