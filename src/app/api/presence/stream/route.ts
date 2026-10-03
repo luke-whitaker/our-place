@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
+import { blockedIdsFor } from "@/lib/blocks";
 import { presenceStreamLimiter } from "@/lib/rate-limit";
 import { presenceMoveSchema } from "@/lib/schemas";
 import { presenceHub, type PresenceEvent } from "@/lib/presence";
@@ -39,14 +40,19 @@ export async function GET(request: Request) {
     const access = await checkWorldAccess(userId, worldId);
     if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status });
 
-    return openStream(request, userId, worldId);
+    return openStream(request, userId, worldId, await blockedIdsFor(userId));
   } catch (error) {
     console.error("Presence stream error:", error);
     return NextResponse.json({ error: "Something went wrong." }, { status: 500 });
   }
 }
 
-function openStream(request: Request, userId: string, worldId: string): Response {
+function openStream(
+  request: Request,
+  userId: string,
+  worldId: string,
+  hidden: Set<string>,
+): Response {
   const encoder = new TextEncoder();
   let controller!: ReadableStreamDefaultController<Uint8Array>;
   let ping: ReturnType<typeof setInterval> | null = null;
@@ -93,6 +99,7 @@ function openStream(request: Request, userId: string, worldId: string): Response
   const result = presenceHub().subscribe({
     userId,
     worldId,
+    hidden,
     send: (event: PresenceEvent, data: unknown) =>
       write(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`),
   });

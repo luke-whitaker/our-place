@@ -4,6 +4,7 @@ import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { createGatheringLimiter } from "@/lib/rate-limit";
 import { createGatheringSchema, getZodErrorMessage } from "@/lib/schemas";
+import { blockedIdsFor } from "@/lib/blocks";
 import { inviteMembers, MAX_COMMUNITY_INVITEES, timesProblem } from "@/lib/gatherings";
 import { firstFreeSlot, isUniqueConstraintError } from "@/lib/pockets";
 
@@ -14,7 +15,9 @@ function refuse(error: string, status: number): Invitees {
 }
 
 /** Who a new gathering invites: the members the host picked, plus the whole
- * community when it's tied to one (the host must be a member). */
+ * community when it's tied to one (the host must be a member). Nobody in a
+ * block with the host is invited: a picked one is refused as if not found, so
+ * a block stays silent, and a community member is simply left out. */
 async function resolveInvitees(
   hostId: string,
   communityId: string | null,
@@ -22,7 +25,10 @@ async function resolveInvitees(
 ): Promise<Invitees> {
   const picked = [...new Set(pickedIds)].filter((id) => id !== hostId);
   const found = await prisma.user.count({ where: { id: { in: picked }, deletedAt: null } });
-  if (found !== picked.length) return refuse("Some of those members couldn't be found.", 400);
+  const blocked = await blockedIdsFor(hostId);
+  if (found !== picked.length || picked.some((id) => blocked.has(id))) {
+    return refuse("Some of those members couldn't be found.", 400);
+  }
   if (!communityId) return { ok: true, ids: picked };
 
   const membership = await prisma.communityMember.findUnique({
@@ -45,7 +51,8 @@ async function resolveInvitees(
   }
   // Additional invitees from outside the community ride along; inviteMembers
   // drops duplicates, so picking someone who is already a member is harmless.
-  return { ok: true, ids: [...members.map((m) => m.userId), ...picked] };
+  const invitable = members.map((m) => m.userId).filter((id) => !blocked.has(id));
+  return { ok: true, ids: [...invitable, ...picked] };
 }
 
 /** Where a new Event Mushroom lands: the host's mailbox, else their pockets

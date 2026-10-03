@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { isBlockedEitherWay } from "@/lib/blocks";
 import { findFriendshipBetween, friendshipStatusFor } from "@/lib/friends";
 import { islandAccess } from "@/lib/islands";
 
@@ -31,18 +32,25 @@ export async function GET(
       return NextResponse.json({ error: "This person doesn't exist." }, { status: 404 });
     }
 
-    const [myPlacePostCount, communityCount, friendshipRow] = await Promise.all([
+    const [myPlacePostCount, communityCount, friendshipRow, myBlock, blocked] = await Promise.all([
       prisma.post.count({
         where: { authorId: user.id, OR: [{ communityId: null }, { postedToProfile: true }] },
       }),
       prisma.communityMember.count({ where: { userId: user.id } }),
       findFriendshipBetween(auth.user.userId, user.id),
+      prisma.block.findUnique({
+        where: { blockerId_blockedId: { blockerId: auth.user.userId, blockedId: user.id } },
+        select: { id: true },
+      }),
+      isBlockedEitherWay(auth.user.userId, user.id),
     ]);
     const friendship = {
       status: friendshipStatusFor(auth.user.userId, user.id, friendshipRow),
       id: friendshipRow?.id ?? null,
     };
-    const isOpen = islandAccess(auth.user.userId, user, friendship.status === "friends") === "open";
+    const isOpen =
+      !blocked &&
+      islandAccess(auth.user.userId, user, friendship.status === "friends") === "open";
 
     return NextResponse.json({
       user: {
@@ -54,6 +62,7 @@ export async function GET(
         my_place_post_count: myPlacePostCount,
         community_count: communityCount,
         island_open: isOpen,
+        blocked_by_me: myBlock !== null,
       },
       friendship,
     });

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { notBlockedWith } from "@/lib/blocks";
 import { activeMushroomWhere, mushroomPlace } from "@/lib/event-mushrooms";
 import { gatheringSpawnId } from "@/lib/game/event-mushroom";
 import type { GatheringTravelStop } from "@/lib/types";
@@ -22,6 +23,7 @@ export async function GET() {
     const rows = await prisma.gathering.findMany({
       where: {
         ...activeMushroomWhere(new Date()),
+        host: notBlockedWith(me),
         OR: [
           { hostId: me },
           { invites: { some: { userId: me } } },

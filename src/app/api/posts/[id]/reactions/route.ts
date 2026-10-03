@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { reactionLimiter } from "@/lib/rate-limit";
+import { isBlockedEitherWay } from "@/lib/blocks";
 import { notify } from "@/lib/notifications";
 import { createReactionSchema } from "@/lib/schemas";
 import { v4 as uuidv4 } from "uuid";
@@ -60,6 +61,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     });
 
     const reacted = !existing || existing.type !== reactionType;
+    // A block stops new reactions either way; taking back one made before
+    // the block is still allowed.
+    if (reacted && (await isBlockedEitherWay(auth.user.userId, post.authorId))) {
+      return NextResponse.json({ error: "You can't react to this post." }, { status: 403 });
+    }
     const respType = reacted ? reactionType : null;
 
     await prisma.$transaction(async (tx) => {

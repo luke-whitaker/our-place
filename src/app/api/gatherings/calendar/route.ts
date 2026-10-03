@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import type { Prisma } from "@/generated/prisma/client";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { notBlockedWith } from "@/lib/blocks";
 import { gatheringCalendarSchema, getZodErrorMessage } from "@/lib/schemas";
 import {
   CALENDAR_MAX_DAYS,
@@ -44,7 +45,9 @@ async function calendarScope(
       ),
     };
   }
-  return { where: { status: "scheduled", communityId: found.id } };
+  // A community calendar leaves out gatherings hosted by someone the caller
+  // is in a block with, since they couldn't open them anyway.
+  return { where: { status: "scheduled", communityId: found.id, host: notBlockedWith(me) } };
 }
 
 // GET: a calendar's gatherings overlapping [from, to), plus the next few that

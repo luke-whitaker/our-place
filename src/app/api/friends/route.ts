@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
+import { isBlockedEitherWay } from "@/lib/blocks";
 import { acceptFriendRequest, findFriendshipBetween } from "@/lib/friends";
 import { notify } from "@/lib/notifications";
 import { friendRequestLimiter } from "@/lib/rate-limit";
@@ -97,7 +98,9 @@ export async function POST(request: NextRequest) {
       },
       select: { id: true, displayName: true },
     });
-    if (!target) {
+    // A block either way answers exactly like a missing member, so the
+    // blocked person can't tell they were blocked.
+    if (!target || (await isBlockedEitherWay(me, target.id))) {
       return NextResponse.json({ error: "That person doesn't exist." }, { status: 404 });
     }
     if (target.id === me) {

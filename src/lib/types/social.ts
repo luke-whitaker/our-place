@@ -25,6 +25,17 @@ export interface PublicProfile {
   community_count: number;
   /** Whether the viewer may visit this member's floating island right now. */
   island_open: boolean;
+  /** Whether the viewer has blocked this member. Never says whether they
+   * blocked the viewer: a blocked member isn't told. */
+  blocked_by_me: boolean;
+}
+
+/** A member the viewer has blocked, as listed by GET /api/blocks. */
+export interface BlockedMember {
+  username: string;
+  display_name: string;
+  avatar_color: string;
+  blocked_at: string;
 }
 
 /** A friend whose island the viewer may visit, as listed by GET /api/friends/islands

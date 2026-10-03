@@ -30,6 +30,10 @@ export type PresenceEvent = "snapshot" | "update" | "leave";
 export interface PresenceSubscriber {
   userId: string;
   worldId: string;
+  /** Members this subscriber is in a block with: never in their snapshot,
+   * updates, or leaves. Filled from the database when the stream opens and
+   * kept current by setBlocked, so a block made mid-visit applies at once. */
+  hidden?: Set<string>;
   /** Deliver one event. Throwing means the connection is gone: the hub drops it. */
   send(event: PresenceEvent, data: unknown): void;
 }
@@ -116,7 +120,7 @@ export function createPresenceHub({
   /** Send to everyone in a world except `exceptUserId`; a failed send drops that subscriber. */
   function broadcast(worldId: string, exceptUserId: string, event: PresenceEvent, data: unknown) {
     for (const sub of [...(subscribers.get(worldId) ?? [])]) {
-      if (sub.userId === exceptUserId) continue;
+      if (sub.userId === exceptUserId || sub.hidden?.has(exceptUserId)) continue;
       try {
         sub.send(event, data);
       } catch {
@@ -262,6 +266,34 @@ export function createPresenceHub({
       if (isVisible(entry)) broadcast(entry.worldId, userId, "update", entry.player);
     },
 
+    /** A block made or lifted between two members, after the route has saved
+     * it. Each one's open streams start or stop hearing about the other, with
+     * a `leave` or an `update` so the world changes at once, not on reload. */
+    setBlocked(a: string, b: string, blocked: boolean): void {
+      const t = now();
+      for (const [viewer, other] of [
+        [a, b],
+        [b, a],
+      ]) {
+        const entry = players.get(other);
+        for (const subs of subscribers.values()) {
+          for (const sub of [...subs]) {
+            if (sub.userId !== viewer) continue;
+            sub.hidden ??= new Set();
+            if (blocked) sub.hidden.add(other);
+            else sub.hidden.delete(other);
+            if (!entry || entry.worldId !== sub.worldId || !isVisible(entry)) continue;
+            try {
+              if (blocked) sub.send("leave", { user_id: other });
+              else sub.send("update", forSnapshot(entry.player, t));
+            } catch {
+              removeSubscriber(sub);
+            }
+          }
+        }
+      }
+    },
+
     /** Start listening to a world: the snapshot goes out at once, then every change. */
     subscribe(sub: PresenceSubscriber): SubscribeResult {
       sweep();
@@ -274,6 +306,7 @@ export function createPresenceHub({
       const others: PresencePlayer[] = [];
       for (const [userId, entry] of players) {
         if (entry.worldId !== sub.worldId || userId === sub.userId || !isVisible(entry)) continue;
+        if (sub.hidden?.has(userId)) continue;
         others.push(forSnapshot(entry.player, t));
       }
       try {

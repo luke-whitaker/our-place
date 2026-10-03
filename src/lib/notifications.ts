@@ -7,6 +7,7 @@ import type {
   NotificationItem,
   NotificationPost,
 } from "@/lib/types";
+import { isBlockedEitherWay } from "@/lib/blocks";
 
 /** How long a notification is kept. Older ones are pruned when the page loads. */
 export const NOTIFICATION_RETENTION_DAYS = 90;
@@ -40,10 +41,12 @@ interface NewNotification {
 /**
  * Record a notification inside the caller's transaction, so it exists exactly
  * when the thing it's about does. Nobody is ever notified about themselves:
- * reacting to or commenting on your own post writes nothing.
+ * reacting to or commenting on your own post writes nothing. Nor about
+ * someone they're in a block with, either way.
  */
 export async function notify(tx: Prisma.TransactionClient, data: NewNotification): Promise<void> {
   if (data.recipientId === data.actorId) return;
+  if (await isBlockedEitherWay(data.recipientId, data.actorId, tx)) return;
   await tx.notification.create({ data });
 }
 

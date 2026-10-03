@@ -3,6 +3,7 @@ import prisma from "@/lib/db";
 import { getAuthUser, requireAuth } from "@/lib/auth";
 import { createCommentLimiter } from "@/lib/rate-limit";
 import { createCommentSchema, getZodErrorMessage } from "@/lib/schemas";
+import { isBlockedEitherWay } from "@/lib/blocks";
 import { notify } from "@/lib/notifications";
 import { parsePagination, paginateResults } from "@/lib/pagination";
 import { v4 as uuidv4 } from "uuid";
@@ -87,6 +88,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         { error: "The author turned off comments for this post." },
         { status: 403 },
       );
+    }
+
+    if (await isBlockedEitherWay(auth.userId, post.authorId)) {
+      return NextResponse.json({ error: "You can't comment on this post." }, { status: 403 });
     }
 
     // Check authorization: community posts require membership, profile posts are open

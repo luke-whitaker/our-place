@@ -8,6 +8,7 @@ import { MAILBOX_SLOTS } from "@/lib/items";
 import { METRICS_TIME_ZONE } from "@/lib/activity";
 import { cancelUnplanted } from "@/lib/gathering-sweep";
 import { mushroomPortal } from "@/lib/event-mushrooms";
+import { isBlockedEitherWay } from "@/lib/blocks";
 import type { GatheringAnswer, GatheringEntry, GatheringKind } from "@/lib/types";
 
 /** A community gathering invites every member; past this many, it's refused
@@ -110,9 +111,9 @@ export interface GatheringAccess {
 
 /**
  * The one access rule: you can see a gathering if you host it, were invited
- * to it, or (for a community gathering) are a member of that community now.
- * Returns null for everyone else, and routes answer that with 404 so a
- * gathering's existence never leaks.
+ * to it, or (for a community gathering) are a member of that community now,
+ * and you and the host aren't in a block. Returns null for everyone else, and
+ * routes answer that with 404 so a gathering's existence never leaks.
  */
 export async function gatheringAccess(
   gatheringId: string,
@@ -131,6 +132,7 @@ export async function gatheringAccess(
     select: { status: true },
   });
   const isHost = gathering.hostId === userId;
+  if (!isHost && (await isBlockedEitherWay(userId, gathering.hostId))) return null;
   if (isHost || invite) return { gathering, isHost, invite };
   if (!gathering.communityId) return null;
   const member = await prisma.communityMember.findUnique({

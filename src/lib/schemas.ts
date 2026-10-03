@@ -153,6 +153,10 @@ export const sendFriendRequestSchema = z.object({
     .min(1, "Pick someone to send a friend request to."),
 });
 
+export const blockMemberSchema = z.object({
+  username: z.string({ error: "Pick someone to block." }).min(1, "Pick someone to block.").max(64),
+});
+
 // ── Content schemas ──
 
 // Today's longest are a few hundred characters; these leave room without

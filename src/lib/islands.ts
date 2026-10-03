@@ -4,6 +4,7 @@
 
 import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
+import { isBlockedEitherWay } from "@/lib/blocks";
 import { areFriends } from "@/lib/friends";
 import { gatheringOpensIsland } from "@/lib/event-mushrooms";
 
@@ -66,15 +67,19 @@ const OWNER_SELECT = {
   islandVisibility: true,
 } as const;
 
-/** The gate itself, over an owner row that may not exist. */
+/** The gate itself, over an owner row that may not exist. A block either way
+ * closes the island to that one visitor, worded like any closed island. */
 async function gateIsland(
   viewerId: string,
   owner: IslandOwnerRow | null,
 ): Promise<{ owner: IslandOwnerRow; refusal?: never } | { owner?: never; refusal: IslandRefusal }> {
   if (!owner) return { refusal: { status: 404, error: "This person doesn't exist." } };
 
-  const friends = await areFriends(viewerId, owner.id);
-  const access = islandAccess(viewerId, owner, friends);
+  const [friends, blocked] = await Promise.all([
+    areFriends(viewerId, owner.id),
+    isBlockedEitherWay(viewerId, owner.id),
+  ]);
+  const access = blocked ? "closed" : islandAccess(viewerId, owner, friends);
   if (access === "closed") {
     return {
       refusal: { status: 403, error: `${owner.displayName}'s island is closed to visitors.` },

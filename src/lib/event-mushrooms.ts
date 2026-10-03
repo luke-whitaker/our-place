@@ -5,6 +5,7 @@
 // lives in src/lib/game/event-mushroom.ts, shared with the world client.
 
 import prisma from "@/lib/db";
+import { blockedIdsFor } from "@/lib/blocks";
 import { islandWorldId } from "@/lib/game/worlds/island";
 import { findInterior, interiorPlace } from "@/lib/game/worlds/interiors";
 import { gatheringSpawnId } from "@/lib/game/event-mushroom";
@@ -83,8 +84,9 @@ export async function activeInWorld(worldId: string, now: Date) {
 
 /**
  * Which of these gatherings `viewerId` may open: the host, anyone with an
- * invite row, or a current member of the gathering's community. The same rule
- * as gatheringAccess, read in three queries for a whole list.
+ * invite row, or a current member of the gathering's community, and never one
+ * whose host is in a block with the viewer. The same rule as gatheringAccess,
+ * read in four queries for a whole list.
  */
 export async function openableIds(
   viewerId: string,
@@ -95,7 +97,7 @@ export async function openableIds(
   const communityIds = [
     ...new Set(gatherings.flatMap((g) => (g.communityId ? [g.communityId] : []))),
   ];
-  const [invites, memberships] = await Promise.all([
+  const [invites, memberships, blocked] = await Promise.all([
     prisma.gatheringInvite.findMany({
       where: { userId: viewerId, gatheringId: { in: ids } },
       select: { gatheringId: true },
@@ -104,6 +106,7 @@ export async function openableIds(
       where: { userId: viewerId, communityId: { in: communityIds } },
       select: { communityId: true },
     }),
+    blockedIdsFor(viewerId),
   ]);
   const invited = new Set(invites.map((i) => i.gatheringId));
   const member = new Set(memberships.map((m) => m.communityId));
@@ -112,8 +115,8 @@ export async function openableIds(
       .filter(
         (g) =>
           g.hostId === viewerId ||
-          invited.has(g.id) ||
-          (g.communityId !== null && member.has(g.communityId)),
+          (!blocked.has(g.hostId) &&
+            (invited.has(g.id) || (g.communityId !== null && member.has(g.communityId)))),
       )
       .map((g) => g.id),
   );

@@ -20,6 +20,7 @@ export type {
   FriendEntry,
   FriendIsland,
   PublicProfile,
+  BlockedMember,
   PeopleEntry,
   IslandInfo,
   IslandVisibility,

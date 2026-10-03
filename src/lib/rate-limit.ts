@@ -136,6 +136,9 @@ export const createCommunityLimiter = new RateLimiter({ maxAttempts: 5, windowMs
 /** Friend requests: 20 per hour per user */
 export const friendRequestLimiter = new RateLimiter({ maxAttempts: 20, windowMs: 60 * 60 * 1000 });
 
+/** Blocking and unblocking: 30 per hour per user */
+export const blockLimiter = new RateLimiter({ maxAttempts: 30, windowMs: 60 * 60 * 1000 });
+
 /** Hosting a gathering: 10 per hour per user (each one can write hundreds of invitations) */
 export const createGatheringLimiter = new RateLimiter({
   maxAttempts: 10,
