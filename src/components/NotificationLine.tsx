@@ -118,6 +118,12 @@ function Message({ item }: { item: NotificationItem }) {
           <Name actor={item.actor} /> accepted your friend request.
         </>
       );
+    case "call_invite":
+      return (
+        <>
+          <Name actor={item.actor} /> invited you to a call.
+        </>
+      );
     case "comment":
       return (
         <>

@@ -162,6 +162,23 @@ export const changeGatheringTimeLimiter = new RateLimiter({
  * IP. The link needs no sign-in, so it's keyed on the address. */
 export const unsubscribeLimiter = new RateLimiter({ maxAttempts: 20, windowMs: 15 * 60 * 1000 });
 
+/** Starting a voice call: 20 per hour per user (each one notifies up to 7 friends) */
+export const startCallLimiter = new RateLimiter({ maxAttempts: 20, windowMs: 60 * 60 * 1000 });
+
+/** Inviting more people into a call: 60 per hour per user */
+export const callInviteLimiter = new RateLimiter({ maxAttempts: 60, windowMs: 60 * 60 * 1000 });
+
+/** Call tokens: 120 per hour per user. A member in a call asks for a fresh one
+ * every few minutes, and again on every reload or rejoin. */
+export const callTokenLimiter = new RateLimiter({ maxAttempts: 120, windowMs: 60 * 60 * 1000 });
+
+/** Leaving or declining a call: 120 per hour per user */
+export const callActionLimiter = new RateLimiter({ maxAttempts: 120, windowMs: 60 * 60 * 1000 });
+
+/** GET /api/calls/current: 30 per minute per user. Every open tab polls it
+ * about every 10 seconds, so this leaves room for a few tabs. */
+export const callsCurrentLimiter = new RateLimiter({ maxAttempts: 30, windowMs: 60 * 1000 });
+
 /** Pocket/Notebook/NPC-talk mutations: 120 per hour per user */
 export const itemsLimiter = new RateLimiter({ maxAttempts: 120, windowMs: 60 * 60 * 1000 });
 

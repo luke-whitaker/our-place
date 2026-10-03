@@ -6,6 +6,7 @@ import { isAllowedMediaUrl, MAX_IMAGES_PER_POST } from "@/lib/media-utils";
 import {
   EMOTES,
   HAIR_STYLES,
+  MAX_CALL_SIZE,
   MAX_PICKED_INVITEES,
   OUTFIT_NAME_MAX,
   PRESENCE_DIRS,
@@ -158,6 +159,16 @@ export const sendFriendRequestSchema = z.object({
 export const blockMemberSchema = z.object({
   username: z.string({ error: "Pick someone to block." }).min(1, "Pick someone to block.").max(64),
 });
+
+// Friends to call or to invite into a call, by username. Everyone else in a
+// call counts toward MAX_CALL_SIZE too; the route checks the room left.
+const callUsernames = z
+  .array(z.string().min(1).max(64), { error: "Pick friends to call." })
+  .min(1, "Pick at least one friend.")
+  .max(MAX_CALL_SIZE - 1, `A call holds up to ${MAX_CALL_SIZE} people.`);
+
+export const startCallSchema = z.object({ usernames: callUsernames });
+export const inviteToCallSchema = z.object({ usernames: callUsernames });
 
 // ── Content schemas ──
 

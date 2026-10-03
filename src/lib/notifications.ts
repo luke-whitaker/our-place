@@ -26,7 +26,8 @@ type NotificationKind =
   | "gathering_invite"
   | "gathering_cancelled"
   | "gathering_unplanted"
-  | "gathering_time_changed";
+  | "gathering_time_changed"
+  | "call_invite";
 
 interface NewNotification {
   recipientId: string;
@@ -37,6 +38,7 @@ interface NewNotification {
   reactionId?: string;
   commentId?: string;
   gatheringId?: string;
+  callId?: string;
 }
 
 /**
@@ -126,6 +128,8 @@ export function groupNotifications(rows: NotificationRow[]): NotificationItem[] 
       });
     } else if (row.kind === "friend_accepted") {
       items.push({ ...base, kind: "friend_accepted", actor: toActor(row) });
+    } else if (row.kind === "call_invite") {
+      items.push({ ...base, kind: "call_invite", actor: toActor(row) });
     } else if (row.kind === "comment" && row.post && row.comment) {
       items.push({
         ...base,

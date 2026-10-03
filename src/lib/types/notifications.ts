@@ -33,6 +33,9 @@ export type NotificationItem =
       friendship_id: string;
     })
   | (NotificationBase & { kind: "friend_accepted"; actor: NotificationActor })
+  /** Someone invited the viewer into a voice call. The live invitation, with
+   * Join, comes from GET /api/calls/current; this line is the record. */
+  | (NotificationBase & { kind: "call_invite"; actor: NotificationActor })
   | (NotificationBase & {
       kind: "comment";
       actor: NotificationActor;
