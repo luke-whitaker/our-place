@@ -6,6 +6,8 @@ import { APP_THEME_COLOR } from "@/lib/theme";
 import { AuthProvider } from "@/components/AuthProvider";
 import Navbar from "@/components/Navbar";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import { CallProvider } from "@/components/calls/CallProvider";
+import CallToasts from "@/components/calls/CallToasts";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -94,10 +96,15 @@ export default async function RootLayout({
         />
         <ErrorBoundary>
           <AuthProvider>
-            <Navbar />
-            <main className="min-h-[calc(100vh-4rem)]">
-              <ErrorBoundary>{children}</ErrorBoundary>
-            </main>
+            {/* Voice calls live above every page, so client-side navigation
+                (forum, world, doors, warps) never drops a call. */}
+            <CallProvider>
+              <Navbar />
+              <main className="min-h-[calc(100vh-4rem)]">
+                <ErrorBoundary>{children}</ErrorBoundary>
+              </main>
+              <CallToasts placement="page" />
+            </CallProvider>
           </AuthProvider>
         </ErrorBoundary>
       </body>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import FriendRequestsPanel from "@/components/FriendRequestsPanel";
 import FriendActionButton from "@/components/FriendActionButton";
+import CallFriendButton from "@/components/calls/CallFriendButton";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import type { FriendEntry, PeopleEntry } from "@/lib/types";
 
@@ -56,13 +57,16 @@ function FriendRow({ friend, onRemoved }: { friend: FriendEntry; onRemoved: () =
         </div>
       </div>
       <div className="flex shrink-0 flex-col items-end gap-1">
-        <button
-          onClick={() => void remove()}
-          disabled={busy}
-          className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-secondary transition-colors hover:bg-surface-emphasis disabled:opacity-50"
-        >
-          Remove
-        </button>
+        <div className="flex gap-2">
+          <CallFriendButton username={friend.username} displayName={friend.display_name} />
+          <button
+            onClick={() => void remove()}
+            disabled={busy}
+            className="rounded-lg border border-line px-3 py-1.5 text-xs font-medium text-ink-secondary transition-colors hover:bg-surface-emphasis disabled:opacity-50"
+          >
+            Remove
+          </button>
+        </div>
         {error && <p className="text-xs text-red-600">{error}</p>}
       </div>
     </div>

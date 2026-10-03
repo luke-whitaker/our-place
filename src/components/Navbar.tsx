@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { useEffect, useState } from "react";
 import MushroomIcon from "@/components/MushroomIcon";
+import NavbarCall from "@/components/calls/NavbarCall";
 import { apiFetch } from "@/lib/api-client";
 
 // How long a new member sees the floating "Enter the World" note before it
@@ -146,118 +147,121 @@ export default function Navbar() {
             {loading ? (
               <div className="h-8 w-20 animate-pulse rounded-lg bg-surface-emphasis" />
             ) : user ? (
-              <div className="relative">
-                <button
-                  onClick={() => setMenuOpen(!menuOpen)}
-                  aria-label={showDot ? "User menu, new notifications" : "User menu"}
-                  aria-expanded={menuOpen}
-                  className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 transition-colors hover:bg-surface-emphasis"
-                >
-                  <div
-                    className="relative flex h-8 w-8 items-center justify-center rounded-full text-ink-inverse text-xs font-bold"
-                    style={{ backgroundColor: user.avatar_color }}
+              <>
+                <NavbarCall />
+                <div className="relative">
+                  <button
+                    onClick={() => setMenuOpen(!menuOpen)}
+                    aria-label={showDot ? "User menu, new notifications" : "User menu"}
+                    aria-expanded={menuOpen}
+                    className="flex items-center gap-2 rounded-full py-1 pl-1 pr-3 transition-colors hover:bg-surface-emphasis"
                   >
-                    {user.display_name.charAt(0).toUpperCase()}
-                    {showDot && (
-                      <span
-                        aria-hidden="true"
-                        className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-accent-500"
-                      />
-                    )}
-                  </div>
-                  <span className="hidden sm:block text-sm font-medium text-ink-secondary">
-                    {user.display_name.split(" ")[0]}
-                  </span>
-                  <svg
-                    className="h-4 w-4 text-ink-faint"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={2}
-                    stroke="currentColor"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="m19.5 8.25-7.5 7.5-7.5-7.5"
-                    />
-                  </svg>
-                </button>
-
-                {menuOpen && (
-                  <>
                     <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setMenuOpen(false)}
-                      aria-hidden="true"
-                    />
-                    <div
-                      role="menu"
-                      className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-line bg-surface shadow-lg"
+                      className="relative flex h-8 w-8 items-center justify-center rounded-full text-ink-inverse text-xs font-bold"
+                      style={{ backgroundColor: user.avatar_color }}
                     >
-                      <div className="border-b border-line-soft px-4 py-3">
-                        <p className="text-sm font-semibold text-ink">{user.display_name}</p>
-                        <p className="text-xs text-ink-muted">@{user.username}</p>
-                      </div>
-                      <div className="py-1">
-                        <Link
-                          href="/profile"
-                          onClick={() => setMenuOpen(false)}
-                          className="block px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted"
-                        >
-                          My Place
-                        </Link>
-                        <Link
-                          href="/notifications"
-                          onClick={() => setMenuOpen(false)}
-                          className="flex items-center justify-between px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted"
-                        >
-                          Notifications
-                          {showDot && <NotificationDot />}
-                        </Link>
-                        {user.role === "admin" && (
-                          <Link
-                            href="/admin"
-                            onClick={() => setMenuOpen(false)}
-                            className="block px-4 py-2.5 text-sm text-accent-600 hover:bg-accent-50"
-                          >
-                            Admin
-                          </Link>
-                        )}
-                        <Link
-                          href="/feed"
-                          onClick={() => setMenuOpen(false)}
-                          className="block px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted sm:hidden"
-                        >
-                          Feed
-                        </Link>
-                        <Link
-                          href="/communities"
-                          onClick={() => setMenuOpen(false)}
-                          className="block px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted sm:hidden"
-                        >
-                          Communities
-                        </Link>
-                        <Link
-                          href="/people"
-                          onClick={() => setMenuOpen(false)}
-                          className="block px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted sm:hidden"
-                        >
-                          People
-                        </Link>
-                        <button
-                          onClick={() => {
-                            setMenuOpen(false);
-                            logout();
-                          }}
-                          className="block w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
-                        >
-                          Sign Out
-                        </button>
-                      </div>
+                      {user.display_name.charAt(0).toUpperCase()}
+                      {showDot && (
+                        <span
+                          aria-hidden="true"
+                          className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full border-2 border-surface bg-accent-500"
+                        />
+                      )}
                     </div>
-                  </>
-                )}
-              </div>
+                    <span className="hidden sm:block text-sm font-medium text-ink-secondary">
+                      {user.display_name.split(" ")[0]}
+                    </span>
+                    <svg
+                      className="h-4 w-4 text-ink-faint"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      strokeWidth={2}
+                      stroke="currentColor"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="m19.5 8.25-7.5 7.5-7.5-7.5"
+                      />
+                    </svg>
+                  </button>
+
+                  {menuOpen && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-40"
+                        onClick={() => setMenuOpen(false)}
+                        aria-hidden="true"
+                      />
+                      <div
+                        role="menu"
+                        className="absolute right-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-line bg-surface shadow-lg"
+                      >
+                        <div className="border-b border-line-soft px-4 py-3">
+                          <p className="text-sm font-semibold text-ink">{user.display_name}</p>
+                          <p className="text-xs text-ink-muted">@{user.username}</p>
+                        </div>
+                        <div className="py-1">
+                          <Link
+                            href="/profile"
+                            onClick={() => setMenuOpen(false)}
+                            className="block px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted"
+                          >
+                            My Place
+                          </Link>
+                          <Link
+                            href="/notifications"
+                            onClick={() => setMenuOpen(false)}
+                            className="flex items-center justify-between px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted"
+                          >
+                            Notifications
+                            {showDot && <NotificationDot />}
+                          </Link>
+                          {user.role === "admin" && (
+                            <Link
+                              href="/admin"
+                              onClick={() => setMenuOpen(false)}
+                              className="block px-4 py-2.5 text-sm text-accent-600 hover:bg-accent-50"
+                            >
+                              Admin
+                            </Link>
+                          )}
+                          <Link
+                            href="/feed"
+                            onClick={() => setMenuOpen(false)}
+                            className="block px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted sm:hidden"
+                          >
+                            Feed
+                          </Link>
+                          <Link
+                            href="/communities"
+                            onClick={() => setMenuOpen(false)}
+                            className="block px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted sm:hidden"
+                          >
+                            Communities
+                          </Link>
+                          <Link
+                            href="/people"
+                            onClick={() => setMenuOpen(false)}
+                            className="block px-4 py-2.5 text-sm text-ink-secondary hover:bg-surface-muted sm:hidden"
+                          >
+                            People
+                          </Link>
+                          <button
+                            onClick={() => {
+                              setMenuOpen(false);
+                              logout();
+                            }}
+                            className="block w-full px-4 py-2.5 text-left text-sm text-red-600 hover:bg-red-50"
+                          >
+                            Sign Out
+                          </button>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </>
             ) : (
               <Link
                 href="/auth/login"
