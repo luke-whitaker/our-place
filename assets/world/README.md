@@ -197,3 +197,14 @@ Towns are composed in code as `IsoWorld` documents under
 renders whatever world the `/world` page resolves from `?place=`, so a DB-loaded world
 later is a page change, not an engine change. Author tests assert the schema is valid
 and that every door + shrine is reachable on foot from spawn.
+
+## Seeds and flowers (v0.22.0)
+
+`~/Desktop/pixel_art/tools/flowers.py PACK_DIR OUT_DIR` (PACK_DIR is `assets/Evergrow_Forest_v0.5`) writes:
+
+- `objects/flower_<color>.png` and `items/flower_<color>.png` (16x16): the pack's `FlowerBlue1` with its four-step petal ramp swapped for red, yellow, blue, purple, and pink; yellow gets a brown centre.
+- `objects/flower_hat_<color>.png` (10x8): the same bloom with only petal and centre pixels kept, drawn on a member's crown.
+- `objects/plant_mound.png` (15x11): a half-ellipsoid dirt mound shaded by its normal and snapped to the forest sheet's dirt ramp, with a sprout; the game tints it per biome as ground.
+- `items/seed.png` (16x16): three seeds from one hand-placed 6x7 template.
+
+Upload them with `npm run world:upload` before the push that ships v0.22.0.

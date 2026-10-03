@@ -43,6 +43,10 @@ A route that should tell someone about something calls `notify(tx, {...})` from 
 - **An unplanted world gathering is cancelled at its start** by `cancelUnplanted` in `@/lib/gathering-sweep`: a background timer once a minute (started in `src/instrumentation.ts`; single instance, like the presence hub) plus a lazy call in `gatheringAccess`, the calendar route, and the notifications route, so nothing depends on the timer alone. It cancels at most `SWEEP_BATCH` a run, each guarded on still being scheduled and unplanted, so it's idempotent, and notifies the host and everyone who accepted (`gathering_unplanted`).
 - **The island exception:** `requireIslandVisit` in `@/lib/islands` lets a viewer who may open a gathering onto its host's island while that gathering's mushroom stands there, even if the island's own setting wouldn't. The island route only honours it with `?gathering=<id>`; live presence (`checkWorldAccess`) honours any such gathering for the island world only, never the house.
 
+## World state with a cap
+
+A route that adds something a member owns to a shared place under a per-member cap (`POST /api/world/plants`) counts and inserts inside one transaction that first locks the member's own row (`SELECT id FROM users WHERE id = $1 FOR UPDATE`), so two requests racing can't both pass the count. A one-per-tile rule is a unique index (`world_plants (world_id, col, row)`), answered as a 409 on P2002. Anything secret until a time (a seed's color before it blooms) is filtered in the wire mapper (`toPlantWire`), never in the client.
+
 ## Responses
 
 - Errors: `{ error: "Human-readable message." }` with the right status: 400 validation, 401 not logged in, 403 not allowed, 404, 409 conflict, 429 rate limited, 500.

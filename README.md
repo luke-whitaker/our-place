@@ -258,13 +258,40 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Pockets, the Notebook, and mailboxes — items you carry, notes you write, and letters you leave for friends
 - [x] A desk in every island house, to keep letters at home
 - [x] Add to Home Screen, with our own mushroom as the app icon
-- [ ] Seeds and flowers, to grow things on your island
+- [x] Seeds and flowers, to grow things on your island
 - [ ] Player identity bound to world position (the name above the avatar is in)
 - [x] Real-time multiplayer presence, with emotes
 
 ---
 
 ## Version History
+
+### v0.22.0 — Seeds, Flowers, and Flower Hats (October 2026)
+
+**Why:** Islands started bare in September so members could fill their own places, and the
+Capital is big enough to leave something lovely in. Flowers are the first thing you grow, give,
+and wear.
+
+**What changed:**
+
+- **Gnomette, by the mirror pond, gives you a seed** the first time you talk to her.
+- **Plant it from Pockets** on the tile in front of you, on your own island or anywhere open in
+  the Capital. It shows as a little mound with a sprout and blooms 12 to 24 hours later. Nobody,
+  not even you, learns its color until it blooms.
+- **Pick a flower you grew and you also get a seed,** once, so gardens grow slowly from one
+  gift. A flower you place from your pockets never makes another seed.
+- **Flowers come in five colors:** red, yellow, blue, purple, and pink.
+- **Only the planter can pick it up.** Anyone else who presses Enter at it learns whose it is.
+  Seeds and flowers never block a path.
+- **The Capital is shared,** so each member can have 10 things growing there at once. Your own
+  island holds up to 200.
+- **Leave a gift in a friend's mailbox:** seeds and flowers go in like letters, and the
+  flower keeps its color.
+- **Wear a flower** from Pockets. Everyone in the world sees it on your head, and Ghost Mode
+  hides it along with the rest of you. Pockets shows what you're wearing, with Take off.
+
+**What didn't change:** nothing grows inside buildings or houses, or on someone else's island.
+One migration adds `world_plants` and `items.color`.
 
 ### v0.21.0 — The Map (October 2026)
 
