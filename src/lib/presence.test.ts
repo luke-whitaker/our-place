@@ -331,3 +331,49 @@ describe("world visits for the metrics", () => {
     expect(visits).toEqual([]);
   });
 });
+
+describe("presence hub: blocks", () => {
+  it("never sends a hidden member in the snapshot, their moves, emotes, or leave", () => {
+    hub.move("ann", "capital", HERE, profile("ann"));
+    hub.move("bo", "capital", HERE, profile("bo"));
+    const bo = listener("bo", "capital");
+    hub.subscribe({ ...bo.sub, hidden: new Set(["ann"]) });
+
+    hub.move("ann", "capital", { ...HERE, col: 9 });
+    hub.emote("ann", "capital", "heart");
+    hub.move("ann", "music-inside", HERE);
+
+    expect(bo.events).toEqual([{ event: "snapshot", data: { players: [] } }]);
+  });
+
+  it("hides both ways at once when a block is made, and shows both again when lifted", () => {
+    hub.move("ann", "capital", HERE, profile("ann"));
+    hub.move("bo", "capital", HERE, profile("bo"));
+    const ann = listener("ann", "capital");
+    const bo = listener("bo", "capital");
+    hub.subscribe(ann.sub);
+    hub.subscribe(bo.sub);
+
+    hub.setBlocked("ann", "bo", true);
+    expect(ann.events.at(-1)).toEqual({ event: "leave", data: { user_id: "bo" } });
+    expect(bo.events.at(-1)).toEqual({ event: "leave", data: { user_id: "ann" } });
+
+    hub.move("bo", "capital", { ...HERE, col: 2 });
+    hub.move("ann", "capital", { ...HERE, col: 3 });
+    expect(ann.names()).toEqual(["snapshot", "leave"]);
+    expect(bo.names()).toEqual(["snapshot", "leave"]);
+
+    hub.setBlocked("ann", "bo", false);
+    expect(ann.events.at(-1)?.event).toBe("update");
+    expect(bo.events.at(-1)?.event).toBe("update");
+  });
+
+  it("doesn't reveal a ghost when a block is lifted", () => {
+    hub.move("ann", "capital", HERE, profile("ann", true));
+    const bo = listener("bo", "capital");
+    hub.subscribe({ ...bo.sub, hidden: new Set(["ann"]) });
+
+    hub.setBlocked("bo", "ann", false);
+    expect(bo.names()).toEqual(["snapshot"]);
+  });
+});
