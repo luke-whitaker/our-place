@@ -96,8 +96,15 @@ describe("frontTile", () => {
   it("picks the neighbouring tile the player faces on screen", () => {
     expect(frontTile(5.5, 5.5, "S")).toEqual({ col: 6, row: 6 });
     expect(frontTile(5.5, 5.5, "N")).toEqual({ col: 4, row: 4 });
-    expect(frontTile(5.5, 5.5, "E")).toEqual({ col: 6, row: 4 });
-    expect(frontTile(5.5, 5.5, "W")).toEqual({ col: 4, row: 6 });
+    expect(frontTile(5.5, 5.5, "SE")).toEqual({ col: 6, row: 5 });
+    expect(frontTile(5.5, 5.5, "SW")).toEqual({ col: 5, row: 6 });
+  });
+
+  it("facing sideways, lands half a tile ahead and in front of the player, not a full tile away", () => {
+    // Straight left or right on screen, the facing neighbour is 32 px away;
+    // the two half-diagonals are 18 px, and the lower one draws in front.
+    expect(frontTile(5.5, 5.5, "E")).toEqual({ col: 6, row: 5 });
+    expect(frontTile(5.5, 5.5, "W")).toEqual({ col: 5, row: 6 });
   });
 
   it("never picks the player's own tile", () => {

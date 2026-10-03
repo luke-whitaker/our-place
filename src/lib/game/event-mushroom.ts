@@ -148,26 +148,37 @@ const FACING_VECTORS: Record<Dir8, { x: number; y: number }> = {
   SW: { x: -1, y: 1 },
 };
 
+/** How far ahead of the player's feet, in screen pixels, a planted thing
+ * should land: half a tile, so it sits just in front rather than a full tile
+ * width away (the neighbour straight left or right on screen is that far). */
+const PLANT_AHEAD_PX = 16;
+
 /** The neighbouring tile in front of a player at (col, row) facing `dir`: of
- * the eight around their own tile, the one whose direction on screen best
- * matches where they're looking. Never their own tile, so planting can't
- * stand a solid mushroom on top of them. */
+ * the eight around their own tile, the one whose centre is nearest a point
+ * half a tile ahead of their feet on screen. A tie goes to the tile lower on
+ * screen, which draws in front of the player instead of behind them. Never
+ * their own tile, so planting can't stand a solid mushroom on top of them. */
 export function frontTile(col: number, row: number, dir: Dir8): { col: number; row: number } {
   const here = { col: Math.floor(col), row: Math.floor(row) };
   const want = FACING_VECTORS[dir];
-  const wantLen = Math.hypot(want.x, want.y);
+  const scale = PLANT_AHEAD_PX / Math.hypot(want.x, want.y);
+  const target = { x: want.x * scale, y: want.y * scale };
   let best = { col: here.col, row: here.row + 1 };
-  let bestScore = -Infinity;
+  let bestDist = Infinity;
+  let bestDepth = -Infinity;
   for (let dr = -1; dr <= 1; dr++) {
     for (let dc = -1; dc <= 1; dc++) {
       if (dc === 0 && dr === 0) continue;
       const tile = { col: here.col + dc, row: here.row + dr };
       // From the player's exact position to the tile's centre, on screen.
       const v = tileToScreen(tile.col + 0.5 - col, tile.row + 0.5 - row);
-      const score = (v.x * want.x + v.y * want.y) / (Math.hypot(v.x, v.y) * wantLen || 1);
-      if (score > bestScore) {
+      const dist = Math.hypot(v.x - target.x, v.y - target.y);
+      const nearer = dist < bestDist - 0.001;
+      const tiedButInFront = Math.abs(dist - bestDist) <= 0.001 && v.y > bestDepth;
+      if (nearer || tiedButInFront) {
         best = tile;
-        bestScore = score;
+        bestDist = dist;
+        bestDepth = v.y;
       }
     }
   }
