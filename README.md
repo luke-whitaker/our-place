@@ -251,7 +251,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Gatherings in the world, at an Event Mushroom the host plants
 - [x] A map of the Capital, with the places you've been and the shrines you've found saved to your account
 - [x] Polls — a post type for deciding something together
-- [ ] Welcome tour — a once-per-version walkthrough for new members on their first visit and everyone else on their next (designed, not built)
+- [x] ~~Welcome tour~~ — dropped in favor of a short video in the Welcome Center
 - [x] A bigger world: snow, swamp, lake, autumn, and the sea, from Luke's hand-drawn map
 - [ ] User-placed content sprites in the wilds
 - [x] Ports v2 — building interiors with PC sprites
@@ -261,12 +261,38 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Add to Home Screen, with our own mushroom as the app icon
 - [x] Seeds and flowers, to grow things on your island
 - [x] Download your data, and delete your account with a choice about your posts
+- [x] Blocking — one member can put another out of reach, both ways, without telling them
 - [ ] Player identity bound to world position (the name above the avatar is in)
 - [x] Real-time multiplayer presence, with emotes
 
 ---
 
 ## Version History
+
+### v0.25.0 — Blocking (October 2026)
+
+**Why:** Everyone here was met face to face, but people still fall out. Until now the only fix
+was asking Luke to step in. Blocking lets a member handle it themselves, quietly, and voice
+calls (next) need it before anyone can be invited into one.
+
+**What changed:**
+
+- **Block, on a member's My Place.** A short confirm says what it does first. Blocking unfriends
+  you both and removes pending friend requests, notifications between you, and invitations to
+  each other's gatherings that haven't happened yet.
+- **It works both ways.** Neither of you can send the other a friend request, a letter, a gift,
+  or a gathering invitation, comment on or react to the other's posts, visit the other's island,
+  or see the other walking around in the world. Community gatherings leave the other person out.
+- **They aren't told.** Whatever they try reads like any other refusal. Only the member who
+  blocked sees the block.
+- **Blocked members, in My Account,** lists everyone you blocked, with Unblock. Unblocking
+  doesn't make you friends again; a friendship starts over with a request.
+- **Admins see only a number.** `/admin/metrics` shows how many blocks are in place, never who
+  blocked whom.
+- **Your data export** lists the members you blocked.
+
+**What didn't change:** feeds and the member directory still show everyone, and shared
+communities stay shared. One migration adds the `blocks` table.
 
 ### v0.24.0 — Your Data, and Leaving (October 2026)
 

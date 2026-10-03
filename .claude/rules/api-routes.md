@@ -69,6 +69,18 @@ A route that adds something a member owns to a shared place under a per-member c
 | Old `events` / `event_rsvps`                                               | Deleted                                                                                                                     | Same                                                                                                                                       |
 | Members they vouched for (`invited_by_id`)                                 | Keep pointing at the tombstone, so People reads "Invited by A former member"                                                | Same                                                                                                                                       |
 
+## Blocking
+
+A block row has a direction (`blocker_id` made it, and only they see or lift it), but every check is symmetric: `isBlockedEitherWay` for one pair, `blockedIdsFor` for filtering a list in memory, and `notBlockedWith(userId)` as a `where` on a related user (a gathering's host, a directory row) inside the same query, all in `@/lib/blocks`. A refusal never says "blocked": a friend request answers like a missing member, a picked invitee like one not found, an island like a closed one. `blockMember` deletes, in one transaction, the friendship either way, notifications between the two, and invitations (with their letters) to each other's gatherings that haven't ended. Where blocks apply today:
+
+- `notify` writes nothing between a blocked pair, so every notify caller is covered.
+- Friend requests, comments, and reactions (taking back an earlier reaction still works).
+- Islands and mailboxes through `gateIsland`, and the gathering portal through `openableIds`, so presence on an island follows too.
+- Gatherings: `gatheringAccess` returns null across a block; creating one refuses a picked blocked member and leaves a blocked community member out; the community calendar, the travel menu, and `/api/users?invitable=true` (the invitee picker) filter by the host.
+- Presence: each stream's `hidden` set comes from `blockedIdsFor` when it opens, and the block routes call `presenceHub().setBlocked` so open streams update at once.
+
+Feeds, the plain directory, and community membership are deliberately not filtered (Luke, October 3, 2026). Voice calls will check `isBlockedEitherWay` when minting a token.
+
 ## Polls
 
 A poll post (`post_type: "poll"`) is created with its `polls` row and options in one nested `post.create` (`pollCreateData` in `@/lib/polls`), so one never exists without the other. Listings attach polls through `enrichPosts(posts, viewerId)` in `@/lib/post-helpers`, which every post-listing route calls in place of loading media alone. Per-option counts are withheld in the wire mapper (`toPollWire`) until the poll's `results_visible` rule allows them; the total always shows; who voted for what is never sent. `castVote` locks the voter's own row, then removes and adds exactly the vote rows it changes, so a single choice poll can't end with two votes and no count goes below zero. Votes notify nobody.
