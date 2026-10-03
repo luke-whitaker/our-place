@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
+import { NextRequest } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { closeRoom, removeFromRoom, voiceConfigured } from "@/lib/livekit";
@@ -49,9 +50,10 @@ function inviteTo(callId: string, usernames: string[]) {
 const post = (path: string) =>
   new Request(`http://localhost/api/calls/${path}`, { method: "POST" });
 
-async function currentFor(user: AuthPayload): Promise<CallsCurrentResponse> {
+async function currentFor(user: AuthPayload, heartbeat = true): Promise<CallsCurrentResponse> {
   actAs(user);
-  const res = await current();
+  const query = heartbeat ? "?heartbeat=1" : "";
+  const res = await current(new NextRequest(`http://localhost/api/calls/current${query}`));
   expect(res.status).toBe(200);
   return (await res.json()) as CallsCurrentResponse;
 }
@@ -254,6 +256,37 @@ describe("GET /api/calls/current", () => {
       select: { seenAt: true },
     });
     expect(Date.now() - seen.seenAt!.getTime()).toBeLessThan(5_000);
+  });
+
+  it("only the connected client's heartbeat keeps you present", async () => {
+    const me = await createTestUser();
+    const friend = await createTestUser();
+    const seenAt = new Date(Date.now() - 20_000);
+    const callId = await seedCall([
+      { user: me, status: "joined", at: seenAt },
+      { user: friend, status: "pending" },
+    ]);
+
+    const body = await currentFor(me, false);
+
+    expect(body.call?.id).toBe(callId);
+    const seen = await prisma.callInvite.findUniqueOrThrow({
+      where: { callId_userId: { callId, userId: me.userId } },
+      select: { seenAt: true },
+    });
+    expect(seen.seenAt?.getTime()).toBe(seenAt.getTime());
+  });
+
+  it("names each member's user id, which is their identity in the call's room", async () => {
+    const me = await createTestUser();
+    const friend = await createTestUser();
+    await seedCall([
+      { user: me, status: "joined" },
+      { user: friend, status: "pending" },
+    ]);
+
+    const body = await currentFor(me);
+    expect(body.call?.members.map((m) => m.user_id)).toEqual([me.userId, friend.userId]);
   });
 
   it("shows open invitations with who's in the call, and hides expired ones", async () => {

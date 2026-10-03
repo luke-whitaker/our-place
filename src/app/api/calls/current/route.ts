@@ -1,13 +1,13 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { currentCalls } from "@/lib/calls";
 import { callsCurrentLimiter } from "@/lib/rate-limit";
 
 // GET: the call you're in, if any, and the invitations you haven't answered.
-// Every open page polls this about every 10 seconds; for a member in a call,
-// the poll is also the heartbeat that keeps them counted as present
-// (CALL_PRESENCE_STALE_MS in @/lib/calls).
-export async function GET() {
+// Every open page polls this about every 10 seconds. The page connected to the
+// call's audio adds ?heartbeat=1, which keeps its member counted as present
+// (CALL_PRESENCE_STALE_MS in @/lib/calls); other tabs only look.
+export async function GET(request: NextRequest) {
   try {
     const auth = await requireAuth();
     if (auth.error) return auth.error;
@@ -21,7 +21,8 @@ export async function GET() {
       );
     }
 
-    return NextResponse.json(await currentCalls(me, new Date()));
+    const heartbeat = request.nextUrl.searchParams.get("heartbeat") === "1";
+    return NextResponse.json(await currentCalls(me, new Date(), heartbeat));
   } catch (error) {
     console.error("Current call error:", error);
     return NextResponse.json({ error: "Failed to load your calls." }, { status: 500 });

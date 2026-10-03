@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { voiceConnectSources } from "@/lib/voice-csp";
 
 // Nonce-based Content-Security-Policy (XSS hardening).
 //
@@ -27,6 +28,8 @@ const r2Host = originFromEnv(process.env.R2_PUBLIC_BASE_URL);
 const worldAssetHost = originFromEnv(process.env.NEXT_PUBLIC_WORLD_ASSET_BASE);
 const imgHosts = [r2Host, worldAssetHost].filter((h, i, arr) => h && arr.indexOf(h) === i);
 
+const voiceHosts = voiceConnectSources(process.env.LIVEKIT_URL);
+
 export function proxy(request: NextRequest) {
   const isDev = process.env.NODE_ENV !== "production";
 
@@ -45,8 +48,8 @@ export function proxy(request: NextRequest) {
     `media-src 'self' blob:${r2Host ? ` ${r2Host}` : ""}`,
     "font-src 'self'",
     "frame-src https://www.youtube.com https://player.vimeo.com",
-    // dev needs websockets for HMR.
-    `connect-src 'self'${isDev ? " ws: wss:" : ""}`,
+    // dev needs websockets for HMR; voice calls need their LiveKit server.
+    `connect-src 'self'${voiceHosts.length ? ` ${voiceHosts.join(" ")}` : ""}${isDev ? " ws: wss:" : ""}`,
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

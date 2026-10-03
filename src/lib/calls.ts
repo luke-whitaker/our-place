@@ -3,7 +3,8 @@
 // are the only thing that decides who's allowed in.
 //
 // Presence in a call is a heartbeat, not a webhook: joining sets `seen_at`,
-// the client's poll of GET /api/calls/current moves it forward, and a joined
+// the connected client's poll of GET /api/calls/current?heartbeat=1 moves it
+// forward, and a joined
 // row not seen for CALL_PRESENCE_STALE_MS no longer counts as present. So a
 // closed tab or a locked phone drops out on its own, and a call with nobody
 // present ends the next time anything settles it.
@@ -463,6 +464,7 @@ export async function pruneCalls(now: Date): Promise<void> {
 }
 
 interface PersonRow {
+  id: string;
   username: string;
   displayName: string;
   avatarColor: string;
@@ -488,6 +490,7 @@ export function toCallsWire(rows: MyCallRow[], voiceEnabled: boolean): CallsCurr
   for (const row of rows) {
     const members: CallMember[] = row.call.invites
       .map((i) => ({
+        user_id: i.user.id,
         username: i.user.username,
         display_name: i.user.displayName,
         avatar_color: i.user.avatarColor,
@@ -513,14 +516,23 @@ export function toCallsWire(rows: MyCallRow[], voiceEnabled: boolean): CallsCurr
 }
 
 /**
- * What GET /api/calls/current returns, and the viewer's heartbeat: a member
- * present in a call stays present by asking. One write, one read.
+ * What GET /api/calls/current returns. With `heartbeat`, it is also the
+ * viewer's heartbeat: a member present in a call stays present by asking.
+ * Only the client actually connected to the call's audio sends it, so another
+ * open tab, or a page reloaded after a drop, never keeps someone counted as in
+ * a call they can't hear. One write, one read.
  */
-export async function currentCalls(userId: string, now: Date): Promise<CallsCurrentResponse> {
-  await prisma.callInvite.updateMany({
-    where: { userId, ...presentWhere(now), call: { endedAt: null } },
-    data: { seenAt: now },
-  });
+export async function currentCalls(
+  userId: string,
+  now: Date,
+  heartbeat: boolean,
+): Promise<CallsCurrentResponse> {
+  if (heartbeat) {
+    await prisma.callInvite.updateMany({
+      where: { userId, ...presentWhere(now), call: { endedAt: null } },
+      data: { seenAt: now },
+    });
+  }
   const inCall: Prisma.CallInviteWhereInput = { OR: [presentWhere(now), openInviteWhere(now)] };
   const rows = await prisma.callInvite.findMany({
     where: {
@@ -541,7 +553,7 @@ export async function currentCalls(userId: string, now: Date): Promise<CallsCurr
             where: inCall,
             select: {
               status: true,
-              user: { select: { username: true, displayName: true, avatarColor: true } },
+              user: { select: { id: true, username: true, displayName: true, avatarColor: true } },
             },
             orderBy: { invitedAt: "asc" },
             take: MAX_CALL_SIZE * 2,

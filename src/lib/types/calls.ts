@@ -6,6 +6,8 @@ export const MAX_CALL_SIZE = 8;
 export type CallMemberStatus = "joined" | "pending";
 
 export interface CallMember {
+  /** Matches the member's identity in the call's LiveKit room. */
+  user_id: string;
   username: string;
   display_name: string;
   avatar_color: string;
@@ -32,7 +34,8 @@ export interface CallInvitation {
   expires_at: string;
 }
 
-/** GET /api/calls/current: what the client polls every ~10 seconds. */
+/** GET /api/calls/current: what the client polls every ~10 seconds. The
+ * client connected to a call's audio adds `?heartbeat=1` to stay present. */
 export interface CallsCurrentResponse {
   /** False when this server has no LiveKit keys; the client hides voice. */
   voice_enabled: boolean;
