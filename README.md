@@ -259,12 +259,37 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] A desk in every island house, to keep letters at home
 - [x] Add to Home Screen, with our own mushroom as the app icon
 - [x] Seeds and flowers, to grow things on your island
+- [x] Download your data, and delete your account with a choice about your posts
 - [ ] Player identity bound to world position (the name above the avatar is in)
 - [x] Real-time multiplayer presence, with emotes
 
 ---
 
 ## Version History
+
+### v0.24.0 — Your Data, and Leaving (October 2026)
+
+**Why:** Until now, deleting an account meant asking Luke to do it by hand. A member trusting a
+process, not a person, needs to be able to take their data and leave on their own, and choose
+what happens to what they wrote.
+
+**What changed:**
+
+- **Download my data,** in My Account: one JSON file with your profile, posts, comments,
+  reactions, letters and items, gatherings and your answers, friends, communities, outfits,
+  notebook pages, map discoveries, and plants. Other members appear by name only, never by email.
+- **Delete my account,** in My Account, behind your password. You choose:
+  - **Leave my posts and comments up.** They stay where they are, signed "A former member",
+    so conversations you were part of still make sense.
+  - **Remove everything.** Your posts, the photos and videos in them, and your comments go too.
+- **Either way,** your profile, island, friendships, items, plants, and outfits are deleted;
+  gatherings you're hosting are cancelled and everyone going is told; letters you sent stay with
+  the people you sent them to, signed "A former member"; and you're signed out everywhere and
+  can't sign in again.
+- **Admin accounts can't be deleted here.** They're Luke's, and he does it by hand.
+
+**What didn't change:** nobody else's posts, comments, or letters are touched, apart from the
+replies on posts you remove. One migration adds `users.deleted_at`.
 
 ### v0.22.0 — Seeds, Flowers, and Flower Hats (October 2026)
 
