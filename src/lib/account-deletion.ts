@@ -67,6 +67,20 @@ async function removeReactions(tx: Prisma.TransactionClient, userId: string): Pr
   await tx.reaction.deleteMany({ where: { userId } });
 }
 
+/** Take this member's poll votes back out of each option's count, then the
+ * votes themselves. A vote is an act of a person, like a reaction, so it goes
+ * in both modes. Counts never go below zero. */
+async function removePollVotes(tx: Prisma.TransactionClient, userId: string): Promise<void> {
+  await tx.$executeRaw`
+    UPDATE poll_options o
+    SET vote_count = GREATEST(o.vote_count - v.n, 0)
+    FROM (
+      SELECT option_id, COUNT(*)::int AS n FROM poll_votes WHERE user_id = ${userId} GROUP BY option_id
+    ) v
+    WHERE o.id = v.option_id`;
+  await tx.pollVote.deleteMany({ where: { userId } });
+}
+
 /** Remove this member's comments and take them out of their posts' counts. */
 async function removeComments(tx: Prisma.TransactionClient, userId: string): Promise<void> {
   await tx.$executeRaw`
@@ -166,6 +180,7 @@ export async function deleteAccount(userId: string, mode: DeletionMode): Promise
       await settleGatherings(tx, userId, mode, now);
       await tx.gatheringInvite.deleteMany({ where: { userId } });
       await removeReactions(tx, userId);
+      await removePollVotes(tx, userId);
       if (mode === "remove_everything") {
         await removeComments(tx, userId);
         // Cascades to the posts' media rows, everyone's comments and reactions

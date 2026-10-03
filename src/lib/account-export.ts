@@ -63,7 +63,7 @@ async function profile(userId: string) {
 }
 
 async function forum(userId: string, truncated: string[]) {
-  const [memberships, posts, comments, reactions, friendships] = await Promise.all([
+  const [memberships, posts, comments, reactions, pollVotes, friendships] = await Promise.all([
     prisma.communityMember.findMany({
       where: { userId },
       select: { role: true, joinedAt: true, community: { select: { name: true, slug: true } } },
@@ -95,6 +95,16 @@ async function forum(userId: string, truncated: string[]) {
       orderBy: { createdAt: "asc" },
       take: TAKE,
       select: { postId: true, type: true, createdAt: true },
+    }),
+    prisma.pollVote.findMany({
+      where: { userId },
+      orderBy: { createdAt: "asc" },
+      take: TAKE,
+      select: {
+        createdAt: true,
+        poll: { select: { postId: true } },
+        option: { select: { label: true } },
+      },
     }),
     prisma.friendship.findMany({
       where: { OR: [{ userId }, { friendId: userId }] },
@@ -135,6 +145,11 @@ async function forum(userId: string, truncated: string[]) {
       post_id: r.postId,
       type: r.type,
       created_at: iso(r.createdAt),
+    })),
+    poll_votes: capped("poll_votes", pollVotes, truncated).map((v) => ({
+      post_id: v.poll.postId,
+      option: v.option.label,
+      created_at: iso(v.createdAt),
     })),
     friends: capped("friends", friendships, truncated).map((f) => {
       const sent = f.userId === userId;

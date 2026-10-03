@@ -212,6 +212,46 @@ describe("POST /api/auth/account/delete", () => {
     expect(notices).toEqual([{ actor: { displayName: "A former member" } }]);
   });
 
+  it("takes their poll votes back out of the counts, and leaves others' votes", async () => {
+    const leaver = await memberWithPassword();
+    const stayer = await createTestUser();
+    const postId = await createTestPost({ authorId: stayer.userId });
+    const poll = await prisma.poll.create({
+      data: {
+        postId,
+        options: {
+          create: [
+            { label: "Park", sortOrder: 0 },
+            { label: "Cafe", sortOrder: 1 },
+          ],
+        },
+      },
+      select: { id: true, options: { select: { id: true }, orderBy: { sortOrder: "asc" } } },
+    });
+    const [park, cafe] = poll.options;
+    for (const [userId, optionId] of [
+      [leaver.userId, park.id],
+      [stayer.userId, park.id],
+      [stayer.userId, cafe.id],
+    ]) {
+      await prisma.pollVote.create({ data: { pollId: poll.id, optionId, userId } });
+    }
+    await prisma.pollOption.update({ where: { id: park.id }, data: { voteCount: 2 } });
+    await prisma.pollOption.update({ where: { id: cafe.id }, data: { voteCount: 1 } });
+
+    authAs(leaver);
+    expect((await deleteMe({ current_password: PASSWORD, mode: "leave_posts" })).status).toBe(200);
+
+    const counts = await prisma.pollOption.findMany({
+      where: { pollId: poll.id },
+      orderBy: { sortOrder: "asc" },
+      select: { voteCount: true },
+    });
+    expect(counts.map((c) => c.voteCount)).toEqual([1, 1]);
+    expect(await prisma.pollVote.count({ where: { userId: leaver.userId } })).toBe(0);
+    expect(await prisma.pollVote.count({ where: { userId: stayer.userId } })).toBe(2);
+  });
+
   it("hides the former member from the directory, profiles, and sign-in", async () => {
     const me = await memberWithPassword();
     const viewer = await createTestUser();
