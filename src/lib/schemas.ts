@@ -309,6 +309,19 @@ export const plantMushroomSchema = z.object({
   row: z.number().int().min(0).max(1000),
 });
 
+/** POST /api/world/plants: plant a seed or place a flower from pockets. */
+export const plantSchema = z.object({
+  item_id: z.uuid({ error: "Choose a seed or a flower from your pockets." }),
+  world: z.string({ error: "Plant it somewhere in the world." }).min(1).max(100),
+  col: z.number().int().min(0).max(1000),
+  row: z.number().int().min(0).max(1000),
+});
+
+/** POST /api/hat: wear a flower from pockets. */
+export const wearHatSchema = z.object({
+  item_id: z.uuid({ error: "Choose a flower from your pockets." }),
+});
+
 /** GET /api/gatherings/mushrooms?world= */
 export const mushroomWorldSchema = z.object({
   world: z.string({ error: "Name a world." }).min(1).max(100),

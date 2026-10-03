@@ -36,9 +36,9 @@ export async function GET(
 
 type LeaveOutcome = "moved" | "mailbox_full" | "item_gone";
 
-// POST: leave a torn-out Note from the caller's pockets in a member's
-// mailbox. Dropping it MOVES the item — its owner becomes the mailbox's
-// owner — it is never copied.
+// POST: leave something mailable from the caller's pockets in a member's
+// mailbox: a torn-out Note, or a gift (a seed or a flower). Dropping it MOVES
+// the item — its owner becomes the mailbox's owner — it is never copied.
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ username: string }> },
@@ -86,7 +86,10 @@ export async function POST(
       throw new Error(`Unknown item kind "${item.kind}" on item ${item.id}`);
     }
     if (!ITEM_CATALOG[item.kind].mailable) {
-      return NextResponse.json({ error: "Only notes fit in a mailbox." }, { status: 400 });
+      return NextResponse.json(
+        { error: `The ${ITEM_CATALOG[item.kind].name} can't go in a mailbox.` },
+        { status: 400 },
+      );
     }
 
     try {
@@ -122,7 +125,10 @@ export async function POST(
         return NextResponse.json({ error: "Item not found." }, { status: 404 });
       }
 
-      return NextResponse.json({ message: "Letter left.", has_mail: true });
+      return NextResponse.json({
+        message: item.kind === "note" ? "Letter left." : "Gift left.",
+        has_mail: true,
+      });
     } catch (error) {
       if (isUniqueConstraintError(error)) {
         return NextResponse.json(

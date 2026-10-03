@@ -7,6 +7,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import prisma from "@/lib/db";
 import { LOCATION_SLOTS, isItemKind, type ItemKind, type ItemLocation } from "@/lib/items";
 import type { PocketItem } from "@/lib/types/items";
+import { isFlowerColor } from "@/lib/game/plants";
 
 /** The one shared select every route uses to read an item row, so the wire
  * shape (via toPocketItem) can't drift between routes. */
@@ -17,6 +18,7 @@ export const ITEM_SELECT = {
   body: true,
   placedAt: true,
   gatheringId: true,
+  color: true,
   from: { select: { username: true, displayName: true } },
 } as const;
 
@@ -28,6 +30,7 @@ interface ItemRow {
   body: string | null;
   placedAt: Date | null;
   gatheringId: string | null;
+  color: string | null;
   from: { username: string; displayName: string } | null;
 }
 
@@ -125,6 +128,7 @@ export function toPocketItem(row: ItemRow): PocketItem {
     from: row.from ? { username: row.from.username, display_name: row.from.displayName } : null,
     placed_at: row.placedAt ? row.placedAt.toISOString() : null,
     gathering_id: row.gatheringId,
+    color: isFlowerColor(row.color) ? row.color : null,
   };
 }
 

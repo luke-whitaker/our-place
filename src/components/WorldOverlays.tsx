@@ -16,6 +16,7 @@ import {
   type MenuEntry,
 } from "@/lib/game/iso-engine";
 import { frontTile, plantProblem } from "@/lib/game/event-mushroom";
+import { plantableWorld, plotProblem } from "@/lib/game/plants";
 import type { IsoWorld } from "@/lib/game/world-model";
 import type { InputManager } from "@/lib/game/input";
 import type { NpcId } from "@/lib/npcs";
@@ -25,6 +26,7 @@ import type {
   DeskFixture,
   EventMushroomFixture,
   MailboxFixture,
+  PlantFixture,
   WorldFixture,
 } from "@/lib/game/types";
 import GatheringCard, { type GatheringCardTab } from "@/components/GatheringCard";
@@ -39,6 +41,7 @@ import MailboxPanel from "@/components/MailboxPanel";
 import LeaveLetterPanel from "@/components/LeaveLetterPanel";
 import WorldMinimap, { type MinimapDraw } from "@/components/WorldMinimap";
 import WorldMapPanel from "@/components/WorldMapPanel";
+import PlantPanel from "@/components/PlantPanel";
 import type { WorldMap } from "@/lib/game/use-world-map";
 
 /** Which DOM overlay (if any) covers the world right now, and the data each
@@ -56,6 +59,7 @@ export type OverlayScreen =
   | { kind: "notebook" }
   | { kind: "gathering"; fixture: EventMushroomFixture; tab: GatheringCardTab; travel: MenuEntry[] }
   | { kind: "passing-mushroom" }
+  | { kind: "plant"; fixture: PlantFixture }
   | {
       kind: "map";
       player: { col: number; row: number };
@@ -82,6 +86,8 @@ export interface PlantSpot {
   row: number;
   problem: string | null;
   now: number;
+  /** Why a seed or flower can't go on the same tile, or null when it can. */
+  garden: string | null;
 }
 
 /** The screen a fixture opens once its confirm finishes. The desk opens on
@@ -95,6 +101,7 @@ export function fixtureScreen(fixture: WorldFixture): OverlayScreen {
       ? { kind: "gathering", fixture, tab: "gathering", travel: [] }
       : { kind: "passing-mushroom" };
   }
+  if (fixture.kind === "plant") return { kind: "plant", fixture };
   return { kind: "mailbox", fixture };
 }
 
@@ -127,6 +134,13 @@ interface WorldOverlaysProps {
   onMushroomsChange: () => void;
   /** After an invitation is answered from a mushroom's card. */
   onGatheringsChange: () => void;
+  /** The signed-in member's own island world, where they may garden freely;
+   * null when signed out. */
+  ownIslandId: string | null;
+  /** After a seed or flower is planted or picked here. */
+  onPlantsChange: () => void;
+  /** After a flower is worn or taken off. */
+  onHatChange: () => void;
   /** This world's map, or null where there isn't one (islands, rooms). */
   worldMap: WorldMap | null;
   /** Where the minimap registers its draw function for the game loop. */
@@ -192,6 +206,9 @@ export default function WorldOverlays({
   ownerDisplayName,
   onMushroomsChange,
   onGatheringsChange,
+  ownIslandId,
+  onPlantsChange,
+  onHatChange,
   worldMap,
   minimapDrawRef,
   isTouchDevice,
@@ -231,11 +248,15 @@ export default function WorldOverlays({
     if (!state) return { kind: "pockets", plant: null };
     const player = getLocalEntity(state);
     const tile = frontTile(player.col, player.row, player.dir);
+    const gardenHere = ownIslandId !== null && plantableWorld(world.id, ownIslandId);
     const plant: PlantSpot = {
       worldId: world.id,
       ...tile,
       problem: plantProblem(world, tile.col, tile.row),
       now: Date.now(),
+      garden: gardenHere
+        ? plotProblem(world, tile.col, tile.row)
+        : "Plant in the Capital or on your own island.",
     };
     return { kind: "pockets", plant };
   }
@@ -285,6 +306,26 @@ export default function WorldOverlays({
       onMushroomsChange();
     } catch (err) {
       closeWithToast(userMessage(err, "Couldn't plant the mushroom."));
+    }
+  }
+
+  /** Plant a seed or place a flower on the tile in front of the player. */
+  async function garden(item: PocketItem, spot: PlantSpot) {
+    try {
+      const data = await apiFetch<{ message: string }>("/api/world/plants", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          item_id: item.id,
+          world: spot.worldId,
+          col: spot.col,
+          row: spot.row,
+        }),
+      });
+      closeWithToast(data.message);
+      onPlantsChange();
+    } catch (err) {
+      closeWithToast(userMessage(err, "Couldn't plant that."));
     }
   }
 
@@ -374,6 +415,8 @@ export default function WorldOverlays({
           onReadNote={(item) => setOverlay({ kind: "note", item, returnTo: "pockets" })}
           plant={overlay.plant}
           onPlant={(item, spot) => void plantMushroom(item, spot)}
+          onGarden={(item, spot) => void garden(item, spot)}
+          onHatChange={onHatChange}
         />
       )}
       {overlay.kind === "notebook" && <NotebookPanel onClose={() => setOverlay(pocketsScreen())} />}
@@ -403,6 +446,27 @@ export default function WorldOverlays({
           onAdvance={closeToWorld}
         />
       )}
+      {overlay.kind === "plant" &&
+        (overlay.fixture.mine ? (
+          <PlantPanel
+            fixture={overlay.fixture}
+            onClose={closeToWorld}
+            onPicked={(message) => {
+              closeWithToast(message);
+              onPlantsChange();
+            }}
+          />
+        ) : (
+          // No request: whose it is came with the plant itself.
+          <DialogueBox
+            speaker={null}
+            text={`${overlay.fixture.ownerName} planted this ${overlay.fixture.color ? "flower" : "seed"}.`}
+            italic
+            hasMore={false}
+            ariaLabel={overlay.fixture.color ? "A flower" : "A planted seed"}
+            onAdvance={closeToWorld}
+          />
+        ))}
       {overlay.kind === "mailbox" &&
         (isOwner(overlay.fixture, username) ? (
           <MailboxPanel

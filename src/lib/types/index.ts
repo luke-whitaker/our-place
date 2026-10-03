@@ -74,3 +74,4 @@ export type {
 } from "./gatherings";
 
 export { MAX_PICKED_INVITEES } from "./gatherings";
+export type { PlantWire, PlantsInWorld, PickedPlant, WornHat } from "./plants";

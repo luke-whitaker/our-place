@@ -79,7 +79,7 @@ describe("POST /api/outfits/[id]/wear", () => {
       me.userId,
       world,
       { col: 1, row: 1, dir: "S", moving: false },
-      { username: me.username, display_name: "Me", avatar: AVATAR, ghost: false },
+      { username: me.username, display_name: "Me", avatar: AVATAR, hat: null, ghost: false },
     );
     const heard: { event: PresenceEvent; data: unknown }[] = [];
     const sub = presenceHub().subscribe({

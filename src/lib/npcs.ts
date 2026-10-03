@@ -12,8 +12,9 @@ export function isNpcId(value: unknown): value is NpcId {
 
 /** The one-time gift each NPC hands over on first talk, keyed by a stable
  * gift id (stored in npc_gifts so it's only ever given once). Null means the
- * NPC only chats for now — Gnomette's gift arrives in a later step. */
+ * NPC only chats. Gnomette's seed is the first; after that, seeds come from
+ * the flowers members grow. */
 export const NPC_GIFTS: Record<NpcId, { giftId: string; kind: ItemKind } | null> = {
   gnomie: { giftId: "gnomie-notebook", kind: "notebook" },
-  gnomette: null,
+  gnomette: { giftId: "gnomette-seed", kind: "seed" },
 };

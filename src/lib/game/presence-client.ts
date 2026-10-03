@@ -2,6 +2,7 @@
 // members, and sending our own position. See src/lib/types/presence.ts for the
 // contract. Nothing here touches the engine; use-presence.ts wires it in.
 
+import { isFlowerColor } from "./plants";
 import { z } from "zod";
 import { EMOTES, PRESENCE_DIRS } from "@/lib/types";
 import type { PresenceMoveBody, PresencePlayer } from "@/lib/types";
@@ -20,6 +21,8 @@ const playerSchema = z.object({
   moving: z.boolean(),
   emote: z.enum(EMOTES).nullable(),
   emote_at: z.number().finite().nullable(),
+  // Optional, so a server from before flower hats still parses.
+  hat: z.unknown().optional(),
 });
 
 /** A stream event this client understands. */
@@ -29,9 +32,13 @@ export type PresenceEvent =
   | { type: "leave"; userId: string };
 
 function toPlayer(raw: z.infer<typeof playerSchema>): PresencePlayer {
-  // An avatar that isn't a valid config draws in the default colors rather
-  // than failing the whole event.
-  return { ...raw, avatar: isAvatarConfig(raw.avatar) ? raw.avatar : null };
+  // An avatar that isn't a valid config draws in the default colors, and an
+  // unknown hat draws no hat, rather than failing the whole event.
+  return {
+    ...raw,
+    avatar: isAvatarConfig(raw.avatar) ? raw.avatar : null,
+    hat: isFlowerColor(raw.hat) ? raw.hat : null,
+  };
 }
 
 /**

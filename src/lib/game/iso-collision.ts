@@ -36,7 +36,10 @@ export function buildSolidGrid(world: IsoWorld): SolidGrid {
 
   // A fixture is furniture, not open ground: block every tile it covers, so
   // the player walks up beside the mailbox or the desk rather than through it.
+  // Seeds and flowers are the exception: you walk over them, so a garden can
+  // never block a path.
   for (const fixture of world.fixtures ?? []) {
+    if (fixture.kind === "plant") continue;
     for (const { dc, dr } of fixtureFootprint(fixture)) {
       const c = fixture.col + dc;
       const r = fixture.row + dr;

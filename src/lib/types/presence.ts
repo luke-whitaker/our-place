@@ -1,3 +1,4 @@
+import type { FlowerColor } from "@/lib/game/plants";
 import type { AvatarConfig } from "./game";
 
 // The wire contract for live presence: members in the same world see each
@@ -29,6 +30,8 @@ export interface PresencePlayer {
   username: string;
   display_name: string;
   avatar: AvatarConfig | null;
+  /** The flower on their head, or null. */
+  hat: FlowerColor | null;
   col: number;
   row: number;
   dir: PresenceDir;

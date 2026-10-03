@@ -70,6 +70,7 @@ model User {
   hostedGatherings    Gathering[]       @relation("GatheringHost")
   gatheringInvites    GatheringInvite[]
   worldDiscoveries    WorldDiscovery[]
+  worldPlants         WorldPlant[]
 
   @@index([email])
   @@index([username])
@@ -279,6 +280,10 @@ model Item {
   // An invitation letter's gathering, so the letter can offer Accept and
   // Decline. The body never carries the address: letters can be handed on.
   gatheringId String?   @map("gathering_id")
+  // A flower's color (FLOWER_COLORS in src/lib/plants.ts); null for every
+  // other kind. A column rather than the body, so a note can never pass as
+  // a red flower.
+  color       String?
   createdAt   DateTime  @default(now()) @map("created_at")
 
   owner     User       @relation("ItemOwner", fields: [ownerId], references: [id], onDelete: Cascade)
@@ -477,4 +482,30 @@ model WorldDiscovery {
 
   @@unique([userId, worldId])
   @@map("world_discoveries")
+}
+
+/// A seed or flower placed in a world by a member: on their own island, or in
+/// the shared Capital (at most 10 there). A seed blooms at `blooms_at`, decided
+/// at planting; bloom is read from the clock, never written by a job. `color`
+/// is chosen at planting too but never sent to anyone before the bloom.
+/// `yields_seed` is true only for a plant grown from a seed, so plucking it
+/// the first time gives a seed back; a flower placed from pockets never does.
+model WorldPlant {
+  id         String    @id @default(uuid())
+  ownerId    String    @map("owner_id")
+  worldId    String    @map("world_id")
+  col        Int
+  row        Int
+  color      String
+  plantedAt  DateTime  @default(now()) @map("planted_at")
+  // Null for a flower placed from pockets: it's already in bloom.
+  bloomsAt   DateTime? @map("blooms_at")
+  yieldsSeed Boolean   @default(false) @map("yields_seed")
+
+  owner User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+
+  // One thing per tile, even under concurrent requests.
+  @@unique([worldId, col, row])
+  @@index([ownerId, worldId])
+  @@map("world_plants")
 }

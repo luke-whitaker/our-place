@@ -62,12 +62,21 @@ describe("POST /api/npcs/[npc]/talk", () => {
     expect((await retry.json()).state).toBe("gift");
   });
 
-  it("only chats for gnomette, who has no gift yet", async () => {
-    authAs(await createTestUser());
+  it("gives Gnomette's seed once, then only chats after", async () => {
+    const user = await createTestUser();
+    authAs(user);
 
-    const res = await talk("gnomette");
-    expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ state: "chat" });
+    const first = await talk("gnomette");
+    expect(first.status).toBe(200);
+    const body = await first.json();
+    expect(body.state).toBe("gift");
+    expect(body.item.kind).toBe("seed");
+    expect(body.item.color).toBeNull();
+
+    const second = await talk("gnomette");
+    expect(await second.json()).toEqual({ state: "after" });
+    const seeds = await prisma.item.count({ where: { ownerId: user.userId, kind: "seed" } });
+    expect(seeds).toBe(1);
   });
 
   it("returns 404 for an npc that doesn't exist", async () => {

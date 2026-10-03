@@ -36,9 +36,9 @@ describe("NPC_DIALOGUE", () => {
   });
 
   it("falls back to one sensible line for a state an NPC can't produce", () => {
-    // Gnomette has no gift, so she can never actually get "gift" — the
+    // Gnomette always has a gift, so she can never actually get "chat": the
     // catalog still answers something rather than crashing.
-    const lines = dialogueLinesFor("gnomette", "gift");
+    const lines = dialogueLinesFor("gnomette", "chat");
     expect(lines).toHaveLength(1);
     expect(lines[0].kind).toBe("say");
   });
@@ -53,8 +53,8 @@ describe("NPC_DIALOGUE", () => {
   });
 
   it("resolves a say-random line to one of its own options", () => {
-    const chat = NPC_DIALOGUE.gnomette.lines.chat;
-    const randomLine = chat?.find((l) => l.kind === "say-random");
+    const after = NPC_DIALOGUE.gnomette.lines.after;
+    const randomLine = after?.find((l) => l.kind === "say-random");
     expect(randomLine?.kind).toBe("say-random");
     if (randomLine?.kind === "say-random") {
       expect(randomLine.options.length).toBeGreaterThan(1);

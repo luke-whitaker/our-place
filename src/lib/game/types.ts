@@ -3,6 +3,7 @@
 // top-down engine in the iso migration — the iso world model lives in
 // world-model.ts and its runtime state in iso-engine.ts.
 
+import type { FlowerColor } from "./plants";
 import type { NpcId } from "@/lib/npcs";
 import type { Dir8 } from "./character-sheet";
 import type { MailboxColor } from "./mailbox-colors";
@@ -92,7 +93,19 @@ export interface EventMushroomFixture extends FixtureBase {
   invited: boolean;
 }
 
-export type WorldFixture = MailboxFixture | DeskFixture | ArmoireFixture | EventMushroomFixture;
+/** A seed or flower a member placed (see plants.ts). Never authored and never
+ * solid. `color` is null until a seed blooms; `mine` says whether this viewer
+ * planted it, so Enter picks it up rather than naming its planter. */
+export interface PlantFixture extends FixtureBase {
+  kind: "plant";
+  plantId: string;
+  ownerName: string;
+  mine: boolean;
+  color: FlowerColor | null;
+}
+
+export type WorldFixture =
+  MailboxFixture | DeskFixture | ArmoireFixture | EventMushroomFixture | PlantFixture;
 
 // ── Mushroom warp network (mycelium fast-travel) ──
 

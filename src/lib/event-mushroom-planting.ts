@@ -19,14 +19,20 @@ async function baseWorld(worldId: string, home: MushroomHome): Promise<IsoWorld 
   if (!plantableWorlds(home).includes(worldId)) return null;
   if (worldId === "capital") return CAPITAL;
   if (worldId !== islandWorldId(home.host.id)) return findInterior(worldId);
-  const host = await prisma.user.findUniqueOrThrow({
-    where: { id: home.host.id },
+  return ownIslandWorld(home.host.id);
+}
+
+/** A member's island, rebuilt from their id exactly as every visitor's device
+ * builds it. Shared with the plant routes. */
+export async function ownIslandWorld(userId: string): Promise<IsoWorld> {
+  const owner = await prisma.user.findUniqueOrThrow({
+    where: { id: userId },
     select: { id: true, username: true, displayName: true, biome: true, mailboxColor: true },
   });
   return buildIsland({
-    owner: { id: host.id, username: host.username, displayName: host.displayName },
-    biome: isTintPreset(host.biome) ? host.biome : "forest",
-    mailboxColor: isMailboxColor(host.mailboxColor) ? host.mailboxColor : "slate",
+    owner: { id: owner.id, username: owner.username, displayName: owner.displayName },
+    biome: isTintPreset(owner.biome) ? owner.biome : "forest",
+    mailboxColor: isMailboxColor(owner.mailboxColor) ? owner.mailboxColor : "slate",
     isOwn: true,
   });
 }

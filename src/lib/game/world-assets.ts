@@ -8,6 +8,8 @@ import type { BiomeAssets, IsoAssets } from "./iso-engine";
 import type { IsoWorld } from "./world-model";
 import { OBJECT_CATALOG } from "./world-model";
 import type { WorldFixture } from "./types";
+import { FLOWER_COLORS, type FlowerColor } from "./plants";
+import { flowerHatPath } from "./flower-hat";
 import {
   loadCharacterSheet,
   characterSheetPath,
@@ -28,17 +30,25 @@ function fixtureSpriteKinds(fixture: WorldFixture): readonly string[] {
   if (fixture.kind === "mailbox") {
     return [`mailbox_${fixture.color}`, `mailbox_${fixture.color}_flag`];
   }
+  if (fixture.kind === "plant") return [];
   return [fixture.kind];
 }
+
+/** Sprites for things placed at runtime, loaded with every world. */
+const RUNTIME_KINDS = [
+  "event_mushroom",
+  "plant_mound",
+  ...FLOWER_COLORS.map((color) => `flower_${color}`),
+];
 
 export async function loadWorldAssets(
   world: IsoWorld,
   avatar: AvatarConfig | null = null,
 ): Promise<IsoAssets> {
   const tint: TintPreset = world.tint ?? "forest";
-  // Event Mushrooms are planted while a world is open, so their sprite loads
-  // with every world rather than waiting to be seen in the document.
-  const fixtureKinds = [...(world.fixtures ?? []).flatMap(fixtureSpriteKinds), "event_mushroom"];
+  // Event Mushrooms, seeds, and flowers are placed while a world is open, so
+  // their sprites load with every world rather than waiting to be seen.
+  const fixtureKinds = [...(world.fixtures ?? []).flatMap(fixtureSpriteKinds), ...RUNTIME_KINDS];
   const kinds = [...new Set([...world.objects.map((o) => o.kind), ...fixtureKinds])];
   // Every NPC the world places, deduplicated (a future world could repeat one).
   const npcIds = [...new Set((world.npcs ?? []).map((n) => n.id))];
@@ -69,7 +79,7 @@ export async function loadWorldAssets(
   });
   const biomes = world.biomes ? await loadBiomeAssets(world, ground) : undefined;
   const sand = await loadSandSheets(world, forest, biomes);
-  return { characters, forest, water, objects, npcs, biomes, sand };
+  return { characters, forest, water, objects, npcs, biomes, sand, hats: await loadHats() };
 }
 
 /** A sand copy of each biome's ground sheet that has sand in it (or grass
@@ -108,7 +118,7 @@ async function loadBiomeAssets(world: IsoWorld, ground: string): Promise<BiomeAs
     }),
   );
   await Promise.all(
-    [...extraObjectBiomes(world)].map(async ([preset, kinds]) => {
+    [...objectBiomesWithMounds(world)].map(async ([preset, kinds]) => {
       const sprites: Record<string, ObjectSprite> = {};
       await Promise.all(
         [...kinds].map(async (kind) => {
@@ -123,6 +133,18 @@ async function loadBiomeAssets(world: IsoWorld, ground: string): Promise<BiomeAs
   return out;
 }
 
+/** The extra biomes' object kinds, plus a seed mound in every biome the ground
+ * uses: a mound can be planted anywhere, and it takes the ground's tint. */
+function objectBiomesWithMounds(world: IsoWorld): Map<TintPreset, Set<string>> {
+  const pairs = extraObjectBiomes(world);
+  for (const preset of extraGroundBiomes(world)) {
+    const kinds = pairs.get(preset) ?? new Set<string>();
+    kinds.add("plant_mound");
+    pairs.set(preset, kinds);
+  }
+  return pairs;
+}
+
 function tintSprite(
   sprite: ObjectSprite,
   tint: TintPreset,
@@ -130,6 +152,18 @@ function tintSprite(
 ): ObjectSprite {
   if (!(sprite.img instanceof HTMLImageElement)) return sprite;
   return { ...sprite, img: tintImage(sprite.img, tint, target) };
+}
+
+/** One flower hat per color, untinted: a worn flower keeps its color anywhere. */
+async function loadHats(): Promise<Partial<Record<FlowerColor, HTMLImageElement>>> {
+  const images = await Promise.all(
+    FLOWER_COLORS.map((color) => loadImage(worldAsset(flowerHatPath(color)))),
+  );
+  const hats: Partial<Record<FlowerColor, HTMLImageElement>> = {};
+  FLOWER_COLORS.forEach((color, i) => {
+    hats[color] = images[i];
+  });
+  return hats;
 }
 
 function loadImage(src: string): Promise<HTMLImageElement> {

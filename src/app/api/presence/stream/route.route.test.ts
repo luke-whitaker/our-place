@@ -29,7 +29,7 @@ function arrive(userId: string, worldId: string, name: string) {
     userId,
     worldId,
     { col: 2, row: 3, dir: "S", moving: false },
-    { username: name, display_name: name, avatar: null, ghost: false },
+    { username: name, display_name: name, avatar: null, hat: null, ghost: false },
   );
 }
 

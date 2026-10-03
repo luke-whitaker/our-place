@@ -41,6 +41,7 @@ export interface PresenceProfile {
   username: string;
   display_name: string;
   avatar: PresencePlayer["avatar"];
+  hat: PresencePlayer["hat"];
   ghost: boolean;
 }
 
@@ -197,6 +198,7 @@ export function createPresenceHub({
         username: profile!.username,
         display_name: profile!.display_name,
         avatar: profile!.avatar,
+        hat: profile!.hat,
         emote: null,
         emote_at: null,
       };
@@ -248,6 +250,15 @@ export function createPresenceHub({
       const entry = players.get(userId);
       if (!entry) return;
       entry.player = { ...entry.player, avatar };
+      if (isVisible(entry)) broadcast(entry.worldId, userId, "update", entry.player);
+    },
+
+    /** Swap the flower on a member's head after the route has saved it, so
+     * everyone nearby sees it at once. A ghost's hat is kept but never sent. */
+    setHat(userId: string, hat: PresencePlayer["hat"]): void {
+      const entry = players.get(userId);
+      if (!entry) return;
+      entry.player = { ...entry.player, hat };
       if (isVisible(entry)) broadcast(entry.worldId, userId, "update", entry.player);
     },
 

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch, userMessage } from "@/lib/api-client";
-import { ITEM_CATALOG } from "@/lib/items";
+import { ITEM_CATALOG, itemName } from "@/lib/items";
 import { PAL } from "@/lib/game/constants";
 import OverlayPanel from "@/components/OverlayPanel";
 import OverlayActionButton from "@/components/OverlayActionButton";
@@ -23,17 +23,19 @@ interface LeaveLetterPanelProps {
   onMailChange: (hasMail: boolean) => void;
 }
 
-/** A row's preview: the first line only, matching MailboxPanel and
- * NotebookPanel's draft preview. */
-function preview(body: string | null): string {
-  const firstLine = (body ?? "").split("\n")[0].trim();
+/** A row's preview: a note's first line, matching MailboxPanel and
+ * NotebookPanel's draft preview, or a gift's name ("Pink flower"). */
+function preview(item: PocketItem): string {
+  if (item.kind !== "note") return itemName(item);
+  const firstLine = (item.body ?? "").split("\n")[0].trim();
   if (!firstLine) return "(blank page)";
   return firstLine.length > 60 ? `${firstLine.slice(0, 60)}…` : firstLine;
 }
 
 /**
  * <LeaveLetterPanel /> — a visitor's side of someone else's mailbox. Lists
- * the visitor's own mailable notes (never the owner's mail — visitors can
+ * the visitor's own mailable things, notes and gifts like seeds and flowers
+ * (never the owner's mail — visitors can
  * never see what's already inside) and lets them leave one. A separate
  * component from MailboxPanel rather than one panel switching modes: the two
  * have almost nothing in common beyond the OverlayPanel chrome.
@@ -77,7 +79,11 @@ export default function LeaveLetterPanel({
         body: JSON.stringify({ item_id: item.id }),
       });
       setItems((prev) => (prev ?? []).filter((i) => i.id !== item.id));
-      setNotice(`You left a letter for ${ownerDisplayName}.`);
+      setNotice(
+        item.kind === "note"
+          ? `You left a letter for ${ownerDisplayName}.`
+          : `You left ${ownerDisplayName} a gift: ${itemName(item).toLowerCase()}.`,
+      );
       onMailChange(true);
     } catch (err) {
       setError(userMessage(err, "Failed to leave that letter."));
@@ -102,8 +108,8 @@ export default function LeaveLetterPanel({
       {items && notes.length === 0 && (
         <p className="text-sm" style={{ color: PAL.light }}>
           {hasNotebook
-            ? "Write a note in your Notebook, tear it out, and come back to leave it here."
-            : "Gnomie in the Welcome Center can give you a Notebook to write letters with."}
+            ? "Write a note in your Notebook and tear it out, or bring a seed or a flower, and leave it here."
+            : "Gnomie in the Welcome Center can give you a Notebook to write letters with. Seeds and flowers make good gifts too."}
         </p>
       )}
       {items && notes.length > 0 && (
@@ -115,7 +121,7 @@ export default function LeaveLetterPanel({
               style={{ borderColor: PAL.textBorder }}
             >
               <span className="min-w-0 flex-1 truncate text-sm" style={{ color: PAL.white }}>
-                {preview(item.body)}
+                {preview(item)}
               </span>
               <div className="shrink-0">
                 <OverlayActionButton onClick={() => leave(item)} disabled={leavingId === item.id}>

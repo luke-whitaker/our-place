@@ -28,7 +28,7 @@ describe("POST /api/outfits/ghost", () => {
       me.userId,
       world,
       { col: 1, row: 1, dir: "S", moving: false },
-      { username: me.username, display_name: "Me", avatar: null, ghost: false },
+      { username: me.username, display_name: "Me", avatar: null, hat: null, ghost: false },
     );
     const heard: PresenceEvent[] = [];
     const sub = presenceHub().subscribe({

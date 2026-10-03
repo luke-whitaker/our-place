@@ -1,6 +1,7 @@
 // Pockets and Notebook domain types — the API's snake_case wire shapes.
 
 import type { ItemKind } from "@/lib/items";
+import type { FlowerColor } from "@/lib/game/plants";
 import type { PocketMushroomInfo } from "./gatherings";
 
 /** One item in a member's pockets, mailbox, or desk. All three share this
@@ -17,6 +18,8 @@ export interface PocketItem {
   /** An invitation letter's gathering, so the reader can offer Accept and
    * Decline; null for every other note. */
   gathering_id: string | null;
+  /** A flower's color; null for every other kind. */
+  color: FlowerColor | null;
   /** An Event Mushroom's gathering, filled in by GET /api/pockets only. */
   mushroom?: PocketMushroomInfo | null;
 }

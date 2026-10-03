@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiFetch, userMessage } from "@/lib/api-client";
-import { ITEM_CATALOG, MAILBOX_SLOTS } from "@/lib/items";
+import { ITEM_CATALOG, MAILBOX_SLOTS, itemName } from "@/lib/items";
 import { PAL } from "@/lib/game/constants";
 import { shortDate } from "@/lib/time-utils";
 import OverlayPanel from "@/components/OverlayPanel";
@@ -23,6 +23,13 @@ interface MailboxPanelProps {
  * Mushroom), which has nothing to read. */
 function isNote(item: PocketItem): boolean {
   return item.kind === "note";
+}
+
+/** What a gift row says under its name: who it's from, or what it's for. */
+function giftLine(item: PocketItem): string {
+  if (item.kind === "event_mushroom")
+    return "For your gathering. Take it, then plant it in the world.";
+  return item.from ? `A gift from ${item.from.display_name}.` : "A gift.";
 }
 
 /** A row's preview: the first line only, so a multi-line letter still reads
@@ -147,16 +154,14 @@ export default function MailboxPanel({ onClose, onReadLetter, onMailChange }: Ma
                   <span className="truncate font-bold" style={{ color: PAL.white }}>
                     {isNote(letter)
                       ? `From ${letter.from?.display_name ?? "someone"}`
-                      : ITEM_CATALOG[letter.kind].name}
+                      : itemName(letter)}
                   </span>
                   <span className="shrink-0 text-xs" style={{ color: PAL.light }}>
                     {letter.placed_at ? shortDate(letter.placed_at) : ""}
                   </span>
                 </span>
                 <span className="truncate" style={{ color: PAL.light }}>
-                  {isNote(letter)
-                    ? preview(letter.body)
-                    : "For your gathering. Take it, then plant it in the world."}
+                  {isNote(letter) ? preview(letter.body) : giftLine(letter)}
                 </span>
               </button>
             ))}
@@ -167,7 +172,7 @@ export default function MailboxPanel({ onClose, onReadLetter, onMailChange }: Ma
         <div className="flex flex-col gap-2 border-t pt-2" style={{ borderColor: PAL.textBorder }}>
           {confirmingDiscard ? (
             <InlineConfirm
-              message="Throw this letter away? It's gone for good."
+              message={`Throw this ${isNote(selected) ? "letter" : itemName(selected).toLowerCase()} away? It's gone for good.`}
               onConfirm={discardSelected}
               onCancel={() => setConfirmingDiscard(false)}
             />

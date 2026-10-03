@@ -43,6 +43,8 @@ import type { InputManager } from "./input";
 import type { TintPreset } from "./terrain-tint";
 import { biomeAt } from "./biomes";
 import { drawsAsSand } from "./sand";
+import { frameCrown, HAT_SINK } from "./flower-hat";
+import type { FlowerColor } from "./plants";
 
 // ── Tuning ──
 
@@ -236,16 +238,25 @@ function findNearbyNpc(world: IsoWorld, col: number, row: number): WorldNpc | nu
   return null;
 }
 
-/** In reach of any tile a fixture covers, so either end of the two-tile desk
- * answers. */
+/** The nearest fixture in reach of any tile it covers, so either end of the
+ * two-tile desk answers, and in a garden planted in rows Enter reaches the
+ * flower you're standing by rather than whichever was planted first. */
 function findNearbyFixture(world: IsoWorld, col: number, row: number): WorldFixture | null {
+  let best: WorldFixture | null = null;
+  let bestDist = Infinity;
   for (const fixture of world.fixtures ?? []) {
-    const cells = fixtureFootprint(fixture);
-    if (cells.some(({ dc, dr }) => isNear(col, row, fixture.col + dc, fixture.row + dr))) {
-      return fixture;
+    for (const { dc, dr } of fixtureFootprint(fixture)) {
+      const fc = fixture.col + dc;
+      const fr = fixture.row + dr;
+      if (!isNear(col, row, fc, fr)) continue;
+      const dist = Math.hypot(col - fc, row - fr);
+      if (dist < bestDist) {
+        best = fixture;
+        bestDist = dist;
+      }
     }
   }
-  return null;
+  return best;
 }
 
 /** Whatever the player could interact with from where they stand. */
@@ -681,6 +692,9 @@ export function fixtureSprite(fixture: WorldFixture, state: IsoState): string {
   if (fixture.kind === "mailbox") {
     return state.mailboxFlagUp ? `mailbox_${fixture.color}_flag` : `mailbox_${fixture.color}`;
   }
+  if (fixture.kind === "plant") {
+    return fixture.color ? `flower_${fixture.color}` : "plant_mound";
+  }
   // Every Event Mushroom draws the same sprite, whoever planted it.
   return fixture.kind;
 }
@@ -919,6 +933,8 @@ export interface IsoAssets {
   /** Ground sheets with the dirt repainted as sand, per biome, for beach
    * tiles and the grass beside them (see sand.ts). */
   sand?: Partial<Record<TintPreset, HTMLImageElement>>;
+  /** Flower hats by color, drawn on the crown of anyone wearing one. */
+  hats?: Partial<Record<FlowerColor, HTMLImageElement>>;
 }
 
 export interface BiomeAssets {
@@ -985,6 +1001,8 @@ export function buildWorldCollision(world: IsoWorld): SolidGrid {
 export interface PresenceFrame {
   sprites: ReadonlyMap<string, CharacterSprites>;
   emotes: ReadonlyMap<string, { kind: Emote; age: number }>;
+  /** The flower on each other member's head, by entity id. */
+  hats: ReadonlyMap<string, FlowerColor>;
 }
 
 /** How solid the local player looks to themselves in Ghost Mode. Nobody else
@@ -1005,6 +1023,8 @@ export function render(
     presence?: PresenceFrame;
     /** The local player is in Ghost Mode: draw them and their name see-through. */
     ghost?: boolean;
+    /** The flower on the local player's head, or null. */
+    localHat?: FlowerColor | null;
   },
 ): void {
   const { worldScale, dpr, cssW, cssH } = frame.viewport;
@@ -1063,12 +1083,15 @@ export function render(
       depth: pos.y,
       draw: () => {
         ctx.globalAlpha = alpha;
+        const hat =
+          entity.id === state.localId ? frame.localHat : frame.presence?.hats.get(entity.id);
         drawEntity(
           ctx,
           entity,
           frame.presence?.sprites.get(entity.id) ?? assets.characters,
           camX,
           camY,
+          hat ? assets.hats?.[hat] : undefined,
         );
         ctx.globalAlpha = 1;
       },
@@ -1092,7 +1115,13 @@ export function render(
     });
   }
   for (const fixture of world.fixtures ?? []) {
-    const sprite = assets.objects[fixtureSprite(fixture, state)];
+    const sprite = objectSpriteAt(
+      assets,
+      world,
+      fixtureSprite(fixture, state),
+      fixture.col,
+      fixture.row,
+    );
     if (!sprite) continue;
     const placed = { sprite, col: fixture.col, row: fixture.row };
     if (!rectsOverlap(objectDrawRect(placed), view)) continue;
@@ -1222,6 +1251,7 @@ function drawEntity(
   characters: CharacterSprites,
   camX: number,
   camY: number,
+  hat?: HTMLImageElement,
 ): void {
   const pos = tileToScreen(entity.col, entity.row);
 
@@ -1231,11 +1261,16 @@ function drawEntity(
   ctx.fill();
 
   const frame = pickFrame(characters, entity.dir, entity.moving, entity.animTimer, ANIM_TICKS);
-  ctx.drawImage(
-    frame,
-    Math.round(pos.x - frame.width / 2 - camX),
-    Math.round(pos.y - frame.height + FOOT_OFFSET - camY),
-  );
+  const left = Math.round(pos.x - frame.width / 2 - camX);
+  const top = Math.round(pos.y - frame.height + FOOT_OFFSET - camY);
+  ctx.drawImage(frame, left, top);
+  // A flower hat sits on this frame's own crown, so it rides every facing,
+  // both hair styles, and the walk's bob.
+  const crown = hat ? frameCrown(frame) : null;
+  if (hat && crown) {
+    const hatLeft = left + crown.x - Math.floor(hat.width / 2);
+    ctx.drawImage(hat, hatLeft, top + crown.y - hat.height + HAT_SINK);
+  }
 }
 
 /** Draw a standing NPC: a shadow like the player's, then its current-facing

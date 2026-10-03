@@ -3,6 +3,7 @@
 // character art other members are drawn in. Plain TypeScript; use-presence.ts
 // gives it a React lifecycle, and the game loop calls `frame` once per frame.
 
+import type { FlowerColor } from "./plants";
 import type { AvatarConfig, Emote, PresenceMoveBody } from "@/lib/types";
 import { apiFetch } from "@/lib/api-client";
 import { TICK_RATE } from "./constants";
@@ -85,6 +86,7 @@ export function startPresence(worldId: string, getState: () => IsoState | null):
   const roster: Roster = createRoster();
   const sprites = new Map<string, CharacterSprites>();
   const emotes = new Map<string, { kind: Emote; age: number }>();
+  const hats = new Map<string, FlowerColor>();
   let localEmote: { kind: Emote; startedAt: number } | null = null;
   let lastFrameAt: number | null = null;
 
@@ -141,6 +143,8 @@ export function startPresence(worldId: string, getState: () => IsoState | null):
       const sheet = player.avatar ? sheetFor(player.avatar) : null;
       if (sheet) sprites.set(id, sheet);
       else sprites.delete(id);
+      if (player.hat) hats.set(id, player.hat);
+      else hats.delete(id);
       const shown = emoteAt(player.emote, now);
       if (shown) emotes.set(id, shown);
       else emotes.delete(id);
@@ -152,6 +156,7 @@ export function startPresence(worldId: string, getState: () => IsoState | null):
         (e) => !e.id.startsWith(REMOTE_PREFIX) || seen.has(e.id),
       );
       for (const id of sprites.keys()) if (!seen.has(id)) sprites.delete(id);
+      for (const id of hats.keys()) if (!seen.has(id)) hats.delete(id);
       for (const id of emotes.keys()) if (id !== state.localId && !seen.has(id)) emotes.delete(id);
     }
   }
@@ -172,7 +177,7 @@ export function startPresence(worldId: string, getState: () => IsoState | null):
       const mine = emoteAt(localEmote, now);
       if (mine) emotes.set(state.localId, mine);
       else emotes.delete(state.localId);
-      return { sprites, emotes };
+      return { sprites, emotes, hats };
     },
     emote(kind, state) {
       localEmote = { kind, startedAt: performance.now() };

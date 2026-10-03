@@ -149,7 +149,7 @@ describe("POST /api/users/[username]/mailbox", () => {
 
     const res = await leave(owner.username, itemId);
     expect(res.status).toBe(400);
-    expect((await res.json()).error).toBe("Only notes fit in a mailbox.");
+    expect((await res.json()).error).toBe("The Notebook can't go in a mailbox.");
   });
 
   it("refuses a 21st letter and leaves the sender's pockets untouched", async () => {

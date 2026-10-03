@@ -6,6 +6,7 @@ import { presenceMoveSchema, getZodErrorMessage } from "@/lib/schemas";
 import { isAvatarConfig } from "@/lib/game/avatar-recolor";
 import { presenceHub, type PresenceProfile } from "@/lib/presence";
 import { checkWorldAccess } from "@/lib/presence-access";
+import { hatColor } from "@/lib/hats";
 
 // POST: where the caller stands in a world. Everyone else listening to that
 // world hears it through their presence stream; the caller never does.
@@ -65,6 +66,7 @@ async function loadProfile(userId: string): Promise<PresenceProfile | null> {
     username: user.username,
     display_name: user.displayName,
     avatar: isAvatarConfig(user.avatar) ? user.avatar : null,
+    hat: await hatColor(userId),
     ghost: user.ghost,
   };
 }

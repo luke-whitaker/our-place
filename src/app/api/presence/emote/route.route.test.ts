@@ -25,7 +25,7 @@ function arrive(userId: string, worldId: string) {
     userId,
     worldId,
     { col: 1, row: 1, dir: "S", moving: false },
-    { username: "u", display_name: "U", avatar: null, ghost: false },
+    { username: "u", display_name: "U", avatar: null, hat: null, ghost: false },
   );
 }
 

@@ -27,11 +27,16 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
         id: true,
         ownerId: true,
         kind: true,
+        location: true,
         gathering: { select: { status: true } },
       },
     });
     if (!item || item.ownerId !== auth.user.userId) {
       return NextResponse.json({ error: "Item not found." }, { status: 404 });
+    }
+
+    if (item.location === "head") {
+      return NextResponse.json({ error: "Take it off first." }, { status: 409 });
     }
 
     // A row's kind always comes from our own catalog — an unrecognized value

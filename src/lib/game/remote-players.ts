@@ -11,6 +11,7 @@
 //
 // Pure: no DOM, no network, clocks passed in. The presence hook feeds it.
 
+import type { FlowerColor } from "./plants";
 import type { AvatarConfig, Emote, PresencePlayer } from "@/lib/types";
 import type { Dir8 } from "./character-sheet";
 
@@ -43,6 +44,8 @@ export interface RemotePlayer {
   userId: string;
   label: string;
   avatar: AvatarConfig | null;
+  /** The flower on their head, or null. */
+  hat: FlowerColor | null;
   /** Oldest first, at most MAX_SAMPLES. */
   samples: RemoteSample[];
   /** The emote showing, with when it started on this client's clock. */
@@ -79,6 +82,7 @@ export function applyPlayer(roster: Roster, p: PresencePlayer, now: number, wall
       userId: p.user_id,
       label: p.display_name,
       avatar: p.avatar,
+      hat: p.hat,
       samples: [],
       emote: null,
       lastEmoteAt: null,
@@ -87,6 +91,7 @@ export function applyPlayer(roster: Roster, p: PresencePlayer, now: number, wall
   }
   player.label = p.display_name;
   player.avatar = p.avatar;
+  player.hat = p.hat;
   pushSample(player, sample);
   applyEmote(player, p, now, wallNow);
 }

@@ -41,6 +41,9 @@ import {
 import { loadIsoSave, persistIsoSave, isValidIsoPosition } from "@/lib/game/iso-save";
 import { usePresence } from "@/lib/game/use-presence";
 import { useWorldMap } from "@/lib/game/use-world-map";
+import { useWorldPlants, useWornHat } from "@/lib/game/use-world-plants";
+import { withPlants } from "@/lib/game/plants";
+import { islandWorldId } from "@/lib/game/worlds/island";
 import type { MinimapDraw } from "@/components/WorldMinimap";
 import type { IsoWorld } from "@/lib/game/world-model";
 import type { SolidGrid } from "@/lib/game/iso-collision";
@@ -235,9 +238,26 @@ export default function WorldCanvas({
   // appearing never rebuilds the player's state.
   const [planted, setPlanted] = useState<readonly PlantedMushroom[]>(NONE_PLANTED);
   const [arrival, setArrival] = useState<GatheringArrival | null>(null);
-  const liveWorld = useMemo(() => withEventMushrooms(world, planted), [world, planted]);
-  const liveSolid = useMemo(() => buildWorldCollision(liveWorld), [liveWorld]);
   const signedIn = !authLoading && !!user;
+  // A toast for anything fetched in the background that failed.
+  const toastError = useCallback((message: string) => {
+    const state = stateRef.current;
+    if (state) showToast(state, message);
+  }, []);
+  // Seeds and flowers growing here, and the flower on your head: runtime
+  // state like the mushrooms, refreshed after every change (see
+  // use-world-plants.ts). Plants are never solid, so liveSolid ignores them.
+  const { plants, refresh: refreshPlants } = useWorldPlants(world.id, signedIn, toastError);
+  const { hat, refresh: refreshHat } = useWornHat(signedIn, toastError);
+  const hatRef = useRef(hat);
+  useEffect(() => {
+    hatRef.current = hat;
+  }, [hat]);
+  const liveWorld = useMemo(
+    () => withPlants(withEventMushrooms(world, planted), plants),
+    [world, planted, plants],
+  );
+  const liveSolid = useMemo(() => buildWorldCollision(liveWorld), [liveWorld]);
   const plantedFailed = useCallback(() => {
     const state = stateRef.current;
     if (state) showToast(state, "Couldn't see the Event Mushrooms here.");
@@ -587,6 +607,7 @@ export default function WorldCanvas({
           drawMenus: !isTouchDevice,
           presence: presenceFrame,
           ghost: ghostRef.current,
+          localHat: hatRef.current,
         });
       } else {
         accumulator = 0;
@@ -693,6 +714,9 @@ export default function WorldCanvas({
               onGatheringsChange();
             }}
             onGatheringsChange={onGatheringsChange}
+            ownIslandId={user ? islandWorldId(user.id) : null}
+            onPlantsChange={refreshPlants}
+            onHatChange={refreshHat}
             worldMap={worldMap}
             minimapDrawRef={minimapDrawRef}
             isTouchDevice={isTouchDevice}

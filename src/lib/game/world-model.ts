@@ -324,7 +324,26 @@ export const OBJECT_CATALOG: Record<string, ObjectDef> = {
     tint: "brand",
     anchor: { x: 10, y: 22 },
   },
+  // Seeds and flowers members place at runtime (plants.ts), never authored, by
+  // ~/Desktop/pixel_art/tools/flowers.py. A planted seed is a dirt mound that
+  // takes the ground's tint, like the path beside it; flowers keep their
+  // colors in every biome. Neither is solid: you walk over a garden.
+  plant_mound: groundDecor("plant_mound"),
+  flower_red: flowerDef("red"),
+  flower_yellow: flowerDef("yellow"),
+  flower_blue: flowerDef("blue"),
+  flower_purple: flowerDef("purple"),
+  flower_pink: flowerDef("pink"),
 };
+
+function flowerDef(color: string): ObjectDef {
+  return {
+    src: `/world/objects/flower_${color}.png`,
+    footprint: SINGLE,
+    solid: false,
+    tint: "brand",
+  };
+}
 
 // ── World ──
 

@@ -16,7 +16,7 @@ import {
 const HERE = { col: 5, row: 6, dir: "S" as const, moving: false };
 
 function profile(name: string, ghost = false): PresenceProfile {
-  return { username: name, display_name: name.toUpperCase(), avatar: null, ghost };
+  return { username: name, display_name: name.toUpperCase(), avatar: null, hat: null, ghost };
 }
 
 /** A subscriber that records every event it receives. */

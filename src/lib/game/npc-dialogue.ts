@@ -77,8 +77,21 @@ export const NPC_DIALOGUE: Record<NpcId, NpcDialogue> = {
     name: "Gnomette",
     sheet: "/world/characters/gnomette.png",
     lines: {
-      chat: [
+      gift: [
         { kind: "say", text: "Oh! You found me. I'm Gnomette." },
+        {
+          kind: "say",
+          text: "I've been keeping something small and very patient for you. Here.",
+        },
+        { kind: "system" },
+        {
+          kind: "say",
+          text: "Plant it on your island, or somewhere out here, and give it a day or so. Twelve hours, maybe twenty-four. Seeds don't like being rushed.",
+        },
+        { kind: "say", text: "I won't tell you what it becomes. That's the fun part." },
+      ],
+      after: [
+        { kind: "say", text: "Oh! You came back." },
         {
           kind: "say-random",
           options: [
@@ -89,7 +102,14 @@ export const NPC_DIALOGUE: Record<NpcId, NpcDialogue> = {
         },
         {
           kind: "say",
-          text: "I'm keeping something small and very patient for you. It isn't ready yet. Come back and see me soon.",
+          text: "When your flower blooms, pick it. Flowers grown from a seed always keep one tucked away.",
+        },
+      ],
+      pockets_full: [
+        { kind: "say", text: "Oh! You found me. I'm Gnomette." },
+        {
+          kind: "say",
+          text: "Oops! Looks like your pockets are too full. Maybe go back to your island, lighten your load, and come back so I can give you my gift.",
         },
       ],
     },

@@ -1,6 +1,6 @@
 "use client";
 
-import { ITEM_CATALOG } from "@/lib/items";
+import { ITEM_CATALOG, itemIcon, itemName } from "@/lib/items";
 import { PAL } from "@/lib/game/constants";
 import { worldAsset } from "@/lib/game/asset-url";
 import type { PocketItem } from "@/lib/types";
@@ -46,8 +46,8 @@ export default function ItemSlotGrid({
             type="button"
             disabled={!item}
             onClick={() => item && onSelect(item)}
-            aria-label={catalog?.name ?? emptyLabel}
-            title={catalog?.name}
+            aria-label={item ? itemName(item) : emptyLabel}
+            title={item ? itemName(item) : undefined}
             className="flex min-h-11 items-center justify-center rounded-sm border p-1"
             style={{
               borderColor: item ? PAL.textBorder : "rgba(238,228,218,0.2)",
@@ -55,10 +55,10 @@ export default function ItemSlotGrid({
                 item && item.id === selectedId ? "rgba(238,228,218,0.12)" : "transparent",
             }}
           >
-            {catalog && (
+            {catalog && item && (
               // eslint-disable-next-line @next/next/no-img-element -- a tiny world-art icon, not a Next-optimized asset
               <img
-                src={worldAsset(catalog.icon)}
+                src={worldAsset(itemIcon(item))}
                 crossOrigin="anonymous"
                 alt=""
                 width={32}

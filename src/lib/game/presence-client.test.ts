@@ -12,6 +12,7 @@ const SAM = {
   username: "sam",
   display_name: "Sam",
   avatar: null,
+  hat: "pink",
   col: 3,
   row: 4,
   dir: "S",
@@ -21,6 +22,15 @@ const SAM = {
 };
 
 describe("parsePresenceEvent", () => {
+  it("reads a player from before flower hats, or with an unknown hat, as hatless", () => {
+    const { hat: _hat, ...old } = SAM;
+    void _hat;
+    const parsed = parsePresenceEvent("update", JSON.stringify(old));
+    expect(parsed).toEqual({ type: "update", player: { ...SAM, hat: null } });
+    const odd = parsePresenceEvent("update", JSON.stringify({ ...SAM, hat: "green" }));
+    expect(odd).toEqual({ type: "update", player: { ...SAM, hat: null } });
+  });
+
   it("reads a snapshot, an update, and a leave", () => {
     expect(parsePresenceEvent("snapshot", JSON.stringify({ players: [SAM] }))).toEqual({
       type: "snapshot",

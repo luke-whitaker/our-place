@@ -18,6 +18,7 @@ function player(overrides: Partial<PresencePlayer> = {}): PresencePlayer {
     username: "sam",
     display_name: "Sam",
     avatar: null,
+    hat: null,
     col: 10,
     row: 10,
     dir: "S",
