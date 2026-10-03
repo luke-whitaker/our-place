@@ -8,6 +8,7 @@ import { useAuth } from "@/components/AuthProvider";
 import AvatarPreview from "@/components/AvatarPreview";
 import IslandSettings from "@/components/IslandSettings";
 import MetricsSettings from "@/components/MetricsSettings";
+import BlockedMembersSettings from "@/components/BlockedMembersSettings";
 import AccountDataSettings from "@/components/AccountDataSettings";
 
 type EditableField = "name" | "email" | "phone" | "password";
@@ -407,6 +408,10 @@ export default function AccountSettings() {
 
         {/* Your island */}
         <IslandSettings />
+        <div className="border-t border-line-soft" />
+
+        {/* Members you blocked */}
+        <BlockedMembersSettings />
         <div className="border-t border-line-soft" />
 
         {/* Activity counts */}

@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import PostCard from "@/components/PostCard";
 import FriendActionButton from "@/components/FriendActionButton";
+import BlockButton from "@/components/BlockButton";
 import MushroomIcon from "@/components/MushroomIcon";
 import { apiFetch } from "@/lib/api-client";
 import type { FriendshipStatus, Post, PublicProfile } from "@/lib/types";
@@ -123,11 +124,19 @@ export default function PublicProfilePage() {
                   <MushroomIcon size={20} /> Visit island
                 </Link>
               )}
-              <FriendActionButton
-                status={friendship.status}
-                friendshipId={friendship.id}
+              {!profile.blocked_by_me && (
+                <FriendActionButton
+                  status={friendship.status}
+                  friendshipId={friendship.id}
+                  username={profile.username}
+                  displayName={profile.display_name}
+                  onChanged={loadProfile}
+                />
+              )}
+              <BlockButton
                 username={profile.username}
                 displayName={profile.display_name}
+                blocked={profile.blocked_by_me}
                 onChanged={loadProfile}
               />
             </div>
@@ -194,11 +203,13 @@ export default function PublicProfilePage() {
             </svg>
             <h3 className="mt-3 text-base font-semibold text-ink">Posts are for friends</h3>
             <p className="mt-1 text-sm text-ink-muted">
-              {friendship.status === "pending_outgoing"
-                ? `Your friend request is waiting for ${profile.display_name}.`
-                : friendship.status === "pending_incoming"
-                  ? `${profile.display_name} sent you a friend request — accept it to see their posts.`
-                  : `Become friends with ${profile.display_name} to see what they share here.`}
+              {profile.blocked_by_me
+                ? `You blocked ${profile.display_name}. Unblock them first if you want to be friends again.`
+                : friendship.status === "pending_outgoing"
+                  ? `Your friend request is waiting for ${profile.display_name}.`
+                  : friendship.status === "pending_incoming"
+                    ? `${profile.display_name} sent you a friend request — accept it to see their posts.`
+                    : `Become friends with ${profile.display_name} to see what they share here.`}
             </p>
           </div>
         )}
