@@ -10,6 +10,7 @@ import {
   friendMenuEntries,
   setFriends,
   setGatherings,
+  setCanCall,
   travelEntries,
   chooseTravel,
   type FriendsList,
@@ -722,6 +723,31 @@ describe("the Friends menu", () => {
   it("starts loading until the page hands the list over", () => {
     expect(createIsoState(LINKED_TOWN).friends).toBe("loading");
     expect(friendMenuEntries(createIsoState(LINKED_TOWN))).toEqual([]);
+  });
+
+  it("offers Call friends first while voice is on, and hands it to the page", () => {
+    const state = shrineMenuOnFriends([ADA]);
+    setCanCall(state, true);
+    update(state, LINKED_TOWN, solid, keyOnce("Enter"));
+    expect(menuView(state, LINKED_TOWN)?.entries).toEqual([
+      { kind: "call", label: "Call friends" },
+      { kind: "link", label: "Ada's Island", link: ADA },
+    ]);
+
+    const onCallFriends = vi.fn();
+    update(state, LINKED_TOWN, solid, keyOnce("Enter"), { onCallFriends });
+    expect(state.mode).toBe("overworld");
+    expect(state.pendingLink).toBeNull();
+    update(state, LINKED_TOWN, solid, keyOnce(null), { onCallFriends });
+    expect(onCallFriends).toHaveBeenCalledTimes(1);
+  });
+
+  it("opens the menu for Call friends even with no islands to visit", () => {
+    const state = shrineMenuOnFriends("loading");
+    setCanCall(state, true);
+    update(state, LINKED_TOWN, solid, keyOnce("Enter"));
+    expect(state.mode).toBe("friends-menu");
+    expect(friendMenuEntries(state)).toEqual([{ kind: "call", label: "Call friends" }]);
   });
 });
 

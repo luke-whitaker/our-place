@@ -119,6 +119,11 @@ export interface IsoState {
   /** Gatherings with a planted Event Mushroom this member may travel to,
    * handed in by the page (setGatherings) the same way as friends. */
   gatherings: GatheringsList;
+  /** Whether the Friends menu offers "Call friends" (voice is on and this
+   * member isn't a ghost), handed in by the page (setCanCall). */
+  canCall: boolean;
+  /** "Call friends" was chosen; the next update hands it to the page. */
+  callRequested: boolean;
   nearbyPc: Pc | null;
   /** A chosen "log on" target, fired at the peak of the fade like a link. */
   pendingPort: string | null;
@@ -186,6 +191,8 @@ export function createIsoState(world: IsoWorld, options: IsoStateOptions = {}): 
     pendingLink: null,
     friends: "loading",
     gatherings: "loading",
+    canCall: false,
+    callRequested: false,
     nearbyPc: null,
     pendingPort: null,
     nearbyNpc: null,
@@ -330,7 +337,8 @@ export type MenuEntry =
   | { kind: "link"; label: string; link: WorldLink }
   | { kind: "port"; label: string; href: string }
   | { kind: "friends"; label: string }
-  | { kind: "gatherings"; label: string };
+  | { kind: "gatherings"; label: string }
+  | { kind: "call"; label: string };
 
 /** Friends' islands, or why there's no list yet. */
 export type FriendsList = WorldLink[] | "loading" | "error";
@@ -341,6 +349,9 @@ export type GatheringsList = WorldLink[] | "loading" | "error";
 
 /** The row that opens the Friends menu, last in every shrine and PC menu. */
 const FRIENDS_ENTRY: MenuEntry = { kind: "friends", label: "Friends" };
+
+/** The Friends menu's first row while voice is on: opens the call sheet. */
+const CALL_ENTRY: MenuEntry = { kind: "call", label: "Call friends" };
 
 /** The row that opens the Gatherings menu, after Friends. */
 const GATHERINGS_ENTRY: MenuEntry = { kind: "gatherings", label: "Gatherings" };
@@ -371,10 +382,15 @@ export function warpMenuEntries(state: IsoState, world: IsoWorld): MenuEntry[] {
   ];
 }
 
-/** The Friends menu: one row per friend's island, already sorted by the API. */
+/** The Friends menu: "Call friends" while voice is on, then one row per
+ * friend's island, already sorted by the API. */
 export function friendMenuEntries(state: IsoState): MenuEntry[] {
-  if (!Array.isArray(state.friends)) return [];
-  return state.friends.map((link): MenuEntry => ({ kind: "link", label: link.label, link }));
+  const call = state.canCall ? [CALL_ENTRY] : [];
+  if (!Array.isArray(state.friends)) return call;
+  return [
+    ...call,
+    ...state.friends.map((link): MenuEntry => ({ kind: "link", label: link.label, link })),
+  ];
 }
 
 /** The Gatherings menu: one row per planted mushroom, soonest first. */
@@ -493,7 +509,19 @@ function openSubMenu(
  * Friends and Gatherings are the rows that open another menu instead. */
 function chooseEntry(state: IsoState, entry: MenuEntry): void {
   if (entry.kind === "friends") {
+    // With "Call friends" in it, the menu always has a row to show, even
+    // before (or without) any friends' islands to visit.
+    if (state.canCall) {
+      state.mode = "friends-menu";
+      state.menuIndex = 0;
+      return;
+    }
     openSubMenu(state, state.friends, "friends-menu", FRIENDS_UNAVAILABLE);
+    return;
+  }
+  if (entry.kind === "call") {
+    state.mode = "overworld";
+    state.callRequested = true;
     return;
   }
   if (entry.kind === "gatherings") {
@@ -603,6 +631,9 @@ export interface UpdateCallbacks {
   /** Fired once when the player first finds a shrine, so the page can save it
    * to the account straight away (the map's discoveries are per account). */
   onShrineDiscovered?: (shrineId: string) => void;
+  /** Fired after "Call friends" is chosen in the Friends menu; the page opens
+   * its call sheet. */
+  onCallFriends?: () => void;
 }
 
 /**
@@ -648,6 +679,11 @@ export function setFriends(state: IsoState, friends: FriendsList): void {
  * Gatherings menu. */
 export function setGatherings(state: IsoState, gatherings: GatheringsList): void {
   state.gatherings = gatherings;
+}
+
+/** Tell the engine whether the Friends menu offers "Call friends". */
+export function setCanCall(state: IsoState, canCall: boolean): void {
+  state.canCall = canCall;
 }
 
 /** Add shrines the account already found (loaded from the server after the
@@ -707,6 +743,13 @@ export function update(
   callbacks: UpdateCallbacks = {},
 ): void {
   state.frameTick++;
+
+  // A menu row can't reach the callbacks (chooseTravel picks rows outside
+  // update), so "Call friends" is flagged there and handed over here.
+  if (state.callRequested) {
+    state.callRequested = false;
+    callbacks.onCallFriends?.();
+  }
 
   if (state.toast) {
     state.toast.ticksLeft--;

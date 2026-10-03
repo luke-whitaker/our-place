@@ -6,6 +6,8 @@ import WorldTouchControls from "@/components/WorldTouchControls";
 import WorldMenu from "@/components/WorldMenu";
 import WorldOverlays, { fixtureScreen, type OverlayScreen } from "@/components/WorldOverlays";
 import EmotePicker from "@/components/EmotePicker";
+import { useCalls } from "@/components/calls/CallProvider";
+import WorldCallHud from "@/components/calls/WorldCallHud";
 import { apiFetch } from "@/lib/api-client";
 import { TICK_RATE, MAX_ACCUMULATOR } from "@/lib/game/constants";
 import { createInputManager } from "@/lib/game/input";
@@ -24,6 +26,7 @@ import {
   setMailboxFlag,
   setFriends,
   setGatherings,
+  setCanCall,
   addDiscovered,
   showToast,
   type IsoState,
@@ -347,6 +350,13 @@ export default function WorldCanvas({
     worldMapRef.current?.sync.noteShrine(shrineId);
   }, []);
 
+  // ── Voice: the call sheet, opened by its corner button or by "Call
+  // friends" in the Friends menu ──
+  const calls = useCalls();
+  const canCall = calls.enabled && !calls.ghost;
+  const [callSheetOpen, setCallSheetOpen] = useState(false);
+  const handleCallFriends = useCallback(() => setCallSheetOpen(true), []);
+
   const callbacksRef = useRef({
     onDoorInteract,
     onWorldLink,
@@ -354,6 +364,7 @@ export default function WorldCanvas({
     onNpcTalk: handleNpcTalk,
     onFixture: handleFixture,
     onShrineDiscovered: handleShrineDiscovered,
+    onCallFriends: handleCallFriends,
   });
   useEffect(() => {
     callbacksRef.current = {
@@ -363,8 +374,17 @@ export default function WorldCanvas({
       onNpcTalk: handleNpcTalk,
       onFixture: handleFixture,
       onShrineDiscovered: handleShrineDiscovered,
+      onCallFriends: handleCallFriends,
     };
-  }, [onDoorInteract, onWorldLink, onPcPort, handleNpcTalk, handleFixture, handleShrineDiscovered]);
+  }, [
+    onDoorInteract,
+    onWorldLink,
+    onPcPort,
+    handleNpcTalk,
+    handleFixture,
+    handleShrineDiscovered,
+    handleCallFriends,
+  ]);
 
   // ── Live presence: other members here, and emotes ──
   // Members only; a logged-out visitor makes no presence requests at all.
@@ -406,7 +426,19 @@ export default function WorldCanvas({
     if (!state) return;
     setFriends(state, friends);
     setGatherings(state, gatherings);
-  }, [friends, gatherings, world, solid, spawnAt, persist, playerLabel, arrivalReady, arrivalKey]);
+    setCanCall(state, canCall);
+  }, [
+    friends,
+    gatherings,
+    canCall,
+    world,
+    solid,
+    spawnAt,
+    persist,
+    playerLabel,
+    arrivalReady,
+    arrivalKey,
+  ]);
 
   // ── Shrines the account already found ──
   // Once the account's discoveries are in, hand its shrines to the engine
@@ -700,6 +732,13 @@ export default function WorldCanvas({
           {/* Emotes: members only, hidden under a menu or overlay like the
               buttons beside it. */}
           {user && !menu && !overlayOpen && <EmotePicker onPick={sendEmote} />}
+          {/* Voice: the phone button in the corner column, its sheet, and
+              call toasts, inside the frame so full screen keeps them. */}
+          <WorldCallHud
+            sheetOpen={callSheetOpen}
+            onSheetOpenChange={setCallSheetOpen}
+            buttonHidden={!!menu || overlayOpen}
+          />
           <WorldOverlays
             stateRef={stateRef}
             world={liveWorld}
@@ -737,9 +776,10 @@ export default function WorldCanvas({
         </div>
       </div>
 
-      {/* Touch joystick — only on touch devices, and hidden while a menu or a
-          DOM overlay is open (its unmount already releases any held stick keys). */}
-      {isTouchDevice && !menu && !overlayOpen && (
+      {/* Touch joystick — only on touch devices, and hidden while a menu, a
+          DOM overlay, or the call sheet is open (its unmount already releases
+          any held stick keys). */}
+      {isTouchDevice && !menu && !overlayOpen && !callSheetOpen && (
         <WorldTouchControls onPress={handleTouchPress} onRelease={handleTouchRelease} />
       )}
     </div>
