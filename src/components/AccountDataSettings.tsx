@@ -194,14 +194,24 @@ function DeleteAccount() {
   );
 }
 
-/** "Your data": download, then delete. Admin accounts can't be deleted here. */
+/** "Your data": download, then delete. Admin accounts can&apos;t be deleted here. */
 export default function AccountDataSettings() {
   const { user } = useAuth();
   if (!user) return null;
   return (
     <div className="space-y-4 py-2">
       <DownloadData />
-      {user.role !== "admin" && <DeleteAccount />}
+      {user.role === "admin" ? (
+        <div>
+          <p className="text-sm font-medium text-ink-secondary">Delete my account</p>
+          <p className="text-sm text-ink-faint">
+            Admin accounts can&apos;t be deleted here, so the place always has someone to look after
+            it. Ask Luke if this account needs to go.
+          </p>
+        </div>
+      ) : (
+        <DeleteAccount />
+      )}
     </div>
   );
 }
