@@ -1,12 +1,13 @@
 "use client";
 
+import type { PostType } from "@/lib/types";
 import { useState } from "react";
 import { apiFetch, userMessage } from "@/lib/api-client";
-import { PostType } from "@/lib/types";
-import RichContentEditor, { EditorBlock, createEmptyTextBlock } from "./RichContentEditor";
-import PhotoUploader from "./PhotoUploader";
-import VideoUploader from "./VideoUploader";
-import type { UploadedMedia } from "./PhotoUploader";
+import TextComposer from "./compose/TextComposer";
+import PhotoComposer from "./compose/PhotoComposer";
+import VideoComposer from "./compose/VideoComposer";
+import RichComposer, { INITIAL_RICH_DRAFT } from "./compose/RichComposer";
+import { FIELD_CLASS, NOT_READY, type PostDraft } from "./compose/post-draft";
 import InteractionControls, {
   DEFAULT_INTERACTION_CONTROLS,
   InteractionControlsValue,
@@ -91,6 +92,30 @@ const POST_TYPE_TABS: { type: PostType; label: string; icon: React.ReactNode }[]
   },
 ];
 
+/** The shared title field reads differently per type: required for text and
+ * rich posts, optional over a photo or video. */
+const TITLE_PLACEHOLDER: Record<PostType, string> = {
+  text: "Give your post a title",
+  photo: "Title (optional)",
+  video: "Title (optional)",
+  rich: "Give your post a title",
+};
+
+const INITIAL_DRAFTS: Record<PostType, PostDraft> = {
+  text: NOT_READY,
+  photo: NOT_READY,
+  video: NOT_READY,
+  rich: INITIAL_RICH_DRAFT,
+};
+
+/**
+ * The compose form. It holds only what every post type shares (the title,
+ * interaction controls, cross-posting); each type's composer owns its own
+ * fields and reports a draft. A composer mounts the first time its tab opens
+ * (a text box sizes itself on mount, which fails while hidden) and then stays
+ * mounted while the form is open, so switching tabs keeps what you'd started,
+ * as it always has.
+ */
 export default function CreatePostForm({
   communityId,
   onPostCreated,
@@ -101,8 +126,9 @@ export default function CreatePostForm({
   const isProfileMode = !communityId;
   const [open, setOpen] = useState(false);
   const [postType, setPostType] = useState<PostType>("text");
+  const [opened, setOpened] = useState<ReadonlySet<PostType>>(new Set(["text"]));
   const [title, setTitle] = useState("");
-  const [content, setContent] = useState("");
+  const [drafts, setDrafts] = useState(INITIAL_DRAFTS);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [postToMyPlace, setPostToMyPlace] = useState(false);
@@ -110,151 +136,60 @@ export default function CreatePostForm({
     DEFAULT_INTERACTION_CONTROLS,
   );
 
-  const [photos, setPhotos] = useState<UploadedMedia[]>([]);
-  const [uploadingPhotos, setUploadingPhotos] = useState(false);
-  const [video, setVideo] = useState<UploadedMedia | null>(null);
-  const [richBlocks, setRichBlocks] = useState<EditorBlock[]>([createEmptyTextBlock()]);
+  const draft = drafts[postType];
+  const ready = draft.fields !== null && (!draft.titleRequired || title.trim().length > 0);
 
-  function resetForm() {
-    setTitle("");
-    setContent("");
+  function reportDraft(type: PostType) {
+    return (next: PostDraft) => setDrafts((all) => ({ ...all, [type]: next }));
+  }
+
+  function showTab(type: PostType) {
+    setPostType(type);
+    setOpened((all) => new Set(all).add(type));
     setError("");
-    setPhotos([]);
-    setVideo(null);
-    setRichBlocks([createEmptyTextBlock()]);
+  }
+
+  function close() {
+    setTitle("");
+    setDrafts(INITIAL_DRAFTS);
+    setOpened(new Set([postType]));
+    setError("");
     setPostToMyPlace(false);
     setInteractionControls(DEFAULT_INTERACTION_CONTROLS);
+    setOpen(false);
   }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!ready || loading) return;
     setLoading(true);
     setError("");
-
     try {
       const body: Record<string, unknown> = {
         post_type: postType,
         allow_reactions: interactionControls.allowReactions,
         allow_comments: interactionControls.allowComments,
         allow_dislikes: interactionControls.allowDislikes,
+        title: title.trim(),
+        ...draft.fields,
       };
-
-      if (postType === "text") {
-        if (!title.trim() || !content.trim()) {
-          setError("Title and content are required.");
-          setLoading(false);
-          return;
-        }
-        body.title = title.trim();
-        body.content = content.trim();
-      }
-
-      if (postType === "photo") {
-        if (photos.length === 0) {
-          setError("Please add at least one photo.");
-          setLoading(false);
-          return;
-        }
-        body.title = title.trim();
-        body.content = content.trim();
-        body.media = photos.map((p) => ({
-          url: p.url,
-          filename: p.filename,
-          media_type: p.media_type,
-          media_source: p.media_source,
-          file_size: p.file_size,
-        }));
-      }
-
-      if (postType === "video") {
-        if (!video) {
-          setError("Please add a video.");
-          setLoading(false);
-          return;
-        }
-        body.title = title.trim();
-        body.content = content.trim();
-        body.media = [
-          {
-            url: video.url,
-            filename: video.filename,
-            media_type: video.media_type,
-            media_source: video.media_source,
-            file_size: video.file_size,
-          },
-        ];
-      }
-
-      if (postType === "rich") {
-        if (!title.trim()) {
-          setError("Title is required for rich posts.");
-          setLoading(false);
-          return;
-        }
-        const serializedBlocks = richBlocks
-          .filter((b) => {
-            if (b.type === "text") return b.content.trim().length > 0;
-            if (b.type === "image" || b.type === "video") return b.url.length > 0;
-            return false;
-          })
-          .map((b) => {
-            if (b.type === "text") return { type: "text", content: b.content };
-            if (b.type === "image") return { type: "image", url: b.url, alt: b.alt };
-            if (b.type === "video")
-              return { type: "video", url: b.url, media_source: b.media_source };
-            return b;
-          });
-
-        if (serializedBlocks.length === 0) {
-          setError("Please add some content.");
-          setLoading(false);
-          return;
-        }
-
-        body.title = title.trim();
-        body.content = JSON.stringify(serializedBlocks);
-      }
-
-      if (!isProfileMode && postToMyPlace) {
-        body.post_to_profile = true;
-      }
+      if (!isProfileMode && postToMyPlace) body.post_to_profile = true;
 
       const endpoint = isProfileMode
         ? "/api/my-place/posts"
         : `/api/communities/${communityId}/posts`;
-
       await apiFetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
       });
-
-      resetForm();
-      setOpen(false);
+      close();
       onPostCreated();
     } catch (err) {
       setError(userMessage(err, "Failed to create post."));
     } finally {
       setLoading(false);
     }
-  }
-
-  function canSubmit(): boolean {
-    if (loading) return false;
-    if (postType === "text") return !!(title.trim() && content.trim());
-    if (postType === "photo") return photos.length > 0 && !uploadingPhotos;
-    if (postType === "video") return !!video;
-    if (postType === "rich") {
-      if (!title.trim()) return false;
-      const hasContent = richBlocks.some(
-        (b) =>
-          (b.type === "text" && b.content.trim()) ||
-          ((b.type === "image" || b.type === "video") && b.url),
-      );
-      const isUploading = richBlocks.some((b) => b.uploading);
-      return hasContent && !isUploading;
-    }
-    return false;
   }
 
   if (!open) {
@@ -298,10 +233,7 @@ export default function CreatePostForm({
           </h3>
           <button
             type="button"
-            onClick={() => {
-              resetForm();
-              setOpen(false);
-            }}
+            onClick={close}
             aria-label="Close post form"
             className="rounded-lg p-1 text-ink-faint hover:bg-surface-emphasis hover:text-ink-tertiary"
           >
@@ -323,10 +255,10 @@ export default function CreatePostForm({
             <button
               key={tab.type}
               type="button"
-              onClick={() => {
-                setPostType(tab.type);
-                setError("");
-              }}
+              onClick={() => showTab(tab.type)}
+              // The label hides on narrow screens, so name the button outright.
+              aria-label={tab.label}
+              aria-pressed={postType === tab.type}
               className={`flex flex-1 items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-medium transition-all ${
                 postType === tab.type
                   ? "bg-surface text-accent-600 shadow-sm"
@@ -345,91 +277,38 @@ export default function CreatePostForm({
           </div>
         )}
 
-        {/* Text Post */}
-        {postType === "text" && (
-          <div className="space-y-3">
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Give your post a title"
-              maxLength={200}
-              className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
-            />
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="What would you like to share?"
-              rows={4}
-              className="w-full resize-none rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
-            />
-          </div>
-        )}
-
-        {/* Photo Post */}
-        {postType === "photo" && (
-          <div className="space-y-3">
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title (optional)"
-              maxLength={200}
-              className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
-            />
-            <PhotoUploader
-              photos={photos}
-              uploading={uploadingPhotos}
-              onPhotosChange={setPhotos}
-              onUploadingChange={setUploadingPhotos}
-              onError={setError}
-            />
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Add a caption (optional)"
-              rows={2}
-              className="w-full resize-none rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
-            />
-          </div>
-        )}
-
-        {/* Video Post */}
-        {postType === "video" && (
-          <div className="space-y-3">
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Title (optional)"
-              maxLength={200}
-              className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
-            />
-            <VideoUploader video={video} onVideoChange={setVideo} onError={setError} />
-            <textarea
-              value={content}
-              onChange={(e) => setContent(e.target.value)}
-              placeholder="Add a caption (optional)"
-              rows={2}
-              className="w-full resize-none rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
-            />
-          </div>
-        )}
-
-        {/* Rich Post */}
-        {postType === "rich" && (
-          <div className="space-y-3">
-            <input
-              type="text"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="Give your post a title"
-              maxLength={200}
-              className="w-full rounded-xl border border-line px-4 py-2.5 text-sm text-ink placeholder-ink-faint focus:border-accent-400 focus:outline-none focus:ring-1 focus:ring-accent-400"
-            />
-            <RichContentEditor blocks={richBlocks} onChange={setRichBlocks} />
-          </div>
-        )}
+        {/* Hidden composers keep their state but take no space, so no margin
+            stacks up from a tab you aren't on. */}
+        <div>
+          <input
+            type="text"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder={TITLE_PLACEHOLDER[postType]}
+            maxLength={200}
+            className={FIELD_CLASS}
+          />
+          {opened.has("text") && (
+            <div hidden={postType !== "text"} className="mt-3">
+              <TextComposer onDraft={reportDraft("text")} />
+            </div>
+          )}
+          {opened.has("photo") && (
+            <div hidden={postType !== "photo"} className="mt-3 space-y-3">
+              <PhotoComposer onDraft={reportDraft("photo")} onError={setError} />
+            </div>
+          )}
+          {opened.has("video") && (
+            <div hidden={postType !== "video"} className="mt-3 space-y-3">
+              <VideoComposer onDraft={reportDraft("video")} onError={setError} />
+            </div>
+          )}
+          {opened.has("rich") && (
+            <div hidden={postType !== "rich"} className="mt-3">
+              <RichComposer onDraft={reportDraft("rich")} />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Footer */}
@@ -458,27 +337,18 @@ export default function CreatePostForm({
         )}
 
         <div className="flex items-center justify-between">
-          <div className="text-xs text-ink-faint">
-            {postType === "photo" && photos.length > 0 && `${photos.length}/10 images`}
-            {postType === "video" &&
-              video &&
-              (video.media_source === "upload" ? "Video attached" : `${video.media_source} embed`)}
-            {postType === "rich" && `${richBlocks.length} block${richBlocks.length > 1 ? "s" : ""}`}
-          </div>
+          <div className="text-xs text-ink-faint">{draft.status}</div>
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => {
-                resetForm();
-                setOpen(false);
-              }}
+              onClick={close}
               className="rounded-lg px-4 py-2 text-sm font-medium text-ink-tertiary hover:bg-surface-inset"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={!canSubmit()}
+              disabled={!ready || loading}
               className="rounded-lg bg-accent-500 px-5 py-2 text-sm font-medium text-ink-inverse transition-colors hover:bg-accent-600 disabled:opacity-50"
             >
               {loading ? "Posting..." : "Post"}
