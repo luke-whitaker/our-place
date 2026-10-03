@@ -33,6 +33,10 @@ model User {
   // Leaves this member out of the admin metrics: no activity_days rows are
   // written for them, and turning it on deletes the ones already there.
   excludeFromMetrics Boolean   @default(false) @map("exclude_from_metrics")
+  // Whether gathering emails (invited, cancelled, time changed) reach this
+  // member's inbox. On by default; Account settings and the unsubscribe link
+  // in every such email turn it off. In-site notifications don't depend on it.
+  emailGatherings    Boolean   @default(true) @map("email_gatherings")
   role               String    @default("user")
   isVerified         Boolean   @default(true) @map("is_verified")
   // An HMAC of the emailed code, never the code itself, and the wrong guesses
