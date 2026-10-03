@@ -49,8 +49,7 @@ export async function GET(
       id: friendshipRow?.id ?? null,
     };
     const isOpen =
-      !blocked &&
-      islandAccess(auth.user.userId, user, friendship.status === "friends") === "open";
+      !blocked && islandAccess(auth.user.userId, user, friendship.status === "friends") === "open";
 
     return NextResponse.json({
       user: {
