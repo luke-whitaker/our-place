@@ -77,6 +77,8 @@ model User {
   worldDiscoveries    WorldDiscovery[]
   worldPlants         WorldPlant[]
   pollVotes           PollVote[]
+  blocksMade          Block[]           @relation("BlockBlocker")
+  blocksReceived      Block[]           @relation("BlockBlocked")
 
   @@index([email])
   @@index([username])
@@ -570,4 +572,22 @@ model WorldPlant {
   @@unique([worldId, col, row])
   @@index([ownerId, worldId])
   @@map("world_plants")
+}
+
+// One member blocking another. The effect is symmetric (neither can reach the
+// other: friend requests, letters, gifts, gathering invitations, island visits,
+// presence, comments, reactions) and silent: the blocked member is never told.
+// Only the blocker sees the row and can lift it. See src/lib/blocks.ts.
+model Block {
+  id        String   @id @default(uuid())
+  blockerId String   @map("blocker_id")
+  blockedId String   @map("blocked_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  blocker User @relation("BlockBlocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked User @relation("BlockBlocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+  @@map("blocks")
 }
