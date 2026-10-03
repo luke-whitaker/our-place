@@ -209,3 +209,37 @@ export async function inviteMembers(
     })),
   });
 }
+
+/**
+ * Cancel a gathering inside the caller's transaction: mark it, take back an
+ * Event Mushroom still in someone's mailbox or pockets (a planted one simply
+ * stops showing, since it's no longer scheduled), and tell everyone who had
+ * accepted. Guarded on the status, so two cancels can't both notify. Returns
+ * whether this call was the one that cancelled it. Used by the host's cancel
+ * route and by account deletion.
+ */
+export async function cancelGathering(
+  tx: Prisma.TransactionClient,
+  id: string,
+  hostId: string,
+): Promise<boolean> {
+  const cancelled = await tx.gathering.updateMany({
+    where: { id, status: "scheduled" },
+    data: { status: "cancelled", cancelledAt: new Date() },
+  });
+  if (cancelled.count !== 1) return false;
+  await tx.item.deleteMany({ where: { gatheringId: id, kind: "event_mushroom" } });
+  const going = await tx.gatheringInvite.findMany({
+    where: { gatheringId: id, status: "accepted", userId: { not: hostId } },
+    select: { userId: true },
+  });
+  await tx.notification.createMany({
+    data: going.map((g) => ({
+      recipientId: g.userId,
+      actorId: hostId,
+      kind: "gathering_cancelled",
+      gatheringId: id,
+    })),
+  });
+  return true;
+}

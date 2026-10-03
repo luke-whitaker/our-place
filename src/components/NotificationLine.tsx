@@ -4,10 +4,16 @@ import { useState } from "react";
 import Link from "next/link";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { timeAgo } from "@/lib/time-utils";
+import { isFormerMember } from "@/lib/former-member";
 import GatheringAnswerButtons from "@/components/GatheringAnswerButtons";
 import type { NotificationActor, NotificationItem, NotificationPost } from "@/lib/types";
 
 function Name({ actor }: { actor: NotificationActor }) {
+  // A host who deleted their account still signs the notice that cancelled
+  // their gathering; there's no profile left to link.
+  if (isFormerMember(actor.username)) {
+    return <span className="font-semibold text-ink">{actor.display_name}</span>;
+  }
   return (
     <Link
       href={`/profile/${actor.username}`}

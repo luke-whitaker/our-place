@@ -119,6 +119,17 @@ export function needsCurrentPassword(d: {
   return d.email !== undefined || d.phone !== undefined || d.new_password !== undefined;
 }
 
+/** Deleting your own account: the password, and what happens to your posts. */
+export const deleteAccountSchema = z.object({
+  current_password: z
+    .string({ error: "Enter your password to delete your account." })
+    .min(1, "Enter your password to delete your account.")
+    .max(PASSWORD_CHECK_MAX, "Current password is incorrect."),
+  mode: z.enum(["remove_everything", "leave_posts"], {
+    error: "Choose what happens to your posts and comments.",
+  }),
+});
+
 export const forgotPasswordSchema = z.object({
   email: z.string({ error: "Email is required." }).email("Please enter a valid email address."),
 });

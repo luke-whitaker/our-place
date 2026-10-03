@@ -91,7 +91,10 @@ export async function POST(request: NextRequest) {
     }
 
     const target = await prisma.user.findFirst({
-      where: { username: { equals: parsed.data.username.toLowerCase(), mode: "insensitive" } },
+      where: {
+        username: { equals: parsed.data.username.toLowerCase(), mode: "insensitive" },
+        deletedAt: null,
+      },
       select: { id: true, displayName: true },
     });
     if (!target) {

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { Post } from "@/lib/types";
 import { timeAgo } from "@/lib/time-utils";
+import { isFormerMember } from "@/lib/former-member";
 import { useAuth } from "./AuthProvider";
 import { PhotoGallery, VideoPlayer, RichContentRenderer, PostTypeBadge } from "./PostMedia";
 import CommentSection from "./CommentSection";
@@ -27,6 +28,8 @@ export default function PostCard({
 
   const postType = post.post_type || "text";
   const media = post.media || [];
+  // A post its author left up when they deleted their account: no profile to link.
+  const formerAuthor = isFormerMember(post.author_username);
   // The author can delete their own post; an admin can take down any post.
   const canDelete = !!user && (user.id === post.author_id || user.role === "admin");
   const isAdminDelete = !!user && user.id !== post.author_id;
@@ -52,25 +55,38 @@ export default function PostCard({
       <div className="p-5">
         {/* Header */}
         <div className="flex items-start gap-3">
-          <Link
-            href={`/profile/${post.author_username}`}
-            aria-label={`Visit ${post.author_name}'s place`}
-            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-inverse text-sm font-bold"
-            style={{ backgroundColor: post.author_avatar_color || "#6366f1" }}
-          >
-            {post.author_name?.charAt(0).toUpperCase() || "?"}
-          </Link>
+          {formerAuthor ? (
+            <span
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-inverse text-sm font-bold"
+              style={{ backgroundColor: post.author_avatar_color || "#9ca3af" }}
+            >
+              ?
+            </span>
+          ) : (
+            <Link
+              href={`/profile/${post.author_username}`}
+              aria-label={`Visit ${post.author_name}'s place`}
+              className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-ink-inverse text-sm font-bold"
+              style={{ backgroundColor: post.author_avatar_color || "#6366f1" }}
+            >
+              {post.author_name?.charAt(0).toUpperCase() || "?"}
+            </Link>
+          )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2 flex-wrap">
-              <Link
-                href={`/profile/${post.author_username}`}
-                className="group flex items-center gap-2"
-              >
-                <span className="text-sm font-semibold text-ink group-hover:text-accent-600">
-                  {post.author_name}
-                </span>
-                <span className="text-xs text-ink-faint">@{post.author_username}</span>
-              </Link>
+              {formerAuthor ? (
+                <span className="text-sm font-semibold text-ink-muted">{post.author_name}</span>
+              ) : (
+                <Link
+                  href={`/profile/${post.author_username}`}
+                  className="group flex items-center gap-2"
+                >
+                  <span className="text-sm font-semibold text-ink group-hover:text-accent-600">
+                    {post.author_name}
+                  </span>
+                  <span className="text-xs text-ink-faint">@{post.author_username}</span>
+                </Link>
+              )}
               <span className="text-xs text-ink-disabled">&middot;</span>
               <span className="text-xs text-ink-faint">{timeAgo(post.created_at)}</span>
               <PostTypeBadge postType={postType} />

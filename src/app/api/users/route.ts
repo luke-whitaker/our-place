@@ -26,15 +26,19 @@ export async function GET(request: NextRequest) {
     const { limit, offset, page } = parsePagination(searchParams);
     const search = searchParams.get("search")?.trim() ?? "";
 
+    // Former members are tombstones, not members: never listed.
     const users = await prisma.user.findMany({
-      where: search
-        ? {
-            OR: [
-              { displayName: { contains: search, mode: "insensitive" } },
-              { username: { contains: search, mode: "insensitive" } },
-            ],
-          }
-        : undefined,
+      where: {
+        deletedAt: null,
+        ...(search
+          ? {
+              OR: [
+                { displayName: { contains: search, mode: "insensitive" } },
+                { username: { contains: search, mode: "insensitive" } },
+              ],
+            }
+          : {}),
+      },
       select: directorySelect,
       orderBy: { displayName: "asc" },
       take: limit + 1,

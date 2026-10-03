@@ -132,3 +132,33 @@ export async function uploadToStorage(
 
   return `${r2.publicBaseUrl}/${key}`;
 }
+
+/**
+ * The object key behind one of our own uploads' public URLs, or null for
+ * anything else (a YouTube link, another host, a key that isn't plain path
+ * segments). Pure, so callers can sort URLs before touching the network.
+ */
+export function storageKeyFromUrl(url: string, publicBaseUrl: string): string | null {
+  const base = publicBaseUrl.replace(/\/$/, "");
+  if (!base || !url.startsWith(`${base}/`)) return null;
+  const key = url.slice(base.length + 1);
+  return SAFE_KEY.test(key) ? key : null;
+}
+
+/**
+ * Delete one uploaded object from R2. A missing object counts as deleted
+ * (R2 answers 204 either way). Refuses an unsafe key before any request.
+ */
+export async function deleteFromStorage(key: string): Promise<void> {
+  if (!SAFE_KEY.test(key)) {
+    throw new Error(`Refusing to delete unsafe storage key "${key.slice(0, 100)}".`);
+  }
+  const r2 = getR2();
+  const response = await r2.client.fetch(`${r2.endpoint}/${r2.bucket}/${key}`, {
+    method: "DELETE",
+  });
+  if (!response.ok && response.status !== 404) {
+    const detail = await response.text().catch(() => "");
+    throw new StorageUploadError(response.status, detail.slice(0, 200));
+  }
+}

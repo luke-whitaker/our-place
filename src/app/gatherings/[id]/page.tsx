@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { ApiError, apiFetch, userMessage } from "@/lib/api-client";
 import { gatheringWhen } from "@/lib/time-utils";
+import { isFormerMember } from "@/lib/former-member";
 import { useAuth } from "@/components/AuthProvider";
 import GatheringAnswerButtons from "@/components/GatheringAnswerButtons";
 import GatheringHostPanel from "@/components/GatheringHostPanel";
@@ -132,9 +133,16 @@ export default function GatheringPage() {
           <div>
             <dt className="text-xs text-ink-faint">Hosted by</dt>
             <dd className="text-ink-secondary">
-              <Link href={`/profile/${gathering.host.username}`} className="hover:text-accent-600">
-                {gathering.host.display_name}
-              </Link>
+              {isFormerMember(gathering.host.username) ? (
+                gathering.host.display_name
+              ) : (
+                <Link
+                  href={`/profile/${gathering.host.username}`}
+                  className="hover:text-accent-600"
+                >
+                  {gathering.host.display_name}
+                </Link>
+              )}
             </dd>
           </div>
         </dl>

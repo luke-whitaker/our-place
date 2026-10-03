@@ -12,7 +12,10 @@ export async function GET() {
     const auth = await requireAdmin();
     if (auth.error) return auth.error;
 
+    // Former members stay out of the account list; their tombstones only
+    // exist so what they left behind still has an author.
     const users = await prisma.user.findMany({
+      where: { deletedAt: null },
       select: {
         id: true,
         username: true,

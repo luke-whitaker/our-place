@@ -5,6 +5,7 @@ import Link from "next/link";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { Comment } from "@/lib/types";
 import { timeAgo } from "@/lib/time-utils";
+import { isFormerMember } from "@/lib/former-member";
 import { useAuth } from "./AuthProvider";
 
 export default function CommentSection({
@@ -112,12 +113,18 @@ export default function CommentSection({
                   </div>
                   <div className="min-w-0 flex-1 rounded-xl bg-surface px-3 py-2 border border-line-soft">
                     <div className="flex items-center gap-2">
-                      <Link
-                        href={`/profile/${comment.author_username}`}
-                        className="text-xs font-semibold text-ink hover:text-accent-600"
-                      >
-                        {comment.author_name}
-                      </Link>
+                      {isFormerMember(comment.author_username) ? (
+                        <span className="text-xs font-semibold text-ink-muted">
+                          {comment.author_name}
+                        </span>
+                      ) : (
+                        <Link
+                          href={`/profile/${comment.author_username}`}
+                          className="text-xs font-semibold text-ink hover:text-accent-600"
+                        >
+                          {comment.author_name}
+                        </Link>
+                      )}
                       <span className="text-xs text-ink-faint">{timeAgo(comment.created_at)}</span>
                       {user && (user.id === comment.author_id || user.role === "admin") && (
                         <button

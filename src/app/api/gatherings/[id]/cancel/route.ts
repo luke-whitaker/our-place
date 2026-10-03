@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import prisma from "@/lib/db";
 import { requireAuth } from "@/lib/auth";
 import { gatheringResponseLimiter } from "@/lib/rate-limit";
-import { gatheringAccess } from "@/lib/gatherings";
+import { cancelGathering, gatheringAccess } from "@/lib/gatherings";
 
 // POST: the host cancels a gathering before it ends. The row stays, marked
 // cancelled, so letters and notifications about it can say so; everyone who
@@ -36,29 +36,7 @@ export async function POST(_request: Request, { params }: { params: Promise<{ id
       return NextResponse.json({ error: "This gathering has already ended." }, { status: 409 });
     }
 
-    await prisma.$transaction(async (tx) => {
-      // Guarded on the status so two cancels can't both notify.
-      const cancelled = await tx.gathering.updateMany({
-        where: { id, status: "scheduled" },
-        data: { status: "cancelled", cancelledAt: new Date() },
-      });
-      if (cancelled.count !== 1) return;
-      // An Event Mushroom still in the host's mailbox or pockets goes with it;
-      // a planted one simply stops showing, since it's no longer scheduled.
-      await tx.item.deleteMany({ where: { gatheringId: id, kind: "event_mushroom" } });
-      const going = await tx.gatheringInvite.findMany({
-        where: { gatheringId: id, status: "accepted", userId: { not: me } },
-        select: { userId: true },
-      });
-      await tx.notification.createMany({
-        data: going.map((g) => ({
-          recipientId: g.userId,
-          actorId: me,
-          kind: "gathering_cancelled",
-          gatheringId: id,
-        })),
-      });
-    });
+    await prisma.$transaction((tx) => cancelGathering(tx, id, me));
 
     return NextResponse.json({ message: "Your gathering is cancelled. Everyone going was told." });
   } catch (error) {

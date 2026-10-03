@@ -109,6 +109,12 @@ export const resetPasswordLimiter = new RateLimiter({ maxAttempts: 5, windowMs: 
 /** Account updates (email/phone/password): 5 per 15 minutes per user */
 export const updateAccountLimiter = new RateLimiter({ maxAttempts: 5, windowMs: 15 * 60 * 1000 });
 
+/** "Download my data": 5 an hour per member; each one reads their whole history. */
+export const exportAccountLimiter = new RateLimiter({ maxAttempts: 5, windowMs: 60 * 60 * 1000 });
+
+/** Account deletion attempts (each checks the password): 5 per 15 minutes per member. */
+export const deleteAccountLimiter = new RateLimiter({ maxAttempts: 5, windowMs: 15 * 60 * 1000 });
+
 /** Post creation: 20 per hour per user */
 export const createPostLimiter = new RateLimiter({ maxAttempts: 20, windowMs: 60 * 60 * 1000 });
 

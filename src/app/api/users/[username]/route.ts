@@ -17,7 +17,7 @@ export async function GET(
     const { username } = await params;
 
     const user = await prisma.user.findFirst({
-      where: { username: { equals: username.toLowerCase(), mode: "insensitive" } },
+      where: { username: { equals: username.toLowerCase(), mode: "insensitive" }, deletedAt: null },
       select: {
         id: true,
         username: true,

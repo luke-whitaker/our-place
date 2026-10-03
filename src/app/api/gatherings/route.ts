@@ -21,7 +21,7 @@ async function resolveInvitees(
   pickedIds: string[],
 ): Promise<Invitees> {
   const picked = [...new Set(pickedIds)].filter((id) => id !== hostId);
-  const found = await prisma.user.count({ where: { id: { in: picked } } });
+  const found = await prisma.user.count({ where: { id: { in: picked }, deletedAt: null } });
   if (found !== picked.length) return refuse("Some of those members couldn't be found.", 400);
   if (!communityId) return { ok: true, ids: picked };
 

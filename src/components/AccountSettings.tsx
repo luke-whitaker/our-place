@@ -8,6 +8,7 @@ import { useAuth } from "@/components/AuthProvider";
 import AvatarPreview from "@/components/AvatarPreview";
 import IslandSettings from "@/components/IslandSettings";
 import MetricsSettings from "@/components/MetricsSettings";
+import AccountDataSettings from "@/components/AccountDataSettings";
 
 type EditableField = "name" | "email" | "phone" | "password";
 
@@ -410,6 +411,10 @@ export default function AccountSettings() {
 
         {/* Activity counts */}
         <MetricsSettings />
+        <div className="border-t border-line-soft" />
+
+        {/* Your data: download and delete */}
+        <AccountDataSettings />
         <div className="border-t border-line-soft" />
 
         {/* Sign out */}
