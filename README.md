@@ -249,6 +249,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] API route tests — the reaction, comment, post, and island routes run against a real Postgres in CI
 - [x] Gatherings in person: invitations by letter and notification, and calendars for communities and for you
 - [x] Gatherings in the world, at an Event Mushroom the host plants
+- [x] Gathering emails (invited, new time, cancelled), with an off switch, and hosts can change a gathering's time
 - [x] A map of the Capital, with the places you've been and the shrines you've found saved to your account
 - [x] Polls — a post type for deciding something together
 - [x] ~~Welcome tour~~ — dropped in favor of a short video in the Welcome Center
@@ -268,6 +269,34 @@ Open [http://localhost:3000](http://localhost:3000).
 ---
 
 ## Version History
+
+### v0.26.0 — Gathering Emails, and a New Time (October 2026)
+
+**Why:** A gathering asks you to show up somewhere, so it's worth hearing about outside the
+site. Until now an invitation waited in your notifications and mailbox until your next visit.
+Hosts also had no way to move a gathering except cancelling it and starting over.
+
+**What changed:**
+
+- **An email when you're invited to a gathering.** It says what, who's hosting, and when (in
+  Central time), with a link to the gathering page. It never includes the guest list, the
+  description, or the address, because emails get forwarded.
+- **An email when a gathering you're invited to is cancelled,** whether the host cancels it, its
+  Event Mushroom wasn't planted by the start, or the host deleted their account. Everyone still
+  invited hears, not only the people going.
+- **Change date and time.** The host can move a gathering until it starts. Answers stay as they
+  were, the invitation letters show the new time, a planted Event Mushroom stays where it is, and
+  everyone still invited gets a notification and an email asking anyone who can't make it to
+  update their answer. The title and description stay as they were.
+- **An off switch.** "Email me about gatherings" in My Account, on by default. Every gathering
+  email also has a "Stop emails about gatherings" link that works without signing in, and mail
+  apps show their own unsubscribe button for it.
+- **Email never holds anything up.** Emails go out after everything is saved; if one fails, it's
+  logged, and the notification is already there.
+
+**What didn't change:** these are the only emails besides password resets and email-change
+notices. Voice call invites will stay in the site. One migration adds `users.email_gatherings`.
+Links in emails use `PUBLIC_SITE_URL`, which defaults to https://www.ourplaceonline.com.
 
 ### v0.25.0 — Blocking (October 2026)
 

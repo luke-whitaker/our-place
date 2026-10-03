@@ -239,7 +239,11 @@ export async function emailStillInvited(
       select: { hostId: true },
     });
     if (!g) return 0;
-    return await emailGathering(kind, gatheringId, await stillInvitedIds(prisma, gatheringId, g.hostId));
+    return await emailGathering(
+      kind,
+      gatheringId,
+      await stillInvitedIds(prisma, gatheringId, g.hostId),
+    );
   } catch (error) {
     console.error(`Gathering email (${kind}) error:`, error);
     return 0;

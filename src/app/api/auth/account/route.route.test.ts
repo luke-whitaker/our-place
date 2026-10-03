@@ -208,3 +208,27 @@ describe("PATCH /api/auth/account exclude_from_metrics", () => {
     expect(await excluded(user.userId)).toEqual({ excludeFromMetrics: false });
   });
 });
+
+describe("PATCH /api/auth/account email_gatherings", () => {
+  beforeEach(() => {
+    mockRequireAuth.mockReset();
+  });
+
+  it("is on by default and turns off and back on", async () => {
+    const user = await createTestUser();
+    authAs(user);
+    const read = async () =>
+      (
+        await prisma.user.findUniqueOrThrow({
+          where: { id: user.userId },
+          select: { emailGatherings: true },
+        })
+      ).emailGatherings;
+
+    expect(await read()).toBe(true);
+    expect((await patchAccount({ email_gatherings: false })).status).toBe(200);
+    expect(await read()).toBe(false);
+    expect((await patchAccount({ email_gatherings: true })).status).toBe(200);
+    expect(await read()).toBe(true);
+  });
+});

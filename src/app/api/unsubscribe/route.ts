@@ -23,7 +23,9 @@ export async function POST(request: NextRequest) {
     const userId = token.length <= 200 ? verifyUnsubscribeToken(token) : null;
     if (!userId) {
       return NextResponse.json(
-        { error: "That unsubscribe link isn't valid. You can turn emails off in Account settings." },
+        {
+          error: "That unsubscribe link isn't valid. You can turn emails off in Account settings.",
+        },
         { status: 400 },
       );
     }

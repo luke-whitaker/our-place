@@ -163,7 +163,10 @@ function Message({ item }: { item: NotificationItem }) {
 
 type GatheringItem = Extract<
   NotificationItem,
-  { kind: "gathering_invite" | "gathering_cancelled" | "gathering_unplanted" | "gathering_time_changed" }
+  {
+    kind:
+      "gathering_invite" | "gathering_cancelled" | "gathering_unplanted" | "gathering_time_changed";
+  }
 >;
 
 function GatheringLink({ item }: { item: GatheringItem }) {
