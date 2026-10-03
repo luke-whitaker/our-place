@@ -263,12 +263,53 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] Seeds and flowers, to grow things on your island
 - [x] Download your data, and delete your account with a choice about your posts
 - [x] Blocking — one member can put another out of reach, both ways, without telling them
+- [x] Voice: group calls with friends, up to 8 people, that follow you across the forum and the world
 - [ ] Player identity bound to world position (the name above the avatar is in)
 - [x] Real-time multiplayer presence, with emotes
 
 ---
 
 ## Version History
+
+### v0.27.0 — Voice: Group Calls with Friends (October 2026)
+
+**Why:** Talking is the next best thing to being in the same room, and friends asked for it at
+the September 29 get-together. A call is between friends only, which is also a reason to add each
+other as friends.
+
+**What changed:**
+
+- **Call a friend** from the Call button on their row on the People page, or from "Call friends"
+  at the top of the Friends menu at any shrine or computer in the world. A call holds up to 8
+  people, invitations included.
+- **Anyone in a call can invite their own friends,** who don't need to know everyone else there.
+- **Being invited** puts a toast on screen wherever you are on the site for 30 seconds ("Luke is
+  calling, with Sam. Join?") and a line in your notifications. Nothing is sent by email or push.
+  Joining is always a tap, and the browser asks for the microphone only then.
+- **The call follows you.** Move between the forum and the world, walk through doors, and travel
+  the Mycelium Network; the call stays connected.
+- **Always clear when you're live.** While you're connected, a red "Live" mark shows whenever your
+  microphone is sending, and "Muted" when it isn't. On forum pages it sits in the navbar with how
+  many are in the call; in the world, the phone button in the corner turns red, and tapping it
+  opens the call's controls.
+- **Your controls:** mute yourself, mute any one person for you alone (remembered on that device),
+  invite friends, and leave. Whoever is talking gets a green ring.
+- **Dropping out is recoverable.** If your connection drops, or you reload the page, you get "Tap
+  to rejoin". Rejoining never opens your microphone on its own.
+- **Ghost Mode and blocking apply.** A ghost can't be in a call, and turning Ghost Mode on leaves
+  any call ("You left the call."). Someone you've blocked can't join a call you're in.
+
+**The iPhone, honestly:** when an iPhone locks or Safari goes to the background, iOS pauses the
+microphone and the call audio. No website can get around that. So on an iPhone a call lasts while
+Our Place is on screen; when you come back, you'll see "Tap to rejoin". Android keeps calls going
+in the background much more reliably.
+
+**What didn't change:** calls are never recorded. LiveKit Cloud carries the audio, encrypted in
+transit; our server only decides who may join. Proximity chat (hearing people nearby in the world)
+isn't built; group calls come first. The site now allows the microphone for its own pages
+(`Permissions-Policy: microphone=(self)`), and its content policy allows connections to the
+LiveKit server in `LIVEKIT_URL`. `livekit-client` is pinned to 2.22.0, because later releases need
+Node 22.22 or newer.
 
 ### v0.26.0 — Gathering Emails, and a New Time (October 2026)
 
