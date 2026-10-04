@@ -114,7 +114,7 @@ export default function PublicProfilePage() {
             >
               {profile.display_name.charAt(0).toUpperCase()}
             </div>
-            <div className="mt-4 flex items-center gap-2">
+            <div className="mt-4 ml-3 flex min-w-0 flex-wrap items-center justify-end gap-2">
               {profile.island_open && (
                 <Link
                   href={`/world?place=${encodeURIComponent(profile.username)}&at=my-place`}
@@ -133,12 +133,15 @@ export default function PublicProfilePage() {
                   onChanged={loadProfile}
                 />
               )}
-              <BlockButton
-                username={profile.username}
-                displayName={profile.display_name}
-                blocked={profile.blocked_by_me}
-                onChanged={loadProfile}
-              />
+              {/* Between friends, Block lives in the Friends menu instead. */}
+              {!isFriend && (
+                <BlockButton
+                  username={profile.username}
+                  displayName={profile.display_name}
+                  blocked={profile.blocked_by_me}
+                  onChanged={loadProfile}
+                />
+              )}
             </div>
           </div>
 

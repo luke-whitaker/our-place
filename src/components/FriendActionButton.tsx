@@ -2,15 +2,19 @@
 
 import { useState } from "react";
 import { apiFetch, userMessage } from "@/lib/api-client";
+import { confirmAndBlock } from "@/components/BlockButton";
 import type { FriendshipStatus } from "@/lib/types";
 
 const primaryClass =
   "rounded-xl bg-accent-500 px-4 py-2 text-sm font-medium text-ink-inverse transition-colors hover:bg-accent-600 disabled:opacity-50";
+const menuItemClass =
+  "block w-full px-4 py-2 text-left text-sm text-ink-secondary transition-colors hover:bg-surface-emphasis";
 const secondaryClass =
   "rounded-xl border border-line bg-surface px-4 py-2 text-sm font-medium text-ink-secondary transition-colors hover:bg-surface-emphasis disabled:opacity-50";
 
 // The friend-relationship control on someone's My Place: send / cancel /
-// accept / decline / unfriend, depending on where the two of you stand.
+// accept / decline, depending on where the two of you stand. Between friends
+// it's a "Friends" tag that opens a small menu with Unfriend and Block.
 export default function FriendActionButton({
   status,
   friendshipId,
@@ -26,6 +30,7 @@ export default function FriendActionButton({
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [menuOpen, setMenuOpen] = useState(false);
 
   async function call(url: string, init: RequestInit) {
     setBusy(true);
@@ -51,6 +56,16 @@ export default function FriendActionButton({
     if (confirmText && !window.confirm(confirmText)) return;
     void call(`/api/friends/${friendshipId}`, { method: "DELETE" });
   };
+
+  async function block() {
+    setMenuOpen(false);
+    setError("");
+    try {
+      if (await confirmAndBlock(username, displayName)) onChanged();
+    } catch (err) {
+      setError(userMessage(err));
+    }
+  }
 
   if (status === "self") return null;
 
@@ -87,14 +102,44 @@ export default function FriendActionButton({
           </>
         )}
         {status === "friends" && (
-          <button
-            onClick={() => removeFriendship(`Remove ${displayName} as a friend?`)}
-            disabled={busy}
-            title="Remove friend"
-            className={secondaryClass}
-          >
-            ✓ Friends
-          </button>
+          <div className="relative">
+            <button
+              onClick={() => setMenuOpen((o) => !o)}
+              disabled={busy}
+              aria-haspopup="menu"
+              aria-expanded={menuOpen}
+              className={`${secondaryClass} whitespace-nowrap`}
+            >
+              ✓ Friends ▾
+            </button>
+            {menuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setMenuOpen(false)}
+                  aria-hidden="true"
+                />
+                <div
+                  role="menu"
+                  className="absolute right-0 z-50 mt-2 w-40 overflow-hidden rounded-xl border border-line bg-surface py-1 shadow-lg"
+                >
+                  <button
+                    role="menuitem"
+                    onClick={() => {
+                      setMenuOpen(false);
+                      removeFriendship(`Unfriend ${displayName}?`);
+                    }}
+                    className={menuItemClass}
+                  >
+                    Unfriend
+                  </button>
+                  <button role="menuitem" onClick={() => void block()} className={menuItemClass}>
+                    Block
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         )}
       </div>
       {error && <p className="text-xs text-red-600">{error}</p>}

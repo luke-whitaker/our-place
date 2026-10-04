@@ -16,6 +16,9 @@ import type { CallInvitation, CallTokenResponse, CurrentCall } from "@/lib/types
 
 export const MIC_DENIED =
   "Your browser blocked the microphone. Allow it in the address bar's site settings, then tap Join again.";
+/** Browsers only share a microphone on a secure (https) page, or on localhost. */
+export const NEEDS_HTTPS =
+  "Voice calls need a secure https:// address. This page was opened over plain http, so your browser won't share the microphone.";
 export const GHOST_NO_CALLS =
   "Ghost Mode is on, so you can't be in a call. Turn it off at your armoire first.";
 /** A removal (Ghost Mode, a block) reads the same as any other, never naming why. */
@@ -135,6 +138,12 @@ export function CallProvider({ children }: { children: ReactNode }) {
   ): Promise<"joined" | "refused" | "failed"> {
     if (user?.ghost) {
       setNotice(GHOST_NO_CALLS);
+      return "refused";
+    }
+    // Checked before asking our server, so a page that can never open the mic
+    // (a phone on the dev server's LAN address) doesn't count the member in.
+    if (!window.isSecureContext || !navigator.mediaDevices) {
+      setNotice(NEEDS_HTTPS);
       return "refused";
     }
     setNotice("");

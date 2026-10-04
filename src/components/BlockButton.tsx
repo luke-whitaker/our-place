@@ -10,6 +10,18 @@ const quietClass =
 export const BLOCK_EXPLAINER =
   "You won't be friends, and neither of you can send letters, invitations, or friend requests, comment on each other's posts, or see each other in the world. They aren't told.";
 
+/** Ask, then block. Resolves false if the member backed out; throws if the
+ * server refused. Shared by this button and the Friends menu. */
+export async function confirmAndBlock(username: string, displayName: string): Promise<boolean> {
+  if (!window.confirm(`Block ${displayName}?\n\n${BLOCK_EXPLAINER}`)) return false;
+  await apiFetch("/api/blocks", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ username }),
+  });
+  return true;
+}
+
 // Block or unblock someone from their My Place. Only ever reflects blocks the
 // viewer made; whether they were blocked themselves is never shown.
 export default function BlockButton({
@@ -27,18 +39,13 @@ export default function BlockButton({
   const [error, setError] = useState("");
 
   async function toggle() {
-    if (!blocked && !window.confirm(`Block ${displayName}?\n\n${BLOCK_EXPLAINER}`)) return;
     setBusy(true);
     setError("");
     try {
       if (blocked) {
         await apiFetch(`/api/blocks/${encodeURIComponent(username)}`, { method: "DELETE" });
-      } else {
-        await apiFetch("/api/blocks", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ username }),
-        });
+      } else if (!(await confirmAndBlock(username, displayName))) {
+        return;
       }
       onChanged();
     } catch (err) {

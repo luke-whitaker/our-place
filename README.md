@@ -298,6 +298,8 @@ other as friends.
   to rejoin". Rejoining never opens your microphone on its own.
 - **Ghost Mode and blocking apply.** A ghost can't be in a call, and turning Ghost Mode on leaves
   any call ("You left the call."). Someone you've blocked can't join a call you're in.
+- **The Friends tag is a menu.** On a friend's profile, "Friends" opens Unfriend and Block, so
+  Block no longer sits beside it as its own button.
 
 **The iPhone, honestly:** when an iPhone locks or Safari goes to the background, iOS pauses the
 microphone and the call audio. No website can get around that. So on an iPhone a call lasts while
