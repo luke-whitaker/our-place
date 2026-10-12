@@ -261,6 +261,7 @@ Open [http://localhost:3000](http://localhost:3000).
 - [x] A desk in every island house, to keep letters at home
 - [x] Add to Home Screen, with our own mushroom as the app icon
 - [x] Seeds and flowers, to grow things on your island
+- [x] Keepsake Mushrooms from every gathering in the world, to wear, keep, give, or plant
 - [x] Download your data, and delete your account with a choice about your posts
 - [x] Blocking — one member can put another out of reach, both ways, without telling them
 - [x] Voice: group calls with friends, up to 8 people, that follow you across the forum and the world
@@ -270,6 +271,29 @@ Open [http://localhost:3000](http://localhost:3000).
 ---
 
 ## Version History
+
+### v0.28.0 — Keepsake Mushrooms (October 2026)
+
+**Why:** A gathering in the world should leave you with something, the way a real one leaves you
+with a photo or a ticket stub.
+
+**What changed:**
+
+- **Every world gathering gives a keepsake,** a little mushroom the size of a flower. The host gets
+  one when they plant the Event Mushroom. Each guest gets one the first time they come within a few
+  steps of it, any time from planting until the gathering ends. A toast says "You found a keepsake
+  mushroom!" Anyone who may open the gathering counts as a guest, whatever their answer.
+- **Two colors:** the Our Place logo's (gold and pink) and the Event Mushroom's (red and white).
+  The host's is a coin flip, and each guest gets the other color from the person before them.
+- **One per person per gathering,** however often you come back. If your pockets are full, nothing
+  is lost: make room and walk back to the mushroom.
+- **It works like a flower:** wear it, keep it in your pockets, desk, or a friend's mailbox, throw
+  it away, or place it on the ground in the Capital or on your island. It's already grown, so it
+  goes in as it is, and you can pick it back up.
+- **Keepsakes stack,** one pocket slot per color, with a count, like seeds.
+
+**What didn't change:** the Event Mushroom itself, which is still the portal. Keepsakes aren't
+portals.
 
 ### v0.27.0 — Voice: Group Calls with Friends (October 2026)
 
