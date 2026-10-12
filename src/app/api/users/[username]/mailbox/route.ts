@@ -75,7 +75,7 @@ export async function POST(
 
     const item = await prisma.item.findUnique({
       where: { id: parsed.data.item_id },
-      select: { id: true, ownerId: true, kind: true, location: true },
+      select: { id: true, ownerId: true, kind: true, location: true, color: true },
     });
     if (!item || item.ownerId !== auth.user.userId || item.location !== "pocket") {
       return NextResponse.json({ error: "Item not found." }, { status: 404 });
@@ -99,8 +99,9 @@ export async function POST(
         const slot = await firstFreeSlot(tx, gate.owner.id, "mailbox");
         if (slot === null) return "mailbox_full";
 
-        // A stack gives one at a time: one seed leaves the sender's stack and
-        // lands as its own gift, so the mailbox keeps who sent which.
+        // A stack gives one at a time: one seed (or keepsake, in its color)
+        // leaves the sender's stack and lands as its own gift, so the mailbox
+        // keeps who sent which.
         if (ITEM_CATALOG[kind].stackable) {
           if (!(await takeOne(tx, auth.user.userId, item.id, "pocket"))) return "item_gone";
           await tx.item.create({
@@ -108,6 +109,7 @@ export async function POST(
               id: uuidv4(),
               ownerId: gate.owner.id,
               kind,
+              color: item.color,
               location: "mailbox",
               slot,
               fromId: auth.user.userId,

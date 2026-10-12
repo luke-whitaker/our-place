@@ -2,9 +2,9 @@ import { NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
 import { getZodErrorMessage, wearHatSchema } from "@/lib/schemas";
-import { isUniqueConstraintError, toPocketItem } from "@/lib/pockets";
-import { takeOffHat, wearFlower, wornHat } from "@/lib/hats";
-import { isFlowerColor } from "@/lib/game/plants";
+import { isItemRaceError, toPocketItem } from "@/lib/pockets";
+import { takeOffHat, wearItem, wornHat } from "@/lib/hats";
+import { isPlantLook } from "@/lib/game/plants";
 import { presenceHub } from "@/lib/presence";
 
 function tooMany(retryAfterMs: number): NextResponse {
@@ -21,7 +21,7 @@ function pocketsChanged(): NextResponse {
   );
 }
 
-// GET: the flower on the caller's head, or null.
+// GET: the flower or keepsake on the caller's head, or null.
 export async function GET() {
   try {
     const auth = await requireAuth();
@@ -34,8 +34,8 @@ export async function GET() {
   }
 }
 
-// POST: wear a flower from pockets. A flower already worn swaps into the slot
-// the new one leaves. Everyone nearby sees the change through presence.
+// POST: wear a flower or keepsake from pockets. Whatever was worn goes back
+// into pockets. Everyone nearby sees the change through presence.
 export async function POST(request: Request) {
   try {
     const auth = await requireAuth();
@@ -49,23 +49,32 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: getZodErrorMessage(parsed) }, { status: 400 });
     }
 
-    const result = await wearFlower(me, parsed.data.item_id);
+    const result = await wearItem(me, parsed.data.item_id);
     if (result.outcome === "not_found") {
       return NextResponse.json({ error: "Item not found." }, { status: 404 });
     }
-    if (result.outcome === "not_flower") {
-      return NextResponse.json({ error: "Only a flower can go on your head." }, { status: 400 });
+    if (result.outcome === "not_wearable") {
+      return NextResponse.json(
+        { error: "Only a flower or a keepsake mushroom can go on your head." },
+        { status: 400 },
+      );
     }
-    presenceHub().setHat(me, isFlowerColor(result.hat.color) ? result.hat.color : null);
+    if (result.outcome === "pockets_full") {
+      return NextResponse.json(
+        { error: "Make room in your pockets for what you're wearing now." },
+        { status: 409 },
+      );
+    }
+    presenceHub().setHat(me, isPlantLook(result.hat.color) ? result.hat.color : null);
     return NextResponse.json({ message: "You're wearing it.", hat: toPocketItem(result.hat) });
   } catch (error) {
-    if (isUniqueConstraintError(error)) return pocketsChanged();
+    if (isItemRaceError(error)) return pocketsChanged();
     console.error("Wear hat error:", error);
     return NextResponse.json({ error: "Failed to put that on." }, { status: 500 });
   }
 }
 
-// DELETE: take the worn flower off, back into pockets.
+// DELETE: take the worn hat off, back into pockets.
 export async function DELETE() {
   try {
     const auth = await requireAuth();
@@ -84,7 +93,7 @@ export async function DELETE() {
     presenceHub().setHat(me, null);
     return NextResponse.json({ message: "Back in your pockets." });
   } catch (error) {
-    if (isUniqueConstraintError(error)) return pocketsChanged();
+    if (isItemRaceError(error)) return pocketsChanged();
     console.error("Take off hat error:", error);
     return NextResponse.json({ error: "Failed to take that off." }, { status: 500 });
   }

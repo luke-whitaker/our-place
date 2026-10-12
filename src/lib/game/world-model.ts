@@ -334,11 +334,19 @@ export const OBJECT_CATALOG: Record<string, ObjectDef> = {
   flower_blue: flowerDef("blue"),
   flower_purple: flowerDef("purple"),
   flower_pink: flowerDef("pink"),
+  // Keepsake Mushrooms, flower-sized and placed the same way, by
+  // ~/Desktop/pixel_art/tools/keepsake_mushroom.py.
+  keepsake_mushroom_ourplace: plantDef("keepsake_mushroom_ourplace"),
+  keepsake_mushroom_red: plantDef("keepsake_mushroom_red"),
 };
 
 function flowerDef(color: string): ObjectDef {
+  return plantDef(`flower_${color}`);
+}
+
+function plantDef(sprite: string): ObjectDef {
   return {
-    src: `/world/objects/flower_${color}.png`,
+    src: `/world/objects/${sprite}.png`,
     footprint: SINGLE,
     solid: false,
     tint: "brand",

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { apiFetch, userMessage } from "@/lib/api-client";
 import { worldAsset } from "@/lib/game/asset-url";
 import { PAL } from "@/lib/game/constants";
+import { itemIcon } from "@/lib/items";
+import { isKeepsakeLook, plantNoun } from "@/lib/game/plants";
 import OverlayPanel from "@/components/OverlayPanel";
 import OverlayActionButton from "@/components/OverlayActionButton";
 import type { PlantFixture } from "@/lib/game/types";
@@ -16,16 +18,27 @@ interface PlantPanelProps {
   onPicked: (message: string) => void;
 }
 
+const TITLES = { seed: "🌱 Your seed", flower: "🌼 Your flower", mushroom: "🍄 Your mushroom" };
+const LINES = {
+  seed: "Still growing. Dig it up and you'll get the seed back.",
+  flower: "It's in bloom. Pick it to carry it, give it, or wear it.",
+  mushroom: "A keepsake from a gathering. Pick it up to carry it, give it, or wear it.",
+};
+
 /**
- * <PlantPanel /> — a member's own seed or flower, with the one thing they can
- * do to it: pick it up. Asked rather than done on Enter, since a garden sits
+ * <PlantPanel /> — a member's own seed, flower, or keepsake mushroom, with the
+ * one thing they can do to it: pick it up. Asked rather than done on Enter, since a garden sits
  * where people walk and a stray press shouldn't uproot it.
  */
 export default function PlantPanel({ fixture, onClose, onPicked }: PlantPanelProps) {
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const bloomed = fixture.color !== null;
-  const icon = bloomed ? `/world/items/flower_${fixture.color}.png` : "/world/items/seed.png";
+  const look = fixture.color;
+  const noun = plantNoun(look);
+  const icon =
+    look === null
+      ? "/world/items/seed.png"
+      : itemIcon({ kind: isKeepsakeLook(look) ? "keepsake_mushroom" : "flower", color: look });
 
   async function pick() {
     setBusy(true);
@@ -41,7 +54,7 @@ export default function PlantPanel({ fixture, onClose, onPicked }: PlantPanelPro
   }
 
   return (
-    <OverlayPanel title={bloomed ? "🌼 Your flower" : "🌱 Your seed"} onClose={onClose}>
+    <OverlayPanel title={TITLES[noun]} onClose={onClose}>
       <div className="flex items-center gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element -- a tiny world-art icon, not a Next-optimized asset */}
         <img
@@ -54,15 +67,13 @@ export default function PlantPanel({ fixture, onClose, onPicked }: PlantPanelPro
           style={{ imageRendering: "pixelated" }}
         />
         <p className="text-sm" style={{ color: PAL.light }}>
-          {bloomed
-            ? "It's in bloom. Pick it to carry it, give it, or wear it."
-            : "Still growing. Dig it up and you'll get the seed back."}
+          {LINES[noun]}
         </p>
       </div>
       {error && <p className="text-sm text-red-400">{error}</p>}
       <div className="flex gap-2">
         <OverlayActionButton onClick={() => void pick()} disabled={busy}>
-          {bloomed ? "Pick it" : "Dig it up"}
+          {noun === "seed" ? "Dig it up" : noun === "mushroom" ? "Pick it up" : "Pick it"}
         </OverlayActionButton>
         <OverlayActionButton onClick={onClose} variant="secondary">
           Leave it

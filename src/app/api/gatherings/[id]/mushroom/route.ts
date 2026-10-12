@@ -4,7 +4,8 @@ import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
 import { getZodErrorMessage, plantMushroomSchema } from "@/lib/schemas";
 import { gatheringAccess } from "@/lib/gatherings";
-import { firstFreeSlot, isUniqueConstraintError } from "@/lib/pockets";
+import { firstFreeSlot, isItemRaceError, isUniqueConstraintError } from "@/lib/pockets";
+import { giveKeepsake } from "@/lib/keepsakes";
 import { plantingWorld } from "@/lib/event-mushroom-planting";
 import type { MushroomHome } from "@/lib/event-mushrooms";
 import { plantProblem } from "@/lib/game/event-mushroom";
@@ -86,7 +87,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     const problem = plantProblem(world, col, row);
     if (problem) return refuse(problem, 400);
 
-    await prisma.$transaction(async (tx) => {
+    const keepsake = await prisma.$transaction(async (tx) => {
       const taken = await tx.item.deleteMany({
         where: { id: inPockets.id, ownerId: me, location: "pocket" },
       });
@@ -99,14 +100,19 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       if (taken.count !== 1 || planted.count !== 1) {
         throw new MushroomConflict("The mushroom moved just then. Try again.");
       }
+      // The host's keepsake, once: replanting after a pick-up gives no more.
+      // The Event Mushroom just left their pockets, so there's always room.
+      return giveKeepsake(tx, id, me);
     });
 
+    const gift = keepsake.outcome === "given" ? " A keepsake mushroom is in your pockets." : "";
     return NextResponse.json({
-      message: "Planted. You can pick it up and move it until the gathering starts.",
+      message: `Planted.${gift} You can pick it up and move it until the gathering starts.`,
       mushroom: { world: worldId, col, row },
     });
   } catch (error) {
     if (error instanceof MushroomConflict) return refuse(error.message, 409);
+    if (isItemRaceError(error)) return refuse("Your pockets changed just then. Try again.", 409);
     console.error("Plant mushroom error:", error);
     return refuse("Failed to plant the mushroom.", 500);
   }

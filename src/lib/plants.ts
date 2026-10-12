@@ -6,7 +6,7 @@ import prisma from "@/lib/db";
 import { CAPITAL } from "@/lib/game/worlds/world-map";
 import { islandWorldId } from "@/lib/game/worlds/island";
 import { withEventMushrooms } from "@/lib/game/event-mushroom";
-import { isFlowerColor, placedFromWire, plantableWorld, withPlants } from "@/lib/game/plants";
+import { isPlantLook, placedFromWire, plantableWorld, withPlants } from "@/lib/game/plants";
 import { activeInWorld } from "@/lib/event-mushrooms";
 import { ownIslandWorld } from "@/lib/event-mushroom-planting";
 import type { IsoWorld } from "@/lib/game/world-model";
@@ -43,7 +43,7 @@ export function isBloomed(bloomsAt: Date | null, now: Date): boolean {
 
 /** A plant on the wire. A seed's color stays on the server until it blooms. */
 export function toPlantWire(row: PlantRow, viewerId: string, now: Date): PlantWire {
-  const color = isBloomed(row.bloomsAt, now) && isFlowerColor(row.color) ? row.color : null;
+  const color = isBloomed(row.bloomsAt, now) && isPlantLook(row.color) ? row.color : null;
   return {
     id: row.id,
     col: row.col,

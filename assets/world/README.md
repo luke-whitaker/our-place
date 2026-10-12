@@ -208,3 +208,15 @@ and that every door + shrine is reachable on foot from spawn.
 - `items/seed.png` (16x16): three seeds from one hand-placed 6x7 template.
 
 Upload them with `npm run world:upload` before the push that ships v0.22.0.
+
+## Keepsake Mushrooms (v0.28.0)
+
+`~/Desktop/pixel_art/tools/keepsake_mushroom.py OUT_DIR [PREVIEW_PNG]` writes, for `ourplace` and `red`:
+
+- `objects/keepsake_mushroom_<color>.png` (16x16): about half the Event Mushroom, standing no taller than a flower, anchored bottom-centre like one.
+- `items/keepsake_mushroom_<color>.png` (16x16): the Pockets icon, a little larger.
+- `objects/keepsake_hat_<color>.png` (12x9): cap and a stub of stem, drawn on a member's crown.
+
+Both colors are existing palettes, never new ones: `ourplace` shades with `shrine_mushroom.shade` (the app icon's rose cap, yellow rim and gills), `red` with `event_mushroom.shade` (toadstool red, white spots). Same ray march as both, so the outline stays one pixel. Checked in game on a snow island beside flowers and worn.
+
+Upload them with `npm run world:upload` before the push that ships v0.28.0.

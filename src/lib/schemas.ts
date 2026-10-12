@@ -391,7 +391,7 @@ export const plantSchema = z.object({
 
 /** POST /api/hat: wear a flower from pockets. */
 export const wearHatSchema = z.object({
-  item_id: z.uuid({ error: "Choose a flower from your pockets." }),
+  item_id: z.uuid({ error: "Choose a flower or keepsake from your pockets." }),
 });
 
 /** GET /api/gatherings/mushrooms?world= */

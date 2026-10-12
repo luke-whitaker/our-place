@@ -3,7 +3,7 @@
 // character art other members are drawn in. Plain TypeScript; use-presence.ts
 // gives it a React lifecycle, and the game loop calls `frame` once per frame.
 
-import type { FlowerColor } from "./plants";
+import type { PlantLook } from "./plants";
 import type { AvatarConfig, Emote, PresenceMoveBody } from "@/lib/types";
 import { apiFetch } from "@/lib/api-client";
 import { TICK_RATE } from "./constants";
@@ -86,7 +86,7 @@ export function startPresence(worldId: string, getState: () => IsoState | null):
   const roster: Roster = createRoster();
   const sprites = new Map<string, CharacterSprites>();
   const emotes = new Map<string, { kind: Emote; age: number }>();
-  const hats = new Map<string, FlowerColor>();
+  const hats = new Map<string, PlantLook>();
   let localEmote: { kind: Emote; startedAt: number } | null = null;
   let lastFrameAt: number | null = null;
 

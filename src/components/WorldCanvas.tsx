@@ -45,6 +45,7 @@ import { loadIsoSave, persistIsoSave, isValidIsoPosition } from "@/lib/game/iso-
 import { usePresence } from "@/lib/game/use-presence";
 import { useWorldMap } from "@/lib/game/use-world-map";
 import { useWorldPlants, useWornHat } from "@/lib/game/use-world-plants";
+import { useKeepsakeClaims } from "@/lib/game/use-keepsake-claims";
 import { withPlants } from "@/lib/game/plants";
 import { islandWorldId } from "@/lib/game/worlds/island";
 import type { MinimapDraw } from "@/components/WorldMinimap";
@@ -242,16 +243,18 @@ export default function WorldCanvas({
   const [planted, setPlanted] = useState<readonly PlantedMushroom[]>(NONE_PLANTED);
   const [arrival, setArrival] = useState<GatheringArrival | null>(null);
   const signedIn = !authLoading && !!user;
-  // A toast for anything fetched in the background that failed.
-  const toastError = useCallback((message: string) => {
+  // A toast over the world: a background fetch that failed, or a keepsake.
+  const toast = useCallback((message: string) => {
     const state = stateRef.current;
     if (state) showToast(state, message);
   }, []);
   // Seeds and flowers growing here, and the flower on your head: runtime
   // state like the mushrooms, refreshed after every change (see
   // use-world-plants.ts). Plants are never solid, so liveSolid ignores them.
-  const { plants, refresh: refreshPlants } = useWorldPlants(world.id, signedIn, toastError);
-  const { hat, refresh: refreshHat } = useWornHat(signedIn, toastError);
+  const { plants, refresh: refreshPlants } = useWorldPlants(world.id, signedIn, toast);
+  const { hat, refresh: refreshHat } = useWornHat(signedIn, toast);
+  // Coming near a gathering's Event Mushroom asks for its keepsake, once.
+  const noteKeepsakes = useKeepsakeClaims(planted, signedIn, toast);
   const hatRef = useRef(hat);
   useEffect(() => {
     hatRef.current = hat;
@@ -609,13 +612,15 @@ export default function WorldCanvas({
           accumulator -= TICK_RATE;
         }
         // The map: clear the fog around you (work only on a new tile) and
-        // repaint the minimap (only when something changed).
+        // repaint the minimap (only when something changed). Then any
+        // gathering keepsake now in reach (also only on a new tile).
+        const player = getLocalEntity(state);
         const map = worldMapRef.current;
         if (map) {
-          const player = getLocalEntity(state);
           map.sync.notePosition(player.col, player.row);
           minimapDrawRef.current?.(player, state.discovered);
         }
+        noteKeepsakes(player.col, player.row);
         // Touch devices render the open menu as DOM tiles (WorldMenu) instead
         // of the canvas rows below; mirror it into React state, but only on an
         // actual change, since this runs every tick.
@@ -650,7 +655,7 @@ export default function WorldCanvas({
 
     rafId = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafId);
-  }, [liveWorld, liveSolid, grass, isTouchDevice, presenceFrameFn]);
+  }, [liveWorld, liveSolid, grass, isTouchDevice, presenceFrameFn, noteKeepsakes]);
 
   // ── Keyboard focus ──
   // Drop whatever holds focus on every arrival (each place remounts this

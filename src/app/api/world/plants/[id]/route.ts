@@ -4,6 +4,8 @@ import { requireAuth } from "@/lib/auth";
 import { itemsLimiter } from "@/lib/rate-limit";
 import { addItems, isItemRaceError, toPocketItem } from "@/lib/pockets";
 import { isBloomed, plantById } from "@/lib/plants";
+import { isKeepsakeLook, isPlantLook } from "@/lib/game/plants";
+import type { ItemKind } from "@/lib/items";
 
 /** A write that lost a race inside its transaction: thrown to roll it back,
  * then answered with its message. */
@@ -16,6 +18,7 @@ function refuse(error: string, status: number): NextResponse {
 // DELETE: the planter picks up what they planted. An unbloomed seed comes back
 // as the seed. A flower comes back as a flower of its color and, if it grew
 // from a seed, a seed too: plucking ends the plant, so that seed comes once.
+// A keepsake mushroom comes back as itself, onto its color's stack.
 export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await requireAuth();
@@ -38,9 +41,10 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
     }
 
     const bloomed = isBloomed(plant.bloomsAt, new Date());
-    const returns: { kind: "seed" | "flower"; color: string | null }[] = bloomed
+    const keepsake = isPlantLook(plant.color) && isKeepsakeLook(plant.color);
+    const returns: { kind: ItemKind; color: string | null }[] = bloomed
       ? [
-          { kind: "flower", color: plant.color },
+          { kind: keepsake ? "keepsake_mushroom" : "flower", color: plant.color },
           ...(plant.yieldsSeed ? [{ kind: "seed" as const, color: null }] : []),
         ]
       : [{ kind: "seed", color: null }];
@@ -67,9 +71,11 @@ export async function DELETE(_request: Request, { params }: { params: Promise<{ 
 
     const message = !bloomed
       ? "You dug up the seed."
-      : plant.yieldsSeed
-        ? "You picked the flower, and found a seed."
-        : "You picked the flower.";
+      : keepsake
+        ? "You picked up the mushroom."
+        : plant.yieldsSeed
+          ? "You picked the flower, and found a seed."
+          : "You picked the flower.";
     return NextResponse.json({ message, items: items.map(toPocketItem) });
   } catch (error) {
     if (error instanceof PickConflict) return refuse(error.message, 409);

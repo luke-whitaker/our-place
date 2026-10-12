@@ -2,7 +2,7 @@
 // Worked out from the frame's own pixels, so it follows every facing, both
 // hair styles, and the bob of the walk cycle without a table of offsets.
 
-import type { FlowerColor } from "./plants";
+import { isKeepsakeLook, type PlantLook } from "./plants";
 
 /** How far the flower sinks into the hair, in world px, so it reads as worn
  * rather than balanced on top. */
@@ -69,7 +69,10 @@ export function frameCrown(frame: HTMLCanvasElement): { x: number; y: number } |
   return crown;
 }
 
-/** The hat sprite path for a color. */
-export function flowerHatPath(color: FlowerColor): string {
-  return `/world/objects/flower_hat_${color}.png`;
+/** The hat sprite path for a look: a flower's bloom, or a little Keepsake
+ * Mushroom. */
+export function hatPath(look: PlantLook): string {
+  return isKeepsakeLook(look)
+    ? `/world/objects/keepsake_hat_${look.slice("keepsake_".length)}.png`
+    : `/world/objects/flower_hat_${look}.png`;
 }

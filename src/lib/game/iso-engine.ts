@@ -44,7 +44,7 @@ import type { TintPreset } from "./terrain-tint";
 import { biomeAt } from "./biomes";
 import { drawsAsSand } from "./sand";
 import { frameCrown, HAT_SINK } from "./flower-hat";
-import type { FlowerColor } from "./plants";
+import { plantSprite, type PlantLook } from "./plants";
 
 // ── Tuning ──
 
@@ -729,7 +729,7 @@ export function fixtureSprite(fixture: WorldFixture, state: IsoState): string {
     return state.mailboxFlagUp ? `mailbox_${fixture.color}_flag` : `mailbox_${fixture.color}`;
   }
   if (fixture.kind === "plant") {
-    return fixture.color ? `flower_${fixture.color}` : "plant_mound";
+    return fixture.color ? plantSprite(fixture.color) : "plant_mound";
   }
   // Every Event Mushroom draws the same sprite, whoever planted it.
   return fixture.kind;
@@ -977,7 +977,7 @@ export interface IsoAssets {
    * tiles and the grass beside them (see sand.ts). */
   sand?: Partial<Record<TintPreset, HTMLImageElement>>;
   /** Flower hats by color, drawn on the crown of anyone wearing one. */
-  hats?: Partial<Record<FlowerColor, HTMLImageElement>>;
+  hats?: Partial<Record<PlantLook, HTMLImageElement>>;
 }
 
 export interface BiomeAssets {
@@ -1045,7 +1045,7 @@ export interface PresenceFrame {
   sprites: ReadonlyMap<string, CharacterSprites>;
   emotes: ReadonlyMap<string, { kind: Emote; age: number }>;
   /** The flower on each other member's head, by entity id. */
-  hats: ReadonlyMap<string, FlowerColor>;
+  hats: ReadonlyMap<string, PlantLook>;
 }
 
 /** How solid the local player looks to themselves in Ghost Mode. Nobody else
@@ -1067,7 +1067,7 @@ export function render(
     /** The local player is in Ghost Mode: draw them and their name see-through. */
     ghost?: boolean;
     /** The flower on the local player's head, or null. */
-    localHat?: FlowerColor | null;
+    localHat?: PlantLook | null;
   },
 ): void {
   const { worldScale, dpr, cssW, cssH } = frame.viewport;

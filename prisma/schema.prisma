@@ -78,6 +78,7 @@ model User {
   activityDays        ActivityDay[]
   hostedGatherings    Gathering[]       @relation("GatheringHost")
   gatheringInvites    GatheringInvite[]
+  gatheringKeepsakes  GatheringKeepsake[]
   worldDiscoveries    WorldDiscovery[]
   worldPlants         WorldPlant[]
   pollVotes           PollVote[]
@@ -348,8 +349,8 @@ model Item {
   // An invitation letter's gathering, so the letter can offer Accept and
   // Decline. The body never carries the address: letters can be handed on.
   gatheringId String?   @map("gathering_id")
-  // A flower's color (FLOWER_COLORS in src/lib/plants.ts); null for every
-  // other kind. A column rather than the body, so a note can never pass as
+  // A flower's or Keepsake Mushroom's look (PLANT_LOOKS in
+  // src/lib/game/plants.ts); null for every other kind. A column rather than the body, so a note can never pass as
   // a red flower.
   color       String?
   // How many share this slot. Only stackable kinds (ITEM_CATALOG) go above
@@ -511,6 +512,7 @@ model Gathering {
   host          User              @relation("GatheringHost", fields: [hostId], references: [id], onDelete: Cascade)
   community     Community?        @relation(fields: [communityId], references: [id], onDelete: Cascade)
   invites       GatheringInvite[]
+  keepsakes     GatheringKeepsake[]
   letters       Item[]
   notifications Notification[]
 
@@ -519,6 +521,28 @@ model Gathering {
   @@index([startsAt])
   @@index([mushroomWorld])
   @@map("gatherings")
+}
+
+// Who has taken a Keepsake Mushroom home from a world gathering, and in which
+// order: the host when they plant its Event Mushroom, then each guest the
+// first time they come near it. One per person per gathering. `color` is the
+// keepsake's ("ourplace" or "red"): the first is a coin flip and each after it
+// the other color from the one before (src/lib/keepsakes.ts).
+model GatheringKeepsake {
+  id          String   @id @default(uuid())
+  gatheringId String   @map("gathering_id")
+  userId      String   @map("user_id")
+  ordinal     Int
+  color       String
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  gathering Gathering @relation(fields: [gatheringId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([gatheringId, userId])
+  @@unique([gatheringId, ordinal])
+  @@index([userId])
+  @@map("gathering_keepsakes")
 }
 
 // One member's invitation to a gathering and their answer. The host has an

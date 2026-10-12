@@ -8,8 +8,8 @@ import type { BiomeAssets, IsoAssets } from "./iso-engine";
 import type { IsoWorld } from "./world-model";
 import { OBJECT_CATALOG } from "./world-model";
 import type { WorldFixture } from "./types";
-import { FLOWER_COLORS, type FlowerColor } from "./plants";
-import { flowerHatPath } from "./flower-hat";
+import { PLANT_LOOKS, plantSprite, type PlantLook } from "./plants";
+import { hatPath } from "./flower-hat";
 import {
   loadCharacterSheet,
   characterSheetPath,
@@ -35,11 +35,7 @@ function fixtureSpriteKinds(fixture: WorldFixture): readonly string[] {
 }
 
 /** Sprites for things placed at runtime, loaded with every world. */
-const RUNTIME_KINDS = [
-  "event_mushroom",
-  "plant_mound",
-  ...FLOWER_COLORS.map((color) => `flower_${color}`),
-];
+const RUNTIME_KINDS = ["event_mushroom", "plant_mound", ...PLANT_LOOKS.map(plantSprite)];
 
 export async function loadWorldAssets(
   world: IsoWorld,
@@ -154,14 +150,13 @@ function tintSprite(
   return { ...sprite, img: tintImage(sprite.img, tint, target) };
 }
 
-/** One flower hat per color, untinted: a worn flower keeps its color anywhere. */
-async function loadHats(): Promise<Partial<Record<FlowerColor, HTMLImageElement>>> {
-  const images = await Promise.all(
-    FLOWER_COLORS.map((color) => loadImage(worldAsset(flowerHatPath(color)))),
-  );
-  const hats: Partial<Record<FlowerColor, HTMLImageElement>> = {};
-  FLOWER_COLORS.forEach((color, i) => {
-    hats[color] = images[i];
+/** One hat per look, untinted: a worn flower or mushroom keeps its colors
+ * anywhere. */
+async function loadHats(): Promise<Partial<Record<PlantLook, HTMLImageElement>>> {
+  const images = await Promise.all(PLANT_LOOKS.map((look) => loadImage(worldAsset(hatPath(look)))));
+  const hats: Partial<Record<PlantLook, HTMLImageElement>> = {};
+  PLANT_LOOKS.forEach((look, i) => {
+    hats[look] = images[i];
   });
   return hats;
 }

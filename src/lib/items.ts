@@ -21,7 +21,8 @@ export const NOTEBOOK_PAGES = 10;
 /** The longest a single draft or torn-out Note's body may be. */
 export const NOTE_MAX_CHARS = 1000;
 
-export type ItemKind = "notebook" | "note" | "event_mushroom" | "seed" | "flower";
+export type ItemKind =
+  "notebook" | "note" | "event_mushroom" | "seed" | "flower" | "keepsake_mushroom";
 
 /** Where an item currently sits. Stored as a plain string validated in code,
  * like `kind`, so a new location needs no migration. */
@@ -48,8 +49,13 @@ export const ITEM_CATALOG: Record<
     discardable: boolean;
     mailable: boolean;
     deskable: boolean;
-    /** Many share one slot, counted by `items.quantity` (at most MAX_STACK). */
+    /** Many share one slot, counted by `items.quantity` (at most MAX_STACK).
+     * A kind with a color stacks per color. */
     stackable: boolean;
+    /** Can go on your head (the `head` location). */
+    wearable: boolean;
+    /** Can go in the ground from pockets (POST /api/world/plants). */
+    plantable: boolean;
   }
 > = {
   notebook: {
@@ -59,6 +65,8 @@ export const ITEM_CATALOG: Record<
     mailable: false,
     deskable: true,
     stackable: false,
+    wearable: false,
+    plantable: false,
   },
   note: {
     name: "Note",
@@ -67,6 +75,8 @@ export const ITEM_CATALOG: Record<
     mailable: true,
     deskable: true,
     stackable: false,
+    wearable: false,
+    plantable: false,
   },
   // A world gathering's mushroom (its `gathering_id` says which). It arrives in
   // the host's mailbox and is planted from pockets. It can't go in the desk,
@@ -79,6 +89,8 @@ export const ITEM_CATALOG: Record<
     mailable: false,
     deskable: false,
     stackable: false,
+    wearable: false,
+    plantable: false,
   },
   // Gnomette gives the first five; after that, a plant grown from a seed gives
   // one back the first time its flower is picked (src/lib/plants.ts).
@@ -89,6 +101,8 @@ export const ITEM_CATALOG: Record<
     mailable: true,
     deskable: true,
     stackable: true,
+    wearable: false,
+    plantable: true,
   },
   // A flower carries its color on the item (`items.color`); its icon is the
   // one for that color (itemIcon below), this one only a fallback.
@@ -99,6 +113,22 @@ export const ITEM_CATALOG: Record<
     mailable: true,
     deskable: true,
     stackable: false,
+    wearable: true,
+    plantable: true,
+  },
+  // A gathering's keepsake: the host gets one on planting its Event Mushroom,
+  // each guest on first coming near it (src/lib/keepsakes.ts). Its look
+  // (`items.color`, keepsake_ourplace or keepsake_red) picks the icon. It
+  // stacks per color, and wears and plants like a flower.
+  keepsake_mushroom: {
+    name: "Keepsake Mushroom",
+    icon: "/world/items/keepsake_mushroom_red.png",
+    discardable: true,
+    mailable: true,
+    deskable: true,
+    stackable: true,
+    wearable: true,
+    plantable: true,
   },
 };
 
@@ -106,8 +136,14 @@ export const ITEM_CATALOG: Record<
  * `items_quantity_range` check constraint. */
 export const MAX_STACK = 99;
 
+/** A Keepsake Mushroom's color as people say it. */
+const KEEPSAKE_NAMES: Record<string, string> = {
+  keepsake_ourplace: "Our Place",
+  keepsake_red: "Red",
+};
+
 /** What to call an item: "Pink flower" for a flower, "5 seeds" for a stack,
- * else its kind's name. */
+ * "3 Red keepsake mushrooms" for a colored stack, else its kind's name. */
 export function itemName(item: {
   kind: ItemKind;
   color?: string | null;
@@ -116,8 +152,14 @@ export function itemName(item: {
   if (item.kind === "flower" && item.color) {
     return `${item.color[0].toUpperCase()}${item.color.slice(1)} flower`;
   }
-  const name = ITEM_CATALOG[item.kind].name;
   const quantity = item.quantity ?? 1;
+  if (item.kind === "keepsake_mushroom") {
+    const color = KEEPSAKE_NAMES[item.color ?? ""] ?? "";
+    const plural = quantity > 1 ? "s" : "";
+    const name = `${color} keepsake mushroom${plural}`.trim();
+    return quantity > 1 ? `${quantity} ${name}` : `${name[0].toUpperCase()}${name.slice(1)}`;
+  }
+  const name = ITEM_CATALOG[item.kind].name;
   return quantity > 1 ? `${quantity} ${name.toLowerCase()}s` : name;
 }
 
@@ -153,9 +195,13 @@ export function planStackAdd(
   return left === 0 ? { topUps, newStacks } : null;
 }
 
-/** The icon to show for one item: a flower's own color, else its kind's. */
+/** The icon to show for one item: a flower's or keepsake's own color, else
+ * its kind's. */
 export function itemIcon(item: { kind: ItemKind; color?: string | null }): string {
   if (item.kind === "flower" && item.color) return `/world/items/flower_${item.color}.png`;
+  if (item.kind === "keepsake_mushroom" && item.color) {
+    return `/world/items/keepsake_mushroom_${item.color.slice("keepsake_".length)}.png`;
+  }
   return ITEM_CATALOG[item.kind].icon;
 }
 

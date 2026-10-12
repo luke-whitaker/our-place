@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { crownFromAlpha, flowerHatPath } from "./flower-hat";
+import { crownFromAlpha, hatPath } from "./flower-hat";
 
 /** An alpha grid from rows of "." (clear) and "#" (opaque). */
 function alphaOf(rows: string[]): { alpha: number[]; w: number; h: number } {
@@ -34,8 +34,13 @@ describe("crownFromAlpha", () => {
   });
 });
 
-describe("flowerHatPath", () => {
-  it("names the hat art for a color", () => {
-    expect(flowerHatPath("pink")).toBe("/world/objects/flower_hat_pink.png");
+describe("hatPath", () => {
+  it("names the hat art for a flower's color", () => {
+    expect(hatPath("pink")).toBe("/world/objects/flower_hat_pink.png");
+  });
+
+  it("names the hat art for a Keepsake Mushroom", () => {
+    expect(hatPath("keepsake_ourplace")).toBe("/world/objects/keepsake_hat_ourplace.png");
+    expect(hatPath("keepsake_red")).toBe("/world/objects/keepsake_hat_red.png");
   });
 });

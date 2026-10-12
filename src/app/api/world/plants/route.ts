@@ -6,7 +6,8 @@ import { getZodErrorMessage, mushroomWorldSchema, plantSchema } from "@/lib/sche
 import { checkWorldAccess, parseWorldId } from "@/lib/presence-access";
 import { isUniqueConstraintError, takeOne } from "@/lib/pockets";
 import { plantingWorld, plantsInWorld, toPlantWire } from "@/lib/plants";
-import { chooseBloom, isFlowerColor, plantCap, plotProblem } from "@/lib/game/plants";
+import { ITEM_CATALOG, isItemKind } from "@/lib/items";
+import { chooseBloom, isPlantLook, plantCap, plotProblem } from "@/lib/game/plants";
 
 /** A write that lost a race inside its transaction: thrown to roll it back,
  * then answered with its message and status. */
@@ -46,7 +47,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-// POST: plant a seed, or place a flower, from the caller's pockets on a tile in
+// POST: plant a seed, or place a flower or keepsake, from the caller's pockets on a tile in
 // the shared world or their own island. The item moves into the ground: it
 // leaves pockets in the same transaction that plants it.
 export async function POST(request: Request) {
@@ -74,8 +75,8 @@ export async function POST(request: Request) {
     if (!item || item.ownerId !== me || item.location !== "pocket") {
       return refuse("Item not found.", 404);
     }
-    if (item.kind !== "seed" && item.kind !== "flower") {
-      return refuse("Only seeds and flowers go in the ground.", 400);
+    if (!isItemKind(item.kind) || !ITEM_CATALOG[item.kind].plantable) {
+      return refuse("Only seeds, flowers, and keepsake mushrooms go in the ground.", 400);
     }
 
     const world = await plantingWorld(worldId, me);
@@ -88,7 +89,8 @@ export async function POST(request: Request) {
       item.kind === "seed"
         ? { ...chooseBloom(now), yieldsSeed: true }
         : {
-            color: isFlowerColor(item.color) ? item.color : "red",
+            // A flower or keepsake goes in already grown, in its own look.
+            color: isPlantLook(item.color) ? item.color : "red",
             bloomsAt: null,
             yieldsSeed: false,
           };

@@ -16,7 +16,7 @@ import {
   type ItemLocation,
 } from "@/lib/items";
 import type { PocketItem } from "@/lib/types/items";
-import { isFlowerColor } from "@/lib/game/plants";
+import { isPlantLook } from "@/lib/game/plants";
 
 /** The one shared select every route uses to read an item row, so the wire
  * shape (via toPocketItem) can't drift between routes. */
@@ -113,9 +113,11 @@ export async function addItems(
   if (!ITEM_CATALOG[kind].stackable && count !== 1) {
     throw new Error(`addItems: ${kind} doesn't stack, so it can't come ${count} at a time`);
   }
+  // A colored kind stacks per color: three red keepsakes never join an Our
+  // Place one. Seeds have no color, so theirs is null on every row.
   const stacks = ITEM_CATALOG[kind].stackable
     ? await tx.item.findMany({
-        where: { ownerId, location, kind, quantity: { lt: MAX_STACK } },
+        where: { ownerId, location, kind, color: extra.color ?? null, quantity: { lt: MAX_STACK } },
         select: { id: true, quantity: true },
         orderBy: { slot: "asc" },
       })
@@ -197,11 +199,17 @@ export async function moveOwnItem(
   return prisma.$transaction(async (tx): Promise<MoveOutcome> => {
     const source = await tx.item.findFirst({
       where: { id: itemId, ownerId, location: from },
-      select: { kind: true, quantity: true },
+      select: { kind: true, quantity: true, color: true },
     });
     if (!source) return { outcome: "gone" };
     if (isItemKind(source.kind) && ITEM_CATALOG[source.kind].stackable) {
-      return moveStack(tx, ownerId, itemId, { from, to, slot }, source.kind, source.quantity);
+      return moveStack(
+        tx,
+        ownerId,
+        itemId,
+        { from, to, slot },
+        { kind: source.kind, quantity: source.quantity, color: source.color },
+      );
     }
 
     let target: number | null;
@@ -239,11 +247,10 @@ async function moveStack(
   ownerId: string,
   itemId: string,
   { from, to, slot }: { from: ItemLocation; to: ItemLocation; slot?: number },
-  kind: ItemKind,
-  quantity: number,
+  { kind, quantity, color }: { kind: ItemKind; quantity: number; color: string | null },
 ): Promise<MoveOutcome> {
   const stacks = await tx.item.findMany({
-    where: { ownerId, location: to, kind, quantity: { lt: MAX_STACK } },
+    where: { ownerId, location: to, kind, color, quantity: { lt: MAX_STACK } },
     select: { id: true, quantity: true },
     orderBy: { slot: "asc" },
   });
@@ -297,7 +304,7 @@ export function toPocketItem(row: ItemRow): PocketItem {
     from: row.from ? { username: row.from.username, display_name: row.from.displayName } : null,
     placed_at: row.placedAt ? row.placedAt.toISOString() : null,
     gathering_id: row.gatheringId,
-    color: isFlowerColor(row.color) ? row.color : null,
+    color: isPlantLook(row.color) ? row.color : null,
     quantity: row.quantity,
   };
 }

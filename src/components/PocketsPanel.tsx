@@ -175,7 +175,7 @@ export default function PocketsPanel({
           {selected.kind === "event_mushroom" && (
             <MushroomDetails item={selected} plant={plant} onPlant={onPlant} />
           )}
-          {(selected.kind === "seed" || selected.kind === "flower") && (
+          {ITEM_CATALOG[selected.kind].plantable && (
             <GardenActions
               item={selected}
               plant={plant}
@@ -211,7 +211,7 @@ export default function PocketsPanel({
   );
 }
 
-/** A seed's Plant here, or a flower's Place here and Wear, with the reason
+/** A seed's Plant here, or a flower's or keepsake's Place here and Wear, with the reason
  * the tile in front of the player won't take it when it won't. */
 function GardenActions({
   item,
@@ -243,7 +243,7 @@ function GardenActions({
             {item.kind === "seed" ? "Plant here" : "Place here"}
           </OverlayActionButton>
         )}
-        {item.kind === "flower" && (
+        {ITEM_CATALOG[item.kind].wearable && (
           <OverlayActionButton onClick={() => onWear(item)}>Wear</OverlayActionButton>
         )}
       </div>

@@ -1,6 +1,6 @@
 // Seeds and flowers placed in a world: the API's snake_case wire shapes.
 
-import type { FlowerColor } from "@/lib/game/plants";
+import type { PlantLook } from "@/lib/game/plants";
 import type { PocketItem } from "./items";
 
 /** One seed or flower standing in a world. `color` is null until a seed
@@ -11,7 +11,7 @@ export interface PlantWire {
   row: number;
   owner: { username: string; display_name: string };
   mine: boolean;
-  color: FlowerColor | null;
+  color: PlantLook | null;
 }
 
 /** GET /api/world/plants?world= */

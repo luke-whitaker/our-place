@@ -336,7 +336,7 @@ async function world(userId: string, truncated: string[], now: Date) {
         world: p.worldId,
         col: p.col,
         row: p.row,
-        state: bloomed ? "flower" : "seed",
+        state: !bloomed ? "seed" : p.color.startsWith("keepsake_") ? "keepsake_mushroom" : "flower",
         color: bloomed ? p.color : null,
         planted_at: iso(p.plantedAt),
       };

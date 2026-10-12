@@ -211,6 +211,7 @@ export async function deleteAccount(
       await tx.notebookPage.deleteMany({ where: { ownerId: userId } });
       await tx.outfit.deleteMany({ where: { ownerId: userId } });
       await tx.npcGift.deleteMany({ where: { userId } });
+      await tx.gatheringKeepsake.deleteMany({ where: { userId } });
       await tx.activityDay.deleteMany({ where: { userId } });
       await tx.worldDiscovery.deleteMany({ where: { userId } });
       await tx.worldPlant.deleteMany({ where: { ownerId: userId } });

@@ -16,7 +16,7 @@ import {
   type MenuEntry,
 } from "@/lib/game/iso-engine";
 import { frontTile, plantProblem } from "@/lib/game/event-mushroom";
-import { plantableWorld, plotProblem } from "@/lib/game/plants";
+import { plantNoun, plantableWorld, plotProblem } from "@/lib/game/plants";
 import type { IsoWorld } from "@/lib/game/world-model";
 import type { InputManager } from "@/lib/game/input";
 import type { NpcId } from "@/lib/npcs";
@@ -460,10 +460,12 @@ export default function WorldOverlays({
           // No request: whose it is came with the plant itself.
           <DialogueBox
             speaker={null}
-            text={`${overlay.fixture.ownerName} planted this ${overlay.fixture.color ? "flower" : "seed"}.`}
+            text={`${overlay.fixture.ownerName} planted this ${plantNoun(overlay.fixture.color)}.`}
             italic
             hasMore={false}
-            ariaLabel={overlay.fixture.color ? "A flower" : "A planted seed"}
+            ariaLabel={
+              overlay.fixture.color ? `A ${plantNoun(overlay.fixture.color)}` : "A planted seed"
+            }
             onAdvance={closeToWorld}
           />
         ))}

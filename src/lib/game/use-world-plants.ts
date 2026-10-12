@@ -7,7 +7,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { apiFetch } from "@/lib/api-client";
-import { placedFromWire, isFlowerColor, type FlowerColor, type PlacedPlant } from "./plants";
+import { placedFromWire, isPlantLook, type PlantLook, type PlacedPlant } from "./plants";
 import type { PlantsInWorld, WornHat } from "@/lib/types";
 
 /** Nothing growing; shared so an empty list keeps one identity. */
@@ -60,13 +60,13 @@ export function useWorldPlants(
 export function useWornHat(
   enabled: boolean,
   onError: (message: string) => void,
-): { hat: FlowerColor | null; refresh: () => void } {
-  const [hat, setHat] = useState<FlowerColor | null>(null);
+): { hat: PlantLook | null; refresh: () => void } {
+  const [hat, setHat] = useState<PlantLook | null>(null);
 
   const load = useCallback(
     () =>
       apiFetch<WornHat>("/api/hat").then((data) =>
-        isFlowerColor(data.hat?.color) ? data.hat.color : null,
+        isPlantLook(data.hat?.color) ? data.hat.color : null,
       ),
     [],
   );

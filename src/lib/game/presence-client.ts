@@ -2,7 +2,7 @@
 // members, and sending our own position. See src/lib/types/presence.ts for the
 // contract. Nothing here touches the engine; use-presence.ts wires it in.
 
-import { isFlowerColor } from "./plants";
+import { isPlantLook } from "./plants";
 import { z } from "zod";
 import { EMOTES, PRESENCE_DIRS } from "@/lib/types";
 import type { PresenceMoveBody, PresencePlayer } from "@/lib/types";
@@ -37,7 +37,7 @@ function toPlayer(raw: z.infer<typeof playerSchema>): PresencePlayer {
   return {
     ...raw,
     avatar: isAvatarConfig(raw.avatar) ? raw.avatar : null,
-    hat: isFlowerColor(raw.hat) ? raw.hat : null,
+    hat: isPlantLook(raw.hat) ? raw.hat : null,
   };
 }
 

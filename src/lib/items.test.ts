@@ -4,11 +4,18 @@ import { dropOne, upsertItem } from "@/components/ItemSlotGrid";
 import type { PocketItem } from "@/lib/types";
 
 describe("ITEM_CATALOG stacking", () => {
-  it("stacks seeds and nothing else for now", () => {
+  it("stacks seeds and keepsake mushrooms and nothing else", () => {
     const stackable = Object.entries(ITEM_CATALOG)
       .filter(([, entry]) => entry.stackable)
       .map(([kind]) => kind);
-    expect(stackable).toEqual(["seed"]);
+    expect(stackable).toEqual(["seed", "keepsake_mushroom"]);
+  });
+
+  it("lets flowers and keepsake mushrooms be worn", () => {
+    const wearable = Object.entries(ITEM_CATALOG)
+      .filter(([, entry]) => entry.wearable)
+      .map(([kind]) => kind);
+    expect(wearable).toEqual(["flower", "keepsake_mushroom"]);
   });
 });
 
@@ -18,6 +25,15 @@ describe("itemName", () => {
     expect(itemName({ kind: "seed", quantity: 1 })).toBe("Seed");
     expect(itemName({ kind: "seed" })).toBe("Seed");
     expect(itemName({ kind: "flower", color: "pink", quantity: 1 })).toBe("Pink flower");
+  });
+
+  it("names a keepsake mushroom by its color", () => {
+    expect(itemName({ kind: "keepsake_mushroom", color: "keepsake_red", quantity: 1 })).toBe(
+      "Red keepsake mushroom",
+    );
+    expect(itemName({ kind: "keepsake_mushroom", color: "keepsake_ourplace", quantity: 3 })).toBe(
+      "3 Our Place keepsake mushrooms",
+    );
   });
 });
 

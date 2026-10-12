@@ -16,6 +16,45 @@ export function isFlowerColor(value: unknown): value is FlowerColor {
   return typeof value === "string" && (FLOWER_COLORS as readonly string[]).includes(value);
 }
 
+/** A Keepsake Mushroom's two colors: the Our Place logo's and the Event
+ * Mushroom's. */
+export const KEEPSAKE_COLORS = ["ourplace", "red"] as const;
+export type KeepsakeColor = (typeof KEEPSAKE_COLORS)[number];
+export type KeepsakeLook = `keepsake_${KeepsakeColor}`;
+
+/** What a worn or placed thing looks like: a flower's color, or a Keepsake
+ * Mushroom's as `keepsake_<color>`. One vocabulary for `items.color`,
+ * `world_plants.color`, and a hat, so wearing and placing never ask which
+ * kind it is. */
+export type PlantLook = FlowerColor | KeepsakeLook;
+
+export const PLANT_LOOKS: readonly PlantLook[] = [
+  ...FLOWER_COLORS,
+  ...KEEPSAKE_COLORS.map((color): KeepsakeLook => `keepsake_${color}`),
+];
+
+export function isPlantLook(value: unknown): value is PlantLook {
+  return typeof value === "string" && (PLANT_LOOKS as readonly string[]).includes(value);
+}
+
+export function isKeepsakeLook(look: PlantLook): look is KeepsakeLook {
+  return look.startsWith("keepsake_");
+}
+
+/** What a placed plant is called: a seed until it blooms, then a flower or a
+ * mushroom. */
+export function plantNoun(look: PlantLook | null): "seed" | "flower" | "mushroom" {
+  if (look === null) return "seed";
+  return isKeepsakeLook(look) ? "mushroom" : "flower";
+}
+
+/** The OBJECT_CATALOG sprite for a placed look. */
+export function plantSprite(look: PlantLook): string {
+  return isKeepsakeLook(look)
+    ? `keepsake_mushroom_${look.slice("keepsake_".length)}`
+    : `flower_${look}`;
+}
+
 /** How many seeds and flowers one member may have standing in the shared
  * Capital at once, so the commons never fills up. */
 export const CAPITAL_PLANT_CAP = 10;
@@ -48,7 +87,7 @@ export function plantCap(worldId: string): number {
   return worldId === "capital" ? CAPITAL_PLANT_CAP : ISLAND_PLANT_CAP;
 }
 
-/** A placed seed or flower as the world needs it. `color` is null for a seed
+/** A placed seed, flower, or keepsake mushroom as the world needs it. `color` is null for a seed
  * that hasn't bloomed: the server never sends its color before then. */
 export interface PlacedPlant {
   id: string;
@@ -58,7 +97,7 @@ export interface PlacedPlant {
   owner: string;
   ownerName: string;
   mine: boolean;
-  color: FlowerColor | null;
+  color: PlantLook | null;
 }
 
 export function placedFromWire(p: PlantWire): PlacedPlant {
@@ -76,14 +115,12 @@ export function placedFromWire(p: PlantWire): PlacedPlant {
 const FIXTURE_PREFIX = "plant-";
 
 export function plantFixture(p: PlacedPlant): PlantFixture {
-  const bloomed = p.color !== null;
+  const noun = plantNoun(p.color);
   const label = p.mine
-    ? bloomed
-      ? "Pick the flower"
-      : "Dig up the seed"
-    : bloomed
-      ? "Look at the flower"
-      : "Look at the mound";
+    ? { seed: "Dig up the seed", flower: "Pick the flower", mushroom: "Pick up the mushroom" }[noun]
+    : noun === "seed"
+      ? "Look at the mound"
+      : `Look at the ${noun}`;
   return {
     id: `${FIXTURE_PREFIX}${p.id}`,
     kind: "plant",

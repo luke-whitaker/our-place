@@ -88,12 +88,19 @@ async function pickUp(as: AuthPayload, id: string) {
   return { status: res.status, data: await res.json() };
 }
 
-/** Move the host's mushroom from their mailbox into their pockets, as taking
- * it from the mailbox would. */
+/** Move the host's mushroom from their mailbox into their lowest free pocket,
+ * as taking it from the mailbox would. An earlier planting's keepsake may
+ * already hold slot 0. */
 async function pocketMushroom(hostId: string, id: string) {
+  const taken = await prisma.item.findMany({
+    where: { ownerId: hostId, location: "pocket" },
+    select: { slot: true },
+  });
+  const used = new Set(taken.map((t) => t.slot));
+  const slot = Array.from({ length: POCKET_SLOTS }, (_, i) => i).find((i) => !used.has(i));
   await prisma.item.updateMany({
     where: { ownerId: hostId, gatheringId: id, kind: "event_mushroom" },
-    data: { location: "pocket", slot: 0, placedAt: null },
+    data: { location: "pocket", slot, placedAt: null },
   });
 }
 
@@ -127,9 +134,16 @@ async function mushroomItems(ownerId: string) {
   });
 }
 
+/** Fill the first `slots` slots of a location with notes, around anything
+ * already there (a host's keepsake, say). */
 async function fill(ownerId: string, location: "mailbox" | "pocket", slots: number) {
+  const taken = await prisma.item.findMany({
+    where: { ownerId, location },
+    select: { slot: true },
+  });
+  const used = new Set(taken.map((t) => t.slot));
   for (let slot = 0; slot < slots; slot++) {
-    await createTestItem({ ownerId, kind: "note", location, slot, body: "x" });
+    if (!used.has(slot)) await createTestItem({ ownerId, kind: "note", location, slot, body: "x" });
   }
 }
 
@@ -264,7 +278,8 @@ describe("picking up", () => {
     const id = await hostAndPlant(me);
     const lifted = await pickUp(me, id);
     expect(lifted.status).toBe(200);
-    expect(await mushroomItems(me.userId)).toEqual([{ location: "pocket", slot: 0 }]);
+    // Slot 0 holds the keepsake planting gave the host.
+    expect(await mushroomItems(me.userId)).toEqual([{ location: "pocket", slot: 1 }]);
     expect((await prisma.gathering.findUniqueOrThrow({ where: { id } })).plantedAt).toBeNull();
     expect((await plant(me, id, "capital")).status).toBe(200);
   });

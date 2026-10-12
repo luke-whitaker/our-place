@@ -3,7 +3,7 @@
 // top-down engine in the iso migration — the iso world model lives in
 // world-model.ts and its runtime state in iso-engine.ts.
 
-import type { FlowerColor } from "./plants";
+import type { PlantLook } from "./plants";
 import type { NpcId } from "@/lib/npcs";
 import type { Dir8 } from "./character-sheet";
 import type { MailboxColor } from "./mailbox-colors";
@@ -101,7 +101,7 @@ export interface PlantFixture extends FixtureBase {
   plantId: string;
   ownerName: string;
   mine: boolean;
-  color: FlowerColor | null;
+  color: PlantLook | null;
 }
 
 export type WorldFixture =
