@@ -11,6 +11,7 @@ import {
   isVideoType,
   extensionForType,
 } from "@/lib/media-utils";
+import { ImageMetadataError, stripImageMetadata } from "@/lib/image-metadata";
 import { StorageConfigError, StorageUploadError, uploadToStorage } from "@/lib/storage";
 
 export async function POST(request: NextRequest) {
@@ -66,17 +67,26 @@ export async function POST(request: NextRequest) {
     const subDir = isImage ? "images" : "videos";
     const key = `${subDir}/${uuidv4()}.${ext}`;
 
-    const arrayBuffer = await file.arrayBuffer();
-    const url = await uploadToStorage(key, arrayBuffer, mimeType);
+    // Photos lose their location and camera details before they reach a
+    // public address; videos are stored as sent (see the privacy policy).
+    const original = new Uint8Array(await file.arrayBuffer());
+    const body = isImage ? stripImageMetadata(original, mimeType) : original;
+    const url = await uploadToStorage(key, body, mimeType);
 
     return NextResponse.json({
       url,
       filename: file.name,
       media_type: isImage ? "image" : "video",
-      file_size: file.size,
+      file_size: body.byteLength,
       mime_type: mimeType,
     });
   } catch (error) {
+    if (error instanceof ImageMetadataError) {
+      return NextResponse.json(
+        { error: `${error.message} Try saving it again, or choose another photo.` },
+        { status: 400 },
+      );
+    }
     console.error("Upload error:", error);
 
     // Say which half broke. A single opaque 500 for both a missing env var and

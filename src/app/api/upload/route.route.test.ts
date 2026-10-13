@@ -14,14 +14,30 @@ vi.mock("@/lib/storage", async (importOriginal) => ({
 const mockGetAuthUser = vi.mocked(getAuthUser);
 const mockUpload = vi.mocked(uploadToStorage);
 
+/** Bytes per type: the smallest file each format reader accepts, and anything for the rest. */
+const FILES: Record<string, Buffer> = {
+  // SOI, an Exif block naming a location, then the image data.
+  "image/jpeg": Buffer.concat([
+    Buffer.from([0xff, 0xd8, 0xff, 0xe1, 0x00, 0x13]),
+    Buffer.from("Exif\0\0GPS 41.58 N", "latin1"),
+    Buffer.from([0xff, 0xda, 0x00, 0x04, 0x01, 0x02, 0xff, 0xd9]),
+  ]),
+  "image/png": Buffer.from([
+    0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 0, 0, 0, 0, 0x49, 0x45, 0x4e, 0x44, 0, 0, 0, 0,
+  ]),
+};
+
 /** A multipart upload written by hand, so the filename reaches the route exactly as sent. */
-function uploadRequest(filename: string, type: string): NextRequest {
-  const body =
-    "--B\r\n" +
-    `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
-    `Content-Type: ${type}\r\n\r\n` +
-    "not really an image\r\n" +
-    "--B--\r\n";
+function uploadRequest(filename: string, type: string, file?: Buffer): NextRequest {
+  const body = Buffer.concat([
+    Buffer.from(
+      "--B\r\n" +
+        `Content-Disposition: form-data; name="file"; filename="${filename}"\r\n` +
+        `Content-Type: ${type}\r\n\r\n`,
+    ),
+    file ?? FILES[type] ?? Buffer.from("a video, as far as the route cares"),
+    Buffer.from("\r\n--B--\r\n"),
+  ]);
   return new NextRequest("http://localhost/api/upload", {
     method: "POST",
     body,
@@ -61,6 +77,20 @@ describe("POST /api/upload", () => {
 
   it("refuses a type we don't accept without uploading anything", async () => {
     const res = await POST(uploadRequest("page.svg", "image/svg+xml"));
+    expect(res.status).toBe(400);
+    expect(mockUpload).not.toHaveBeenCalled();
+  });
+
+  it("stores a photo without its location", async () => {
+    const res = await POST(uploadRequest("photo.jpg", "image/jpeg"));
+    expect(res.status).toBe(200);
+    const stored = Buffer.from(mockUpload.mock.calls[0][1] as Uint8Array);
+    expect(stored.includes("GPS")).toBe(false);
+    expect(stored.subarray(0, 2)).toEqual(Buffer.from([0xff, 0xd8]));
+  });
+
+  it("refuses a photo that isn't what its type claims, without uploading", async () => {
+    const res = await POST(uploadRequest("photo.jpg", "image/jpeg", Buffer.from("not a photo")));
     expect(res.status).toBe(400);
     expect(mockUpload).not.toHaveBeenCalled();
   });

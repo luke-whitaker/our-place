@@ -151,3 +151,5 @@ A poll post (`post_type: "poll"`) is created with its `polls` row and options in
 ## Security conventions already in place
 
 CSRF via `sameSite: "strict"`; per-request nonce CSP in `src/proxy.ts`, with pages rendered dynamically so the nonce applies; `X-Forwarded-For` read from the right, `TRUSTED_PROXY_HOPS` deep; HSTS and the other security headers in `next.config.ts`; Zod on every body; in-memory rate limiting (single instance; Redis only if we ever scale out).
+
+Uploaded photos pass through `stripImageMetadata` (`src/lib/image-metadata.ts`) before R2: lossless, it drops Exif, XMP, IPTC, and text blocks from JPEG, PNG, and WebP, keeps a JPEG's orientation as a one-tag Exif block, and refuses a file whose bytes don't match its type (400). GIFs pass unchanged; videos are not stripped yet. The privacy policy (`/privacy`) states both, so change it with the code.

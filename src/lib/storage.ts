@@ -100,7 +100,7 @@ const SAFE_KEY = /^[a-z0-9_-]+(\/[a-z0-9_-]+)*\.[a-z0-9]+$/i;
  */
 export async function uploadToStorage(
   key: string,
-  body: ArrayBuffer,
+  body: ArrayBuffer | Uint8Array<ArrayBuffer>,
   contentType: string,
 ): Promise<string> {
   // Callers build keys from trusted parts, so a bad one is a bug: refuse it
