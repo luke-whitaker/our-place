@@ -272,6 +272,24 @@ Open [http://localhost:3000](http://localhost:3000).
 
 ## Version History
 
+### v0.29.0: Privacy policy, terms, and photos without their location (October 2026)
+
+**Why:** Members should be able to read, in plain words, what Our Place keeps, who sees it, and
+what it asks of them, before anyone pays for anything. And a photo shouldn't tell strangers where
+it was taken.
+
+**What changed:**
+
+- **A privacy policy (`/privacy`) and terms (`/terms`),** each with a short version up top and
+  sections you can jump between. They're linked from the front page footer and from Account
+  settings, and the contact address is ourplaceonline@proton.me.
+- **Photos lose their location before they're stored.** JPEG, PNG, and WebP uploads drop their
+  location, time, and camera details. Nothing is re-encoded, so the picture is unchanged, and a
+  phone photo keeps its orientation. A file that isn't what its type claims is refused. Videos are
+  stored as sent for now.
+- **The front page and login page say who Our Place is for** and how to ask for an account, in
+  the same words as the terms. The Our Place mushroom replaces the "OP" placeholder there.
+
 ### v0.28.0 — Keepsake Mushrooms (October 2026)
 
 **Why:** A gathering in the world should leave you with something, the way a real one leaves you
