@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
+import { LEGAL_CONTACT } from "@/components/LegalPage";
+import MushroomIcon from "@/components/MushroomIcon";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -49,8 +51,8 @@ export default function Home() {
           </h1>
 
           <p className="mt-6 text-lg text-ink-tertiary leading-relaxed max-w-2xl mx-auto sm:text-xl">
-            A social platform built on trust, belonging, and genuine connection. One human, one
-            account — because real communities are built by real people.
+            A fun, creative space online with people you&apos;d actually want to spend time with in
+            person. No ads, no bots, and no feeds built to keep you hooked.
           </p>
 
           <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -70,8 +72,8 @@ export default function Home() {
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-ink sm:text-4xl">Social media, reimagined</h2>
             <p className="mt-4 text-lg text-ink-muted max-w-2xl mx-auto">
-              We designed Our Place from the ground up to prioritize what matters most — you and
-              your community.
+              We designed Our Place from the ground up to prioritize what matters most: you and your
+              community.
             </p>
           </div>
 
@@ -95,9 +97,8 @@ export default function Home() {
               </div>
               <h3 className="text-lg font-semibold text-ink">In-Person First</h3>
               <p className="mt-2 text-sm text-ink-muted leading-relaxed">
-                Every account starts with a real-life connection. You can only join if someone who
-                knows you creates your account in person. No strangers, no bots — just people who
-                have actually met.
+                There&apos;s no public sign-up. The admin creates every account by hand, to keep out
+                bots, duplicate accounts, and bad actors.
               </p>
             </div>
 
@@ -120,8 +121,8 @@ export default function Home() {
               </div>
               <h3 className="text-lg font-semibold text-ink">Community-First Design</h3>
               <p className="mt-2 text-sm text-ink-muted leading-relaxed">
-                Everything revolves around communities — spaces built around shared interests,
-                goals, and values. Join ones that resonate or create your own.
+                Everything revolves around communities built on shared interests, goals, and values.
+                Join the ones that resonate, or start your own.
               </p>
             </div>
 
@@ -142,10 +143,10 @@ export default function Home() {
                   />
                 </svg>
               </div>
-              <h3 className="text-lg font-semibold text-ink">Safe & Collaborative</h3>
+              <h3 className="text-lg font-semibold text-ink">Who It&apos;s For</h3>
               <p className="mt-2 text-sm text-ink-muted leading-relaxed">
-                Built with safety at its core. Community guidelines, member accountability, and
-                collaborative moderation create a space where everyone can thrive.
+                Anyone open-minded, inclusive, and creative, and anyone sick of platforms that
+                exploit your humanity and sell your attention for profit.
               </p>
             </div>
           </div>
@@ -157,7 +158,7 @@ export default function Home() {
         <div className="mx-auto max-w-4xl">
           <div className="text-center mb-16">
             <h2 className="text-3xl font-bold text-ink sm:text-4xl">How it works</h2>
-            <p className="mt-4 text-lg text-ink-muted">Getting started takes just a few minutes.</p>
+            <p className="mt-4 text-lg text-ink-muted">It starts in real life.</p>
           </div>
 
           <div className="grid gap-8 sm:grid-cols-3">
@@ -165,10 +166,13 @@ export default function Home() {
               <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-accent-500 text-ink-inverse text-xl font-bold shadow-lg shadow-accent-500/25">
                 1
               </div>
-              <h3 className="mt-5 text-base font-semibold text-ink">Meet Someone</h3>
+              <h3 className="mt-5 text-base font-semibold text-ink">Request an Account</h3>
               <p className="mt-2 text-sm text-ink-muted">
-                Our Place starts in real life. Meet a member in person and they&apos;ll create your
-                account on the spot.
+                Email{" "}
+                <a href={`mailto:${LEGAL_CONTACT}`} className="text-accent-600 hover:underline">
+                  {LEGAL_CONTACT}
+                </a>{" "}
+                to request an account, or to meet the admin if you haven&apos;t yet.
               </p>
             </div>
             <div className="text-center">
@@ -186,8 +190,7 @@ export default function Home() {
               </div>
               <h3 className="mt-5 text-base font-semibold text-ink">Connect Online & Offline</h3>
               <p className="mt-2 text-sm text-ink-muted">
-                Post, comment, organize events, and build genuine connections — then take them into
-                the real world.
+                Post, plan gatherings, and explore the world together, then meet up in real life.
               </p>
             </div>
           </div>
@@ -198,13 +201,20 @@ export default function Home() {
       <footer className="border-t border-line bg-surface px-4 py-12 sm:px-6">
         <div className="mx-auto max-w-6xl text-center">
           <div className="flex items-center justify-center gap-2.5 mb-4">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-accent-500 to-purple-600 text-ink-inverse text-xs font-bold">
-              OP
-            </div>
+            <MushroomIcon />
             <span className="text-base font-bold text-ink">Our Place</span>
           </div>
           <p className="text-sm text-ink-faint">
             Built for real people. Powered by real community.
+          </p>
+          <p className="mt-3 text-sm text-ink-faint">
+            <Link href="/privacy" className="hover:text-ink-secondary hover:underline">
+              Privacy
+            </Link>
+            {" · "}
+            <Link href="/terms" className="hover:text-ink-secondary hover:underline">
+              Terms
+            </Link>
           </p>
         </div>
       </footer>

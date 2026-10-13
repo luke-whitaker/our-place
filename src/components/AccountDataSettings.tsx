@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { apiFetch, userMessage } from "@/lib/api-client";
 
@@ -212,6 +213,17 @@ export default function AccountDataSettings() {
       ) : (
         <DeleteAccount />
       )}
+      <p className="text-sm text-ink-faint">
+        How your data is used:{" "}
+        <Link href="/privacy" className="text-accent-600 hover:underline">
+          privacy policy
+        </Link>{" "}
+        and{" "}
+        <Link href="/terms" className="text-accent-600 hover:underline">
+          terms
+        </Link>
+        .
+      </p>
     </div>
   );
 }
